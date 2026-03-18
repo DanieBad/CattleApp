@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Home, List, PlusCircle, Settings, Menu, Bell } from 'lucide-react';
 import './index.css';
@@ -8,12 +9,12 @@ import { EditAnimal } from './pages/EditAnimal';
 import { Dashboard } from './pages/Dashboard';
 
 // Sidebar Navigation Item Component
-const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
+const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
   const location = useLocation();
   const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
   
   return (
-    <Link to={to} className={`nav-item ${isActive ? 'active' : ''}`}>
+    <Link to={to} className={`nav-item ${isActive ? 'active' : ''}`} onClick={onClick}>
       <Icon size={20} />
       <span>{label}</span>
     </Link>
@@ -22,21 +23,29 @@ const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: stri
 
 // Main App Layout Structure
 const App = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <BrowserRouter>
       <div className="app-container">
         
         {/* Left Sidebar */}
-        <aside className="sidebar">
+        {isSidebarOpen && (
+          <div 
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }}
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <span>CattleApp</span>
           </div>
           <nav className="sidebar-nav">
-            <NavItem to="/" icon={Home} label="Dashboard" />
-            <NavItem to="/herd" icon={List} label="My Herd" />
-            <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" />
+            <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
+            <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
+            <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
             <div style={{ flex: 1 }}></div>
-            <NavItem to="/settings" icon={Settings} label="Settings" />
+            <NavItem to="/settings" icon={Settings} label="Settings" onClick={() => setIsSidebarOpen(false)} />
           </nav>
         </aside>
 
@@ -45,7 +54,11 @@ const App = () => {
           
           {/* Top Header */}
           <header className="header">
-            <button className="btn btn-outline" style={{ border: 'none', padding: '8px' }}>
+            <button 
+              className="btn btn-outline" 
+              style={{ border: 'none', padding: '8px' }}
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
               <Menu size={24} />
             </button>
             <div style={{ flex: 1 }}></div>
