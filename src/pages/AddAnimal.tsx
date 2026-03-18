@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import type { Animal, Breed, Sex } from '../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
 export const AddAnimal = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
   const [bulls, setBulls] = useState<Animal[]>([]);
   const [cows, setCows] = useState<Animal[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Pre-fill lineage if navigated from a parent's profile page
+  const initialDamId = searchParams.get('damId') || '';
+  const initialSireId = searchParams.get('sireId') || '';
 
   const [formData, setFormData] = useState<Partial<Animal>>({
     tagNumber: '',
@@ -18,8 +24,8 @@ export const AddAnimal = () => {
     sex: 'Female',
     dateOfBirth: new Date().toISOString().split('T')[0],
     status: 'Active',
-    sireId: '',
-    damId: '',
+    sireId: initialSireId,
+    damId: initialDamId,
     weight: undefined,
   });
 

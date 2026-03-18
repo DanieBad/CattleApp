@@ -527,7 +527,16 @@ export const AnimalDetail = () => {
           </div>
 
           <div className="card" style={{ padding: '32px' }}>
-            <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Registered Offspring ({offspring.length})</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0 }}>Registered Offspring ({offspring.length})</h3>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => navigate(`/add-animal?${animal.sex === 'Female' ? 'damId' : 'sireId'}=${animal.id}`)}
+                style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> Add Calf
+              </button>
+            </div>
             
             {offspring.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No offspring registered in the system yet.</p>
