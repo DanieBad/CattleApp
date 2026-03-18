@@ -29,6 +29,7 @@ export const AddAnimal = () => {
     damId: initialDamId,
     weight: undefined,
     currentCampId: '',
+    hornStatus: undefined,
   });
 
   useEffect(() => {
@@ -69,7 +70,8 @@ export const AddAnimal = () => {
       sire_id: formData.sireId || null,
       dam_id: formData.damId || null,
       weight: formData.weight || null,
-      current_camp_id: formData.currentCampId || null
+      current_camp_id: formData.currentCampId || null,
+      horn_status: formData.hornStatus || null
     };
 
     try {
@@ -170,6 +172,20 @@ export const AddAnimal = () => {
                 value={formData.dateOfBirth}
                 onChange={e => setFormData({...formData, dateOfBirth: e.target.value})}
               />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Horn Status</label>
+              <select 
+                className="form-select"
+                value={formData.hornStatus || ''}
+                onChange={e => setFormData({...formData, hornStatus: e.target.value as any})}
+              >
+                <option value="">-- Select --</option>
+                <option value="Polled">Polled (No Horns)</option>
+                <option value="Horned">Horned</option>
+                <option value="Scurred">Scurred</option>
+              </select>
             </div>
 
             <div className="form-group">

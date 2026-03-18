@@ -26,6 +26,7 @@ export const EditAnimal = () => {
     damId: '',
     weight: undefined,
     currentCampId: '',
+    hornStatus: undefined,
   });
 
   useEffect(() => {
@@ -65,6 +66,7 @@ export const EditAnimal = () => {
         damId: animalData.dam_id || '',
         weight: animalData.weight || undefined,
         currentCampId: animalData.current_camp_id || '',
+        hornStatus: animalData.horn_status || undefined,
       });
 
     } catch (error) {
@@ -92,7 +94,8 @@ export const EditAnimal = () => {
       sire_id: formData.sireId || null,
       dam_id: formData.damId || null,
       weight: formData.weight || null,
-      current_camp_id: formData.currentCampId || null
+      current_camp_id: formData.currentCampId || null,
+      horn_status: formData.hornStatus || null
     };
 
     try {
@@ -217,6 +220,21 @@ export const EditAnimal = () => {
               <option value="Active">Active</option>
               <option value="Sold">Sold</option>
               <option value="Deceased">Deceased</option>
+            </select>
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="hornStatus">Horn Status</label>
+            <select 
+              id="hornStatus"
+              className="form-input" 
+              value={formData.hornStatus || ''}
+              onChange={(e) => setFormData({...formData, hornStatus: e.target.value as any})}
+            >
+              <option value="">-- Select --</option>
+              <option value="Polled">Polled (No Horns)</option>
+              <option value="Horned">Horned</option>
+              <option value="Scurred">Scurred</option>
             </select>
           </div>
           

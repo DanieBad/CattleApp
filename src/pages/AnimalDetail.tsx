@@ -60,7 +60,8 @@ export const AnimalDetail = () => {
     sireId: dbAnimal.sire_id,
     damId: dbAnimal.dam_id,
     weight: dbAnimal.weight,
-    currentCampId: dbAnimal.current_camp_id
+    currentCampId: dbAnimal.current_camp_id,
+    hornStatus: dbAnimal.horn_status
   });
 
   const fetchAnimalDetails = async () => {
@@ -519,7 +520,7 @@ export const AnimalDetail = () => {
               </div>
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Sex</p>
-                <p style={{ fontWeight: 500 }}>{animal.sex}</p>
+                <p style={{ fontWeight: 500 }}>{animal.sex} {animal.hornStatus ? `(${animal.hornStatus})` : ''}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Date of Birth</p>

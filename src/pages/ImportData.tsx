@@ -2,8 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import { supabase } from '../supabase';
-import { Upload, ChevronRight, CheckCircle, AlertTriangle, X } from 'lucide-react';
-import type { Animal, Breed, Sex, Status } from '../types';
+import { Upload, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import type { Animal, Breed, Status } from '../types';
 
 type Step = 'upload' | 'mapping' | 'preview' | 'success';
 
@@ -27,6 +27,7 @@ const OPTIONAL_FIELDS = [
   { key: 'name', label: 'Pet Name' },
   { key: 'eidNumber', label: 'EID (15-digit)' },
   { key: 'weight', label: 'Current Weight (kg)' },
+  { key: 'hornStatus', label: 'Horn Status (Polled, Horned, etc)' },
 ];
 
 export const ImportData = () => {
@@ -97,7 +98,8 @@ export const ImportData = () => {
         status: 'Active' as Status,
         name: getVal('name'),
         eidNumber: getVal('eidNumber'),
-        weight: getVal('weight') ? parseFloat(getVal('weight')) : undefined
+        weight: getVal('weight') ? parseFloat(getVal('weight')) : undefined,
+        hornStatus: getVal('hornStatus') as any
       };
     });
 
@@ -138,7 +140,7 @@ export const ImportData = () => {
     setIsUploading(true);
     try {
       // Clean up the temporary IDs and prepare for insertion
-      const payload = parsedAnimals.map(({ _tempId, ...rest }) => rest);
+      const payload = (parsedAnimals as Array<Partial<Animal> & { _tempId?: number }>).map(({ _tempId, ...rest }) => rest);
       
       const { error } = await supabase.from('animals').insert(payload);
       if (error) throw error;

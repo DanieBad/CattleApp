@@ -1,6 +1,7 @@
 export type Sex = 'Male' | 'Female';
 export type Status = 'Active' | 'Sold' | 'Deceased';
 export type Breed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | 'Tuli' | 'Boran' | 'Crossbreed' | 'Other';
+export type HornStatus = 'Polled' | 'Horned' | 'Scurred';
 
 export interface Animal {
   id: string;             // UUID
@@ -14,6 +15,7 @@ export interface Animal {
   status: Status;         
   sireId?: string | null; // ID of father
   damId?: string | null;  // ID of mother
+  hornStatus?: HornStatus;
   notes?: string;
   weight?: number;        // Current weight in kg
   currentCampId?: string | null; // ID of physical pasture
