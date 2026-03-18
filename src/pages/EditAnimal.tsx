@@ -133,8 +133,11 @@ export const EditAnimal = () => {
               className="form-input" 
               type="text" 
               placeholder="e.g. 982000000012345"
+              pattern="[0-9]{15}"
+              maxLength={15}
+              title="EID must be exactly 15 digits or left blank"
               value={formData.eidNumber || ''}
-              onChange={(e) => setFormData({...formData, eidNumber: e.target.value})}
+              onChange={(e) => setFormData({...formData, eidNumber: e.target.value.trim()})}
             />
           </div>
 
