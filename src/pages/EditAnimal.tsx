@@ -15,6 +15,7 @@ export const EditAnimal = () => {
   const [formData, setFormData] = useState<Partial<Animal>>({
     tagNumber: '',
     eidNumber: '',
+    isQuarantined: false,
     name: '',
     breed: 'Boran', // Default to a common breed, will be overwritten
     sex: 'Female',
@@ -47,6 +48,7 @@ export const EditAnimal = () => {
       setFormData({
         tagNumber: animalData.tag_number,
         eidNumber: animalData.eid_number || '',
+        isQuarantined: animalData.is_quarantined || false,
         name: animalData.name || '',
         breed: animalData.breed,
         sex: animalData.sex as any,
@@ -73,6 +75,7 @@ export const EditAnimal = () => {
     const updates = {
       tag_number: formData.tagNumber || 'UNKNOWN',
       eid_number: formData.eidNumber || null,
+      is_quarantined: formData.isQuarantined || false,
       name: formData.name || null,
       breed: formData.breed || 'Other',
       sex: formData.sex || 'Female',
@@ -216,6 +219,18 @@ export const EditAnimal = () => {
               value={formData.weight || ''}
               onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || undefined})}
             />
+          </div>
+
+          <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 500 }}>
+              <input 
+                type="checkbox" 
+                checked={formData.isQuarantined || false}
+                onChange={e => setFormData({...formData, isQuarantined: e.target.checked})}
+                style={{ width: '20px', height: '20px', accentColor: 'var(--danger)' }}
+              />
+              <span style={{ color: 'var(--danger)' }}>⚠️ Place this animal under Quarantine</span>
+            </label>
           </div>
         </div>
 

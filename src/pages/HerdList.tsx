@@ -28,6 +28,7 @@ export const HerdList = () => {
         id: dbAnimal.id,
         tagNumber: dbAnimal.tag_number,
         eidNumber: dbAnimal.eid_number,
+        isQuarantined: dbAnimal.is_quarantined,
         name: dbAnimal.name,
         breed: dbAnimal.breed,
         sex: dbAnimal.sex,
@@ -114,8 +115,11 @@ export const HerdList = () => {
                 </tr>
               ) : (
                 filteredHerd.map(animal => (
-                  <tr key={animal.id}>
-                    <td style={{ fontWeight: 600 }}>{animal.tagNumber}</td>
+                  <tr key={animal.id} style={animal.isQuarantined ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+                    <td style={{ fontWeight: 600 }}>
+                      {animal.tagNumber}
+                      {animal.isQuarantined && <span title="Quarantined" style={{ marginLeft: '8px', fontSize: '1.2rem', verticalAlign: 'middle' }}>😷</span>}
+                    </td>
                     <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{animal.eidNumber || '-'}</td>
                     <td>{animal.name || '-'}</td>
                     <td>{animal.breed}</td>

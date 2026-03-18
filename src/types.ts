@@ -6,6 +6,7 @@ export interface Animal {
   id: string;             // UUID
   tagNumber: string;      // Visible ear tag
   eidNumber?: string;     // Official 15-digit EID
+  isQuarantined?: boolean;// True if currently isolated
   name?: string;          // Optional pet name
   breed: Breed;           
   sex: Sex;               

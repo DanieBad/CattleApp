@@ -50,6 +50,7 @@ export const AnimalDetail = () => {
     id: dbAnimal.id,
     tagNumber: dbAnimal.tag_number,
     eidNumber: dbAnimal.eid_number,
+    isQuarantined: dbAnimal.is_quarantined,
     name: dbAnimal.name,
     breed: dbAnimal.breed,
     sex: dbAnimal.sex,
@@ -384,6 +385,7 @@ export const AnimalDetail = () => {
                 {animal.tagNumber} {animal.name && <span style={{ color: 'var(--text-muted)' }}>"{animal.name}"</span>}
               </h1>
               {getStatusBadge(animal.status)}
+              {animal.isQuarantined && <span className="badge badge-red" style={{ border: '1px solid #991B1B' }}>⚠️ QUARANTINED</span>}
             </div>
           </div>
           
@@ -395,7 +397,13 @@ export const AnimalDetail = () => {
             
             {animal.status === 'Active' && (
               <>
-                <button className="btn btn-outline" onClick={() => handleStatusChange('Sold')}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => handleStatusChange('Sold')}
+                  disabled={animal.isQuarantined}
+                  title={animal.isQuarantined ? "Cannot sell quarantined animal" : ""}
+                  style={animal.isQuarantined ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                >
                   Mark Sold
                 </button>
                 <button className="btn btn-outline" onClick={() => handleStatusChange('Deceased')}>
