@@ -1,6 +1,6 @@
 export type Sex = 'Male' | 'Female';
 export type Status = 'Active' | 'Sold' | 'Deceased';
-export type Breed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | 'Tuli' | 'Boran' | 'Other';
+export type Breed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | 'Tuli' | 'Boran' | 'Crossbreed' | 'Other';
 
 export interface Animal {
   id: string;             // UUID
