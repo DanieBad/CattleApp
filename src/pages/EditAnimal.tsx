@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal } from '../types';
+import type { Animal, Camp } from '../types';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -9,6 +9,7 @@ export const EditAnimal = () => {
   
   const [bulls, setBulls] = useState<Animal[]>([]);
   const [cows, setCows] = useState<Animal[]>([]);
+  const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +25,7 @@ export const EditAnimal = () => {
     sireId: '',
     damId: '',
     weight: undefined,
+    currentCampId: '',
   });
 
   useEffect(() => {
@@ -41,6 +43,11 @@ export const EditAnimal = () => {
       setBulls(parents.filter(a => a.sex === 'Male' && a.id !== id).map(a => ({...a, tagNumber: a.tag_number}) as any));
       setCows(parents.filter(a => a.sex === 'Female' && a.id !== id).map(a => ({...a, tagNumber: a.tag_number}) as any));
 
+      const { data: campsData } = await supabase.from('camps').select('*').order('name');
+      if (campsData) {
+        setCamps(campsData.map(c => ({ id: c.id, name: c.name }) as Camp));
+      }
+
       // Fetch animal to edit
       const { data: animalData, error: aErr } = await supabase.from('animals').select('*').eq('id', id).single();
       if (aErr) throw aErr;
@@ -57,6 +64,7 @@ export const EditAnimal = () => {
         sireId: animalData.sire_id || '',
         damId: animalData.dam_id || '',
         weight: animalData.weight || undefined,
+        currentCampId: animalData.current_camp_id || '',
       });
 
     } catch (error) {
@@ -83,7 +91,8 @@ export const EditAnimal = () => {
       status: formData.status || 'Active',
       sire_id: formData.sireId || null,
       dam_id: formData.damId || null,
-      weight: formData.weight || null
+      weight: formData.weight || null,
+      current_camp_id: formData.currentCampId || null
     };
 
     try {
@@ -222,6 +231,20 @@ export const EditAnimal = () => {
               value={formData.weight || ''}
               onChange={(e) => setFormData({...formData, weight: parseFloat(e.target.value) || undefined})}
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Current Camp / Pasture</label>
+            <select 
+              className="form-select"
+              value={formData.currentCampId || ''}
+              onChange={e => setFormData({...formData, currentCampId: e.target.value})}
+            >
+              <option value="">Unassigned</option>
+              {camps.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>

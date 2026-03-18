@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import type { Animal } from '../types';
+import type { Animal, Camp } from '../types';
 import { calculateAge } from '../utils';
 
 export const HerdList = () => {
   const navigate = useNavigate();
   const [herd, setHerd] = useState<Animal[]>([]);
+  const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -36,10 +37,16 @@ export const HerdList = () => {
         status: dbAnimal.status,
         sireId: dbAnimal.sire_id,
         damId: dbAnimal.dam_id,
-        weight: dbAnimal.weight
+        weight: dbAnimal.weight,
+        currentCampId: dbAnimal.current_camp_id
       }));
 
       setHerd(mappedHerd);
+
+      const { data: campsData } = await supabase.from('camps').select('id, name');
+      if (campsData) {
+        setCamps(campsData as Camp[]);
+      }
     } catch (error) {
       console.error('Error fetching herd:', error);
       alert('Failed to load herd data from cloud.');
@@ -95,6 +102,7 @@ export const HerdList = () => {
                 <th>Breed</th>
                 <th>Sex</th>
                 <th>Age</th>
+                <th>Camp / Pasture</th>
                 <th>Status</th>
                 <th>Weight</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -125,6 +133,15 @@ export const HerdList = () => {
                     <td>{animal.breed}</td>
                     <td>{animal.sex}</td>
                     <td>{calculateAge(animal.dateOfBirth).display}</td>
+                    <td>
+                      {animal.currentCampId ? (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--primary-dark)', backgroundColor: 'var(--surface)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
+                          ⛺ {camps.find(c => c.id === animal.currentCampId)?.name || 'Unknown'}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                      )}
+                    </td>
                     <td>{getStatusBadge(animal.status)}</td>
                     <td>{animal.weight ? `${animal.weight} kg` : '-'}</td>
                     <td style={{ textAlign: 'right' }}>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal, Breed, Sex } from '../types';
+import type { Animal, Breed, Sex, Camp } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -9,6 +9,7 @@ export const AddAnimal = () => {
   
   const [bulls, setBulls] = useState<Animal[]>([]);
   const [cows, setCows] = useState<Animal[]>([]);
+  const [camps, setCamps] = useState<Camp[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Pre-fill lineage if navigated from a parent's profile page
@@ -27,6 +28,7 @@ export const AddAnimal = () => {
     sireId: initialSireId,
     damId: initialDamId,
     weight: undefined,
+    currentCampId: '',
   });
 
   useEffect(() => {
@@ -40,8 +42,13 @@ export const AddAnimal = () => {
       
       setBulls(data.filter(a => a.sex === 'Male').map(a => ({...a, tagNumber: a.tag_number}) as any));
       setCows(data.filter(a => a.sex === 'Female').map(a => ({...a, tagNumber: a.tag_number}) as any));
+
+      const { data: campsData } = await supabase.from('camps').select('*').order('name');
+      if (campsData) {
+        setCamps(campsData.map(c => ({ id: c.id, name: c.name }) as Camp));
+      }
     } catch (error) {
-      console.error('Failed to load parents:', error);
+      console.error('Failed to load form data:', error);
     }
   };
 
@@ -61,7 +68,8 @@ export const AddAnimal = () => {
       status: formData.status || 'Active',
       sire_id: formData.sireId || null,
       dam_id: formData.damId || null,
-      weight: formData.weight || null
+      weight: formData.weight || null,
+      current_camp_id: formData.currentCampId || null
     };
 
     try {
@@ -173,6 +181,20 @@ export const AddAnimal = () => {
                 value={formData.weight || ''}
                 onChange={e => setFormData({...formData, weight: parseFloat(e.target.value)})}
               />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Current Camp / Pasture</label>
+              <select 
+                className="form-select"
+                value={formData.currentCampId || ''}
+                onChange={e => setFormData({...formData, currentCampId: e.target.value})}
+              >
+                <option value="">Unassigned</option>
+                {camps.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '10px' }}>

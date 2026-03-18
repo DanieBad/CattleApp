@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import type { Animal, HealthLog, WeightLog, MovementLog } from '../types';
+import type { Animal, HealthLog, WeightLog, MovementLog, Camp } from '../types';
 import { calculateAge } from '../utils';
 
 type Tab = 'overview' | 'health' | 'weight' | 'movement';
@@ -17,6 +17,7 @@ export const AnimalDetail = () => {
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [movementLogs, setMovementLogs] = useState<MovementLog[]>([]);
+  const [camps, setCamps] = useState<Camp[]>([]);
   
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showWeightForm, setShowWeightForm] = useState(false);
@@ -58,7 +59,8 @@ export const AnimalDetail = () => {
     status: dbAnimal.status,
     sireId: dbAnimal.sire_id,
     damId: dbAnimal.dam_id,
-    weight: dbAnimal.weight
+    weight: dbAnimal.weight,
+    currentCampId: dbAnimal.current_camp_id
   });
 
   const fetchAnimalDetails = async () => {
@@ -154,6 +156,12 @@ export const AnimalDetail = () => {
           notes: m.notes,
           createdAt: m.created_at
         })));
+      }
+
+      // 8. Fetch Camps to resolve camp names
+      const { data: cData } = await supabase.from('camps').select('*');
+      if (cData) {
+        setCamps(cData.map(c => ({ id: c.id, name: c.name }) as Camp));
       }
 
     } catch (error) {
@@ -517,6 +525,18 @@ export const AnimalDetail = () => {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Date of Birth</p>
                 <p style={{ fontWeight: 500 }}>
                   {new Date(animal.dateOfBirth).toLocaleDateString()} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({calculateAge(animal.dateOfBirth).display} old)</span>
+                </p>
+              </div>
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Current Camp</p>
+                <p style={{ fontWeight: 500 }}>
+                  {animal.currentCampId ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'var(--surface)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>
+                      📍 {camps.find(c => c.id === animal.currentCampId)?.name || 'Unknown'}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>
+                  )}
                 </p>
               </div>
               <div>

@@ -16,6 +16,16 @@ export interface Animal {
   damId?: string | null;  // ID of mother
   notes?: string;
   weight?: number;        // Current weight in kg
+  currentCampId?: string | null; // ID of physical pasture
+}
+
+export interface Camp {
+  id: string;
+  userId: string;
+  name: string;
+  sizeHectares?: number;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface WeightLog {

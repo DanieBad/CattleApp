@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings, Menu, Bell, Activity, LogOut } from 'lucide-react';
+import { Home, List, PlusCircle, Settings, Menu, Bell, Activity, LogOut, Tent } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { AddAnimal } from './pages/AddAnimal';
@@ -8,6 +8,7 @@ import { AnimalDetail } from './pages/AnimalDetail';
 import { EditAnimal } from './pages/EditAnimal';
 import { Dashboard } from './pages/Dashboard';
 import { BatchHealth } from './pages/BatchHealth';
+import { CampsList } from './pages/CampsList';
 import { Auth } from './pages/Auth';
 import { Landing } from './pages/Landing';
 import { supabase } from './supabase';
@@ -88,6 +89,7 @@ const App = () => {
           <nav className="sidebar-nav">
             <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
+            <NavItem to="/camps" icon={Tent} label="Pastures & Camps" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
             <div style={{ flex: 1 }}></div>
@@ -138,6 +140,7 @@ const App = () => {
                   <Route path="/herd/add" element={<AddAnimal />} />
                   <Route path="/herd/:id" element={<AnimalDetail />} />
                   <Route path="/herd/:id/edit" element={<EditAnimal />} />
+                  <Route path="/camps" element={<CampsList />} />
                   <Route path="/batch-health" element={<BatchHealth />} />
                 </Routes>
           </main>
