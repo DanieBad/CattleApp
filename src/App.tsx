@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings, Menu, Bell, Activity } from 'lucide-react';
+import { Home, List, PlusCircle, Settings, Menu, Bell, Activity, LogOut } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { AddAnimal } from './pages/AddAnimal';
@@ -8,6 +8,9 @@ import { AnimalDetail } from './pages/AnimalDetail';
 import { EditAnimal } from './pages/EditAnimal';
 import { Dashboard } from './pages/Dashboard';
 import { BatchHealth } from './pages/BatchHealth';
+import { Auth } from './pages/Auth';
+import { supabase } from './supabase';
+import type { Session } from '@supabase/supabase-js';
 
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
@@ -24,7 +27,38 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, la
 
 // Main App Layout Structure
 const App = () => {
+  const [session, setSession] = useState<Session | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // Prevent flashing the login screen while checking existing sessions
+  if (isAuthLoading) {
+    return <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 600 }}>Loading CattleApp...</div>;
+  }
+
+  // If no user is logged in, securely lock down the app and strictly render the Auth component
+  if (!session) {
+    return <Auth />;
+  }
 
   return (
     <BrowserRouter>
@@ -48,6 +82,14 @@ const App = () => {
             <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
             <div style={{ flex: 1 }}></div>
             <NavItem to="/settings" icon={Settings} label="Settings" onClick={() => setIsSidebarOpen(false)} />
+            <button 
+              onClick={handleSignOut}
+              className="nav-item" 
+              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--danger)', marginTop: '8px' }}
+            >
+              <LogOut size={20} />
+              <span>Sign Out</span>
+            </button>
           </nav>
         </aside>
 
