@@ -139,8 +139,18 @@ export const ImportData = () => {
 
     setIsUploading(true);
     try {
-      // Clean up the temporary IDs and prepare for insertion
-      const payload = (parsedAnimals as Array<Partial<Animal> & { _tempId?: number }>).map(({ _tempId, ...rest }) => rest);
+      // Map frontend camelCase to database snake_case columns
+      const payload = (parsedAnimals as any[]).map((animal) => ({
+        tag_number: animal.tagNumber || 'UNKNOWN',
+        eid_number: animal.eidNumber || null,
+        name: animal.name || null,
+        breed: animal.breed || 'Other',
+        sex: animal.sex || 'Female',
+        date_of_birth: animal.dateOfBirth,
+        status: animal.status || 'Active',
+        weight: animal.weight || null,
+        horn_status: animal.hornStatus || null
+      }));
       
       const { error } = await supabase.from('animals').insert(payload);
       if (error) throw error;
