@@ -49,6 +49,7 @@ export const AnimalDetail = () => {
   const mapToCamelCase = (dbAnimal: any): Animal => ({
     id: dbAnimal.id,
     tagNumber: dbAnimal.tag_number,
+    eidNumber: dbAnimal.eid_number,
     name: dbAnimal.name,
     breed: dbAnimal.breed,
     sex: dbAnimal.sex,
@@ -492,6 +493,10 @@ export const AnimalDetail = () => {
             <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Animal Profile</h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>EID Tag</p>
+                <p style={{ fontWeight: 500, fontFamily: 'monospace' }}>{animal.eidNumber || 'Not registered'}</p>
+              </div>
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Breed</p>
                 <p style={{ fontWeight: 500 }}>{animal.breed}</p>

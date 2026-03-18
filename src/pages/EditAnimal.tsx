@@ -14,6 +14,7 @@ export const EditAnimal = () => {
 
   const [formData, setFormData] = useState<Partial<Animal>>({
     tagNumber: '',
+    eidNumber: '',
     name: '',
     breed: 'Boran', // Default to a common breed, will be overwritten
     sex: 'Female',
@@ -45,6 +46,7 @@ export const EditAnimal = () => {
 
       setFormData({
         tagNumber: animalData.tag_number,
+        eidNumber: animalData.eid_number || '',
         name: animalData.name || '',
         breed: animalData.breed,
         sex: animalData.sex as any,
@@ -70,6 +72,7 @@ export const EditAnimal = () => {
     
     const updates = {
       tag_number: formData.tagNumber || 'UNKNOWN',
+      eid_number: formData.eidNumber || null,
       name: formData.name || null,
       breed: formData.breed || 'Other',
       sex: formData.sex || 'Female',
@@ -117,6 +120,18 @@ export const EditAnimal = () => {
               required 
               value={formData.tagNumber}
               onChange={(e) => setFormData({...formData, tagNumber: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="eidNumber">EID Tag (15-digit)</label>
+            <input 
+              id="eidNumber"
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. 982000000012345"
+              value={formData.eidNumber || ''}
+              onChange={(e) => setFormData({...formData, eidNumber: e.target.value})}
             />
           </div>
 

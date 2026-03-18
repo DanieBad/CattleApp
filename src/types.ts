@@ -5,6 +5,7 @@ export type Breed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | '
 export interface Animal {
   id: string;             // UUID
   tagNumber: string;      // Visible ear tag
+  eidNumber?: string;     // Official 15-digit EID
   name?: string;          // Optional pet name
   breed: Breed;           
   sex: Sex;               

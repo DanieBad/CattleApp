@@ -27,6 +27,7 @@ export const HerdList = () => {
       const mappedHerd: Animal[] = data.map(dbAnimal => ({
         id: dbAnimal.id,
         tagNumber: dbAnimal.tag_number,
+        eidNumber: dbAnimal.eid_number,
         name: dbAnimal.name,
         breed: dbAnimal.breed,
         sex: dbAnimal.sex,
@@ -48,6 +49,7 @@ export const HerdList = () => {
 
   const filteredHerd = herd.filter(animal => 
     animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (animal.eidNumber && animal.eidNumber.includes(searchTerm)) ||
     animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     animal.breed.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -87,6 +89,7 @@ export const HerdList = () => {
             <thead>
               <tr>
                 <th>Tag Number</th>
+                <th>EID (15-digit)</th>
                 <th>Name</th>
                 <th>Breed</th>
                 <th>Sex</th>
@@ -113,6 +116,7 @@ export const HerdList = () => {
                 filteredHerd.map(animal => (
                   <tr key={animal.id}>
                     <td style={{ fontWeight: 600 }}>{animal.tagNumber}</td>
+                    <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{animal.eidNumber || '-'}</td>
                     <td>{animal.name || '-'}</td>
                     <td>{animal.breed}</td>
                     <td>{animal.sex}</td>

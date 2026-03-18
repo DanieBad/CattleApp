@@ -11,6 +11,7 @@ export const AddAnimal = () => {
 
   const [formData, setFormData] = useState<Partial<Animal>>({
     tagNumber: '',
+    eidNumber: '',
     name: '',
     breed: 'Boran',
     sex: 'Female',
@@ -44,6 +45,7 @@ export const AddAnimal = () => {
     // Create the full Animal object for Supabase (snake_case)
     const newAnimal = {
       tag_number: formData.tagNumber || 'UNKNOWN',
+      eid_number: formData.eidNumber || null,
       name: formData.name || null,
       breed: formData.breed || 'Other',
       sex: formData.sex || 'Female',
@@ -89,6 +91,16 @@ export const AddAnimal = () => {
                 placeholder="e.g. A-102"
                 value={formData.tagNumber}
                 onChange={e => setFormData({...formData, tagNumber: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">EID Tag (15-digit)</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="e.g. 982000000012345"
+                value={formData.eidNumber || ''}
+                onChange={e => setFormData({...formData, eidNumber: e.target.value})}
               />
             </div>
             <div className="form-group">
