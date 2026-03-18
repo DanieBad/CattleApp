@@ -9,6 +9,7 @@ import { EditAnimal } from './pages/EditAnimal';
 import { Dashboard } from './pages/Dashboard';
 import { BatchHealth } from './pages/BatchHealth';
 import { Auth } from './pages/Auth';
+import { Landing } from './pages/Landing';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
 
@@ -55,9 +56,18 @@ const App = () => {
     return <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 600 }}>Loading CattleApp...</div>;
   }
 
-  // If no user is logged in, securely lock down the app and strictly render the Auth component
+  // If no user is logged in, securely lock down the app and strictly render the Public Routes
   if (!session) {
-    return <Auth />;
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Auth />} />
+          {/* Catch-all redirect to the landing page */}
+          <Route path="*" element={<Landing />} />
+        </Routes>
+      </BrowserRouter>
+    );
   }
 
   return (
