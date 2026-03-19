@@ -151,7 +151,8 @@ export const AddAnimal = () => {
                     species: newSpecies, 
                     breed: defaultBreed as Breed, 
                     sireId: '', 
-                    damId: ''
+                    damId: '',
+                    hornStatus: newSpecies === 'Sheep' ? undefined : formData.hornStatus
                   });
                 }}
               >
@@ -287,6 +288,7 @@ export const AddAnimal = () => {
               <label className="form-label">Horn Status</label>
               <select 
                 className="form-select"
+                disabled={formData.species === 'Sheep'}
                 value={formData.hornStatus || ''}
                 onChange={e => setFormData({...formData, hornStatus: e.target.value as any})}
               >

@@ -336,6 +336,7 @@ export const EditAnimal = () => {
             <select 
               id="hornStatus"
               className="form-input" 
+              disabled={formData.species === 'Sheep'}
               value={formData.hornStatus || ''}
               onChange={(e) => setFormData({...formData, hornStatus: e.target.value as any})}
             >
