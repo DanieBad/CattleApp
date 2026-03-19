@@ -12,6 +12,7 @@ import { CampsList } from './pages/CampsList';
 import { ImportData } from './pages/ImportData';
 import { Auth } from './pages/Auth';
 import { Landing } from './pages/Landing';
+import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
 
@@ -84,8 +85,8 @@ const App = () => {
           />
         )}
         <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <span>CattleApp</span>
+          <div className="sidebar-header" style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+            <img src={logo} alt="HealthyHerd" style={{ maxHeight: '48px', objectFit: 'contain' }} />
           </div>
           <nav className="sidebar-nav">
             <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />

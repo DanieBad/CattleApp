@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
+import logo from '../assets/Logo.png';
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -33,7 +34,9 @@ export const Auth = () => {
   return (
     <div className="fade-in" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '40px' }}>
-        <h1 style={{ color: 'var(--primary-dark)', fontSize: '1.8rem', textAlign: 'center', marginBottom: '8px' }}>CattleApp<span style={{color: 'var(--primary)'}}>Beta</span></h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <img src={logo} alt="HealthyHerd Logo" style={{ height: '60px' }} />
+        </div>
         <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '32px' }}>
           {isLogin ? 'Sign in to access your herd.' : 'Create your free account today.'}
         </p>

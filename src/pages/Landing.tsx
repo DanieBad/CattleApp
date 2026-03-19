@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Activity, MapPin, Scale, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Activity, MapPin, Scale, ArrowRight } from 'lucide-react';
+import logo from '../assets/Logo.png';
 
 export const Landing = () => {
   const navigate = useNavigate();
@@ -9,9 +10,8 @@ export const Landing = () => {
       
       {/* HEADER */}
       <header style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={28} color="var(--primary)" />
-          CattleApp<span style={{color: 'var(--primary)'}}>Beta</span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src={logo} alt="HealthyHerd Logo" style={{ height: '40px' }} />
         </div>
         <button 
           onClick={() => navigate('/login')}
@@ -79,7 +79,7 @@ export const Landing = () => {
 
       {/* FOOTER */}
       <footer style={{ padding: '40px', textAlign: 'center', borderTop: '1px solid var(--border)', backgroundColor: 'var(--bg-main)', color: 'var(--text-muted)' }}>
-        <p>&copy; {new Date().getFullYear()} CattleApp SaaS Platform. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} HealthyHerd SaaS Platform. All rights reserved.</p>
         <p style={{ fontSize: '0.875rem', marginTop: '8px' }}>Designed for modern livestock management.</p>
       </footer>
     </div>
