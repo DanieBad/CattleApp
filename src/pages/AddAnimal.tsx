@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal, Breed, Sex, Camp } from '../types';
+import type { Animal, Breed, Sex, Camp, Species } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -17,6 +17,7 @@ export const AddAnimal = () => {
   const initialSireId = searchParams.get('sireId') || '';
 
   const [formData, setFormData] = useState<Partial<Animal>>({
+    species: 'Cattle',
     tagNumber: '',
     eidNumber: '',
     isQuarantined: false,
@@ -38,7 +39,7 @@ export const AddAnimal = () => {
 
   const fetchParents = async () => {
     try {
-      const { data, error } = await supabase.from('animals').select('id, tag_number, name, sex');
+      const { data, error } = await supabase.from('animals').select('id, tag_number, name, sex, species');
       if (error) throw error;
       
       setBulls(data.filter(a => a.sex === 'Male').map(a => ({...a, tagNumber: a.tag_number}) as any));
@@ -59,6 +60,7 @@ export const AddAnimal = () => {
     
     // Create the full Animal object for Supabase (snake_case)
     const newAnimal = {
+      species: formData.species || 'Cattle',
       tag_number: formData.tagNumber || 'UNKNOWN',
       eid_number: formData.eidNumber || null,
       is_quarantined: formData.isQuarantined || false,
@@ -101,6 +103,21 @@ export const AddAnimal = () => {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div className="form-group">
+              <label className="form-label">Species *</label>
+              <select 
+                className="form-select"
+                value={formData.species}
+                onChange={e => {
+                  const newSpecies = e.target.value as Species;
+                  setFormData({...formData, species: newSpecies, breed: newSpecies === 'Cattle' ? 'Boran' : 'Merino', sireId: '', damId: ''});
+                }}
+              >
+                <option value="Cattle">Cattle</option>
+                <option value="Sheep">Sheep</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
               <label className="form-label">Ear Tag Number *</label>
               <input 
                 required
@@ -142,11 +159,25 @@ export const AddAnimal = () => {
                 value={formData.breed}
                 onChange={e => setFormData({...formData, breed: e.target.value as Breed})}
               >
-                <option value="Angus">Angus</option>
-                <option value="Brahman">Brahman</option>
-                <option value="Hereford">Hereford</option>
-                <option value="Holstein">Holstein</option>
-                <option value="Tuli">Tuli</option>
+                {formData.species === 'Cattle' ? (
+                  <>
+                    <option value="Angus">Angus</option>
+                    <option value="Brahman">Brahman</option>
+                    <option value="Hereford">Hereford</option>
+                    <option value="Holstein">Holstein</option>
+                    <option value="Jersey">Jersey</option>
+                    <option value="Tuli">Tuli</option>
+                    <option value="Boran">Boran</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Merino">Merino</option>
+                    <option value="Dorper">Dorper</option>
+                    <option value="Meatmaster">Meatmaster</option>
+                    <option value="Suffolk">Suffolk</option>
+                    <option value="Afrino">Afrino</option>
+                  </>
+                )}
                 <option value="Crossbreed">Crossbreed</option>
                 <option value="Other">Other</option>
               </select>
@@ -159,8 +190,8 @@ export const AddAnimal = () => {
                 value={formData.sex}
                 onChange={e => setFormData({...formData, sex: e.target.value as Sex})}
               >
-                <option value="Female">Female (Cow/Heifer)</option>
-                <option value="Male">Male (Bull/Steer)</option>
+                <option value="Female">Female ({formData.species === 'Cattle' ? 'Cow/Heifer' : 'Ewe'})</option>
+                <option value="Male">Male ({formData.species === 'Cattle' ? 'Bull/Steer' : 'Ram/Wether'})</option>
               </select>
             </div>
 
@@ -237,7 +268,7 @@ export const AddAnimal = () => {
                 onChange={e => setFormData({...formData, sireId: e.target.value})}
               >
                 <option value="">Unknown / Purchased</option>
-                {bulls.map(b => (
+                {bulls.filter(b => b.species === formData.species).map(b => (
                   <option key={b.id} value={b.id}>{b.tagNumber} {b.name ? `(${b.name})` : ''}</option>
                 ))}
               </select>
@@ -251,7 +282,7 @@ export const AddAnimal = () => {
                 onChange={e => setFormData({...formData, damId: e.target.value})}
               >
                 <option value="">Unknown / Purchased</option>
-                {cows.map(c => (
+                {cows.filter(c => c.species === formData.species).map(c => (
                   <option key={c.id} value={c.id}>{c.tagNumber} {c.name ? `(${c.name})` : ''}</option>
                 ))}
               </select>

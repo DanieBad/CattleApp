@@ -10,6 +10,7 @@ export const HerdList = () => {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [speciesFilter, setSpeciesFilter] = useState<'All' | 'Cattle' | 'Sheep'>('All');
 
   useEffect(() => {
     fetchHerd();
@@ -27,6 +28,7 @@ export const HerdList = () => {
       // Supabase returns snake_case, map it to our camelCase Animal interface
       const mappedHerd: Animal[] = data.map(dbAnimal => ({
         id: dbAnimal.id,
+        species: dbAnimal.species || 'Cattle',
         tagNumber: dbAnimal.tag_number,
         eidNumber: dbAnimal.eid_number,
         isQuarantined: dbAnimal.is_quarantined,
@@ -55,12 +57,17 @@ export const HerdList = () => {
     }
   };
 
-  const filteredHerd = herd.filter(animal => 
-    animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (animal.eidNumber && animal.eidNumber.includes(searchTerm)) ||
-    animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    animal.breed.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredHerd = herd.filter(animal => {
+    const matchesSearch = 
+      animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (animal.eidNumber && animal.eidNumber.includes(searchTerm)) ||
+      animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
+    
+    return matchesSearch && matchesSpecies;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -80,15 +87,36 @@ export const HerdList = () => {
         </button>
       </div>
 
-      <div className="card" style={{ padding: '24px', marginBottom: '24px' }}>
+      <div className="card" style={{ padding: '24px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <input 
           type="text" 
           placeholder="Search by tag, name, or breed..." 
           className="form-input"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ maxWidth: '400px' }}
+          style={{ maxWidth: '400px', flex: 1 }}
         />
+        
+        <div style={{ display: 'flex', backgroundColor: 'var(--surface)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <button 
+            onClick={() => setSpeciesFilter('All')}
+            style={{ padding: '8px 16px', background: speciesFilter === 'All' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'All' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            All Animals
+          </button>
+          <button 
+            onClick={() => setSpeciesFilter('Cattle')}
+            style={{ padding: '8px 16px', background: speciesFilter === 'Cattle' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'Cattle' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            🐄 Cattle
+          </button>
+          <button 
+            onClick={() => setSpeciesFilter('Sheep')}
+            style={{ padding: '8px 16px', background: speciesFilter === 'Sheep' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'Sheep' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+          >
+            🐑 Sheep
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -125,6 +153,9 @@ export const HerdList = () => {
                 filteredHerd.map(animal => (
                   <tr key={animal.id} style={animal.isQuarantined ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
                     <td style={{ fontWeight: 600 }}>
+                      <span style={{ fontSize: '1.2rem', marginRight: '6px', verticalAlign: 'middle' }}>
+                        {animal.species === 'Sheep' ? '🐑' : '🐄'}
+                      </span>
                       {animal.tagNumber}
                       {animal.isQuarantined && <span title="Quarantined" style={{ marginLeft: '8px', fontSize: '1.2rem', verticalAlign: 'middle' }}>😷</span>}
                     </td>

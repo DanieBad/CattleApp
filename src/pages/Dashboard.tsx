@@ -27,6 +27,7 @@ export const Dashboard = () => {
       if (data) {
         setAnimals(data.map(a => ({
           id: a.id,
+          species: a.species || 'Cattle',
           tagNumber: a.tag_number,
           name: a.name,
           breed: a.breed,

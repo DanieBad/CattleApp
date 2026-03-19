@@ -37,6 +37,7 @@ export const BatchHealth = () => {
     } else if (data) {
       const mappedHerd: Animal[] = data.map((dbAnimal: any) => ({
         id: dbAnimal.id,
+        species: dbAnimal.species || 'Cattle',
         tagNumber: dbAnimal.tag_number,
         eidNumber: dbAnimal.eid_number,
         isQuarantined: dbAnimal.is_quarantined,

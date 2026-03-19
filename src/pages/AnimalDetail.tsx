@@ -49,6 +49,7 @@ export const AnimalDetail = () => {
 
   const mapToCamelCase = (dbAnimal: any): Animal => ({
     id: dbAnimal.id,
+    species: dbAnimal.species || 'Cattle',
     tagNumber: dbAnimal.tag_number,
     eidNumber: dbAnimal.eid_number,
     isQuarantined: dbAnimal.is_quarantined,
@@ -390,7 +391,8 @@ export const AnimalDetail = () => {
               &larr; Back to Herd
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <h1 className="page-title" style={{ marginBottom: 0 }}>
+              <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>{animal.species === 'Sheep' ? '🐑' : '🐄'}</span>
                 {animal.tagNumber} {animal.name && <span style={{ color: 'var(--text-muted)' }}>"{animal.name}"</span>}
               </h1>
               {getStatusBadge(animal.status)}
@@ -513,6 +515,12 @@ export const AnimalDetail = () => {
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>EID Tag</p>
                 <p style={{ fontWeight: 500, fontFamily: 'monospace' }}>{animal.eidNumber || 'Not registered'}</p>
+              </div>
+              <div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Species</p>
+                <p style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {animal.species === 'Sheep' ? '🐑' : '🐄'} {animal.species}
+                </p>
               </div>
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Breed</p>

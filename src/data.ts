@@ -4,6 +4,7 @@ import type { Animal } from './types';
 export let initialHerd: Animal[] = [
   {
     id: '1',
+    species: 'Cattle',
     tagNumber: 'BULL-01',
     name: 'Ferdinand',
     breed: 'Brahman',
@@ -16,6 +17,7 @@ export let initialHerd: Animal[] = [
   },
   {
     id: '2',
+    species: 'Cattle',
     tagNumber: 'C-552',
     name: 'Bessie',
     breed: 'Angus',
@@ -28,6 +30,7 @@ export let initialHerd: Animal[] = [
   },
   {
     id: '3',
+    species: 'Cattle',
     tagNumber: 'C-553',
     breed: 'Crossbreed',
     sex: 'Female',
@@ -39,6 +42,7 @@ export let initialHerd: Animal[] = [
   },
   {
     id: '4',
+    species: 'Cattle',
     tagNumber: 'CALF-12',
     breed: 'Crossbreed',
     sex: 'Male',

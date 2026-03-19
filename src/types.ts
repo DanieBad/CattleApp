@@ -1,10 +1,14 @@
 export type Sex = 'Male' | 'Female';
 export type Status = 'Active' | 'Sold' | 'Deceased';
-export type Breed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | 'Tuli' | 'Boran' | 'Crossbreed' | 'Other';
+export type Species = 'Cattle' | 'Sheep';
+export type CattleBreed = 'Angus' | 'Brahman' | 'Hereford' | 'Holstein' | 'Jersey' | 'Tuli' | 'Boran' | 'Crossbreed' | 'Other';
+export type SheepBreed = 'Merino' | 'Dorper' | 'Meatmaster' | 'Suffolk' | 'Afrino' | 'Crossbreed' | 'Other';
+export type Breed = CattleBreed | SheepBreed;
 export type HornStatus = 'Polled' | 'Horned' | 'Scurred';
 
 export interface Animal {
   id: string;             // UUID
+  species: Species;
   tagNumber: string;      // Visible ear tag
   eidNumber?: string;     // Official 15-digit EID
   isQuarantined?: boolean;// True if currently isolated
