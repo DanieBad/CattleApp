@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal, Breed, Sex, Camp, Species, FarmSettings } from '../types';
+import type { Animal, Camp, Species, FarmSettings } from '../types';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
