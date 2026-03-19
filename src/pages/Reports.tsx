@@ -182,7 +182,7 @@ const PastureReport = ({ movementLogs, camps }: { movementLogs: MovementLog[]; c
       (a, b) => new Date(a.movementDate).getTime() - new Date(b.movementDate).getTime()
     );
     const durations: number[] = [];
-    arrivals.forEach((arrival, i) => {
+    arrivals.forEach((arrival, _i) => {
       const nextEvent = movementLogs.filter(
         m => m.origin === camp.name && new Date(m.movementDate) > new Date(arrival.movementDate)
       ).sort((a, b) => new Date(a.movementDate).getTime() - new Date(b.movementDate).getTime())[0];
@@ -331,8 +331,8 @@ const ReproductiveReport = ({ animals }: { animals: Animal[] }) => {
                 <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v) => [`${v} days`, 'Avg Interval']} />
                 <Bar dataKey="interval" radius={[0, 4, 4, 0]}>
-                  {chartData.map((d, _i) => (
-                    <Cell key={i} fill={d.interval <= 365 ? '#10B981' : d.interval <= 400 ? '#F59E0B' : '#EF4444'} />
+                  {chartData.map((_, _i) => (
+                    <Cell key={_i} fill={COLORS[_i % COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>
