@@ -320,8 +320,9 @@ export const CampsList = () => {
                       </div>
                     </label>
                   ))}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
             
             <div style={{ padding: '24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: '0 0 8px 8px' }}>
