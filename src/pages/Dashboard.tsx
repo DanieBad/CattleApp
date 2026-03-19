@@ -106,13 +106,13 @@ export const Dashboard = () => {
   if (animals.length === 0) {
     return (
       <div className="fade-in">
-        <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '12px', padding: '32px', marginBottom: '40px', display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <div style={{ backgroundColor: '#0EA5E9', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+        <div style={{ backgroundColor: '#ECFDF5', border: '1px solid #D1FAE5', borderRadius: '12px', padding: '32px', marginBottom: '40px', display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ backgroundColor: 'var(--primary)', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
             <LayoutDashboard size={32} />
           </div>
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, color: '#0369A1', fontSize: '1.75rem' }}>Welcome to your Farm Dashboard!</h1>
-            <p style={{ margin: '8px 0 0', color: '#0C4A6E', fontSize: '1.1rem' }}>Let's get your digital farm setup in 3 easy steps to unlock your herd analytics.</p>
+            <h1 style={{ margin: 0, color: '#065F46', fontSize: '1.75rem' }}>Welcome to your Farm Dashboard!</h1>
+            <p style={{ margin: '8px 0 0', color: '#064E3B', fontSize: '1.1rem' }}>Let's get your digital farm setup in 3 easy steps to unlock your herd analytics.</p>
           </div>
         </div>
 
