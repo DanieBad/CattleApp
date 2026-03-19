@@ -111,8 +111,20 @@ export const AddAnimal = () => {
     };
 
     try {
-      const { error } = await supabase.from('animals').insert([newAnimal]);
+      const { data: insertedAnimal, error } = await supabase.from('animals').insert([newAnimal]).select().single();
       if (error) throw error;
+
+      // Log initial movement if camp is assigned
+      if (formData.currentCampId && insertedAnimal) {
+        const destCamp = camps.find(c => c.id === formData.currentCampId)?.name || 'Unassigned';
+        await supabase.from('movement_log').insert([{
+          animal_id: insertedAnimal.id,
+          movement_date: new Date().toISOString().split('T')[0],
+          origin: 'Initial Assignment / Purchase',
+          destination: destCamp,
+          notes: 'Automatic log on creation'
+        }]);
+      }
       
       alert(`Successfully saved ${newAnimal.tag_number}!`);
       navigate('/herd');

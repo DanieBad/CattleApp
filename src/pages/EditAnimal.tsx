@@ -13,6 +13,7 @@ export const EditAnimal = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [farmSettings, setFarmSettings] = useState<Partial<FarmSettings> | null>(null);
+  const [initialCampId, setInitialCampId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Animal>>({
     species: 'Cattle',
@@ -108,6 +109,7 @@ export const EditAnimal = () => {
         currentCampId: animalData.current_camp_id || '',
         hornStatus: animalData.horn_status || undefined,
       });
+      setInitialCampId(animalData.current_camp_id || '');
 
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -142,6 +144,20 @@ export const EditAnimal = () => {
     try {
       const { error } = await supabase.from('animals').update(updates).eq('id', id);
       if (error) throw error;
+
+      // Log movement if camp changed
+      if (formData.currentCampId !== initialCampId) {
+        const originCamp = camps.find(c => c.id === initialCampId)?.name || 'Unassigned / Previous';
+        const destCamp = camps.find(c => c.id === formData.currentCampId)?.name || 'Unassigned';
+        
+        await supabase.from('movement_log').insert([{
+          animal_id: id,
+          movement_date: new Date().toISOString().split('T')[0],
+          origin: originCamp,
+          destination: destCamp,
+          notes: 'Changed via individual record edit'
+        }]);
+      }
       
       alert(`Successfully updated ${updates.tag_number}!`);
       navigate(`/herd/${id}`);

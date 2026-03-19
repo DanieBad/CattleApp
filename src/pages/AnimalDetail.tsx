@@ -552,6 +552,25 @@ export const AnimalDetail = () => {
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Current Weight</p>
                 <p style={{ fontWeight: 500 }}>{animal.weight ? `${animal.weight} kg` : 'Not recorded'}</p>
               </div>
+              {animal.currentCampId && movementLogs.length > 0 && (
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Days in Current Pasture</p>
+                  <p style={{ fontWeight: 500, color: 'var(--primary-dark)' }}>
+                    {(() => {
+                      const currentCampName = camps.find(c => c.id === animal.currentCampId)?.name;
+                      const lastMoveToCurrent = movementLogs.find(m => m.destination === currentCampName);
+                      if (!lastMoveToCurrent) return 'Unknown (No recent log)';
+                      
+                      const moveDate = new Date(lastMoveToCurrent.movementDate);
+                      const today = new Date();
+                      const diffTime = Math.abs(today.getTime() - moveDate.getTime());
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+                      
+                      return `${diffDays} Day${diffDays === 1 ? '' : 's'} (since ${moveDate.toLocaleDateString()})`;
+                    })()}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
