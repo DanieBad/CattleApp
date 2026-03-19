@@ -268,23 +268,50 @@ export const CampsList = () => {
             </div>
             
             <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
-              {animals.filter(a => a.currentCampId !== selectedCampId).length === 0 ? (
-                <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>All your active animals are already located in this camp.</p>
-              ) : (
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {animals.filter(a => a.currentCampId !== selectedCampId).map(animal => (
-                    <label key={animal.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedAnimals.has(animal.id) ? '#F0F9FF' : 'transparent', transition: 'background-color 0.2s' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={selectedAnimals.has(animal.id)}
-                        onChange={(e) => {
-                          const newSet = new Set(selectedAnimals);
-                          if (e.target.checked) newSet.add(animal.id);
-                          else newSet.delete(animal.id);
-                          setSelectedAnimals(newSet);
-                        }}
-                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                      />
+              {(() => {
+                const moveCandidates = animals.filter(a => a.currentCampId !== selectedCampId);
+                const isAllSelected = moveCandidates.length > 0 && moveCandidates.every(a => selectedAnimals.has(a.id));
+                const isNoneSelected = selectedAnimals.size === 0;
+
+                if (moveCandidates.length === 0) {
+                  return <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>All your active animals are already located in this camp.</p>;
+                }
+
+                return (
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    <div style={{ marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                       <label style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', cursor: 'pointer', fontWeight: 700, color: 'var(--primary)' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isAllSelected}
+                          ref={el => { if (el) el.indeterminate = !isAllSelected && !isNoneSelected && moveCandidates.some(a => selectedAnimals.has(a.id)); }}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedAnimals);
+                            moveCandidates.forEach(a => {
+                              if (e.target.checked) newSet.add(a.id);
+                              else newSet.delete(a.id);
+                            });
+                            setSelectedAnimals(newSet);
+                          }}
+                          style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                        />
+                        Select All Animals ({moveCandidates.length})
+                      </label>
+                    </div>
+
+                    {moveCandidates.map(animal => (
+                      <label key={animal.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedAnimals.has(animal.id) ? '#F0F9FF' : 'transparent', transition: 'background-color 0.2s' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={selectedAnimals.has(animal.id)}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedAnimals);
+                            if (e.target.checked) newSet.add(animal.id);
+                            else newSet.delete(animal.id);
+                            setSelectedAnimals(newSet);
+                          }}
+                          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                        />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-main)' }}>{animal.tagNumber}</div>
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
