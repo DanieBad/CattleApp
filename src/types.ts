@@ -2,7 +2,7 @@ export type Sex = 'Male' | 'Female';
 export type Status = 'Active' | 'Sold' | 'Deceased';
 export type Species = 'Cattle' | 'Sheep';
 export type CattleBreed = 'Bonsmara' | 'Brahman' | 'Nguni' | 'Simmentaler' | 'Afrikaner' | 'Drakensberger' | 'Angus' | 'Boran' | 'Tuli' | 'Sussex' | 'Jersey' | 'Limousin' | 'Holstein Friesian' | 'Wagyu' | 'Zebu / Indicus' | 'Hereford' | 'Charolais' | 'Brown Swiss' | 'Shorthorn' | 'Gelbvieh' | 'Crossbreed' | 'Other';
-export type SheepBreed = 'Merino' | 'Dorper' | 'Meatmaster' | 'Suffolk' | 'Afrino' | 'Crossbreed' | 'Other';
+export type SheepBreed = 'Dorper' | 'Merino' | 'Dohne Merino' | 'Vleismerino' | 'Meatmaster' | 'Van Rooy' | 'Ile de France' | 'Letelle' | 'Damara' | 'Suffolk' | 'Afrino' | 'Texel' | 'Hampshire Down' | 'Rambouillet' | 'Romney' | 'Corriedale' | 'Awassi' | 'Karakul' | 'East Friesian' | 'Crossbreed' | 'Other';
 export type Breed = CattleBreed | SheepBreed;
 export type HornStatus = 'Polled' | 'Horned' | 'Scurred';
 

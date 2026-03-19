@@ -184,11 +184,25 @@ export const AddAnimal = () => {
                   </>
                 ) : (
                   <>
-                    <option value="Merino">Merino</option>
                     <option value="Dorper">Dorper</option>
+                    <option value="Merino">Merino</option>
+                    <option value="Dohne Merino">Dohne Merino</option>
+                    <option value="Vleismerino">Vleismerino</option>
                     <option value="Meatmaster">Meatmaster</option>
+                    <option value="Van Rooy">Van Rooy</option>
+                    <option value="Ile de France">Ile de France</option>
+                    <option value="Letelle">Letelle</option>
+                    <option value="Damara">Damara</option>
                     <option value="Suffolk">Suffolk</option>
                     <option value="Afrino">Afrino</option>
+                    <option value="Texel">Texel</option>
+                    <option value="Hampshire Down">Hampshire Down</option>
+                    <option value="Rambouillet">Rambouillet</option>
+                    <option value="Romney">Romney</option>
+                    <option value="Corriedale">Corriedale</option>
+                    <option value="Awassi">Awassi</option>
+                    <option value="Karakul">Karakul</option>
+                    <option value="East Friesian">East Friesian</option>
                   </>
                 )}
                 <option value="Crossbreed">Crossbreed</option>
