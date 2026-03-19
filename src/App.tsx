@@ -86,7 +86,7 @@ const App = () => {
         )}
         <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header" style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
-            <img src={logo} alt="HealthyHerd" style={{ maxHeight: '48px', objectFit: 'contain' }} />
+            <img src={logo} alt="HealthyHerd" style={{ height: '64px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
           </div>
           <nav className="sidebar-nav">
             <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
