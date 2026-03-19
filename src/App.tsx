@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings, Menu, Bell, Activity, LogOut, Tent, Upload } from 'lucide-react';
+import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { AddAnimal } from './pages/AddAnimal';
@@ -12,6 +12,7 @@ import { CampsList } from './pages/CampsList';
 import { ImportData } from './pages/ImportData';
 import { Auth } from './pages/Auth';
 import { Landing } from './pages/Landing';
+import { Settings } from './pages/Settings';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -96,7 +97,7 @@ const App = () => {
             <NavItem to="/herd/import" icon={Upload} label="Import CSV" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
             <div style={{ flex: 1 }}></div>
-            <NavItem to="/settings" icon={Settings} label="Settings" onClick={() => setIsSidebarOpen(false)} />
+            <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
             <button 
               onClick={handleSignOut}
               className="nav-item" 
@@ -146,6 +147,7 @@ const App = () => {
                   <Route path="/herd/import" element={<ImportData />} />
                   <Route path="/camps" element={<CampsList />} />
                   <Route path="/batch-health" element={<BatchHealth />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
           </main>
           

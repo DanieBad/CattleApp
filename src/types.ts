@@ -65,3 +65,15 @@ export interface MovementLog {
   notes?: string;
   createdAt?: string;
 }
+
+export interface FarmSettings {
+  userId: string;
+  farmName: string | null;
+  district: string | null;
+  defaultCattleBreed: CattleBreed | null;
+  defaultSheepBreed: SheepBreed | null;
+  gs1CompanyPrefix: string | null;
+  legalEntityGln: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

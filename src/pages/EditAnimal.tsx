@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal, Camp, Species } from '../types';
+import type { Animal, Breed, Sex, Camp, Species, FarmSettings } from '../types';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -12,6 +12,7 @@ export const EditAnimal = () => {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [farmSettings, setFarmSettings] = useState<Partial<FarmSettings> | null>(null);
 
   const [formData, setFormData] = useState<Partial<Animal>>({
     species: 'Cattle',
@@ -31,12 +32,49 @@ export const EditAnimal = () => {
   });
 
   useEffect(() => {
-    if (id) {
-      fetchData();
-    }
+    fetchAnimal();
+    fetchCamps();
+    fetchFarmSettings();
   }, [id]);
 
-  const fetchData = async () => {
+  const fetchFarmSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('farm_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setFarmSettings({
+          defaultCattleBreed: data.default_cattle_breed,
+          defaultSheepBreed: data.default_sheep_breed
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching farm settings:', error);
+    }
+  };
+
+  const fetchCamps = async () => {
+    try {
+      const { data: campsData, error } = await supabase.from('camps').select('*').order('name');
+      if (error) throw error;
+      if (campsData) {
+        setCamps(campsData.map(c => ({ id: c.id, name: c.name }) as Camp));
+      }
+    } catch (error) {
+      console.error('Failed to load camps:', error);
+    }
+  };
+
+  const fetchAnimal = async () => {
+    if (!id) return;
     try {
       // Fetch parents for dropdowns
       const { data: parents, error: pErr } = await supabase.from('animals').select('id, tag_number, name, sex, species');
@@ -195,6 +233,10 @@ export const EditAnimal = () => {
             >
               {formData.species === 'Cattle' ? (
                 <>
+                  {/* Default breed option at the top if set */}
+                  {farmSettings?.defaultCattleBreed && (
+                    <option value={farmSettings.defaultCattleBreed}>{farmSettings.defaultCattleBreed} (Default)</option>
+                  )}
                   <option value="Bonsmara">Bonsmara</option>
                   <option value="Brahman">Brahman</option>
                   <option value="Nguni">Nguni</option>
@@ -218,6 +260,10 @@ export const EditAnimal = () => {
                 </>
               ) : (
                 <>
+                  {/* Default breed option at the top if set */}
+                  {farmSettings?.defaultSheepBreed && (
+                    <option value={farmSettings.defaultSheepBreed}>{farmSettings.defaultSheepBreed} (Default)</option>
+                  )}
                   <option value="Dorper">Dorper</option>
                   <option value="Merino">Merino</option>
                   <option value="Dohne Merino">Dohne Merino</option>

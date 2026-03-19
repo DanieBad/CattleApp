@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Animal, Breed, Sex, Camp, Species } from '../types';
+import type { Animal, Breed, Sex, Camp, Species, FarmSettings } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 
@@ -11,6 +11,7 @@ export const AddAnimal = () => {
   const [cows, setCows] = useState<Animal[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [saving, setSaving] = useState(false);
+  const [farmSettings, setFarmSettings] = useState<Partial<FarmSettings> | null>(null);
 
   // Pre-fill lineage if navigated from a parent's profile page
   const initialDamId = searchParams.get('damId') || '';
@@ -35,7 +36,40 @@ export const AddAnimal = () => {
 
   useEffect(() => {
     fetchParents();
+    fetchFarmSettings();
   }, []);
+
+  const fetchFarmSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('farm_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        setFarmSettings({
+          defaultCattleBreed: data.default_cattle_breed,
+          defaultSheepBreed: data.default_sheep_breed
+        });
+        
+        // Initial breed default based on settings
+        setFormData(prev => ({
+          ...prev,
+          breed: prev.species === 'Cattle' 
+            ? (data.default_cattle_breed || 'Boran') 
+            : (data.default_sheep_breed || 'Merino')
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching farm settings:', error);
+    }
+  };
 
   const fetchParents = async () => {
     try {
@@ -109,7 +143,16 @@ export const AddAnimal = () => {
                 value={formData.species}
                 onChange={e => {
                   const newSpecies = e.target.value as Species;
-                  setFormData({...formData, species: newSpecies, breed: newSpecies === 'Cattle' ? 'Boran' : 'Merino', sireId: '', damId: ''});
+                  const defaultBreed = newSpecies === 'Cattle' 
+                    ? (farmSettings?.defaultCattleBreed || 'Bonsmara') 
+                    : (farmSettings?.defaultSheepBreed || 'Dorper');
+                  setFormData({
+                    ...formData, 
+                    species: newSpecies, 
+                    breed: defaultBreed as Breed, 
+                    sireId: '', 
+                    damId: ''
+                  });
                 }}
               >
                 <option value="Cattle">Cattle</option>
@@ -161,6 +204,10 @@ export const AddAnimal = () => {
               >
                 {formData.species === 'Cattle' ? (
                   <>
+                    {/* Default breed option at the top if set */}
+                    {farmSettings?.defaultCattleBreed && (
+                      <option value={farmSettings.defaultCattleBreed}>{farmSettings.defaultCattleBreed} (Default)</option>
+                    )}
                     <option value="Bonsmara">Bonsmara</option>
                     <option value="Brahman">Brahman</option>
                     <option value="Nguni">Nguni</option>
@@ -184,6 +231,10 @@ export const AddAnimal = () => {
                   </>
                 ) : (
                   <>
+                    {/* Default breed option at the top if set */}
+                    {farmSettings?.defaultSheepBreed && (
+                      <option value={farmSettings.defaultSheepBreed}>{farmSettings.defaultSheepBreed} (Default)</option>
+                    )}
                     <option value="Dorper">Dorper</option>
                     <option value="Merino">Merino</option>
                     <option value="Dohne Merino">Dohne Merino</option>

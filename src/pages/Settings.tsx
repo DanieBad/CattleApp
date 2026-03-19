@@ -1,0 +1,271 @@
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../supabase';
+import type { FarmSettings, CattleBreed, SheepBreed } from '../types';
+import { Save, Building2, MapPin, Hash, Globe, CheckCircle2, Activity } from 'lucide-react';
+
+export const Settings = () => {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [settings, setSettings] = useState<Partial<FarmSettings>>({
+    farmName: '',
+    district: '',
+    defaultCattleBreed: 'Bonsmara',
+    defaultSheepBreed: 'Dorper',
+    gs1CompanyPrefix: '',
+    legalEntityGln: ''
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('farm_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+
+      if (data) {
+        setSettings({
+          farmName: data.farm_name || '',
+          district: data.district || '',
+          defaultCattleBreed: data.default_cattle_breed as CattleBreed || 'Bonsmara',
+          defaultSheepBreed: data.default_sheep_breed as SheepBreed || 'Dorper',
+          gs1CompanyPrefix: data.gs1_company_prefix || '',
+          legalEntityGln: data.legal_entity_gln || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const payload = {
+        user_id: user.id,
+        farm_name: settings.farmName,
+        district: settings.district,
+        default_cattle_breed: settings.defaultCattleBreed,
+        default_sheep_breed: settings.defaultSheepBreed,
+        gs1_company_prefix: settings.gs1CompanyPrefix,
+        legal_entity_gln: settings.legalEntityGln,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('farm_settings')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      setMessage({ type: 'success', text: 'Settings saved successfully!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error: any) {
+      console.error('Error saving settings:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to save settings' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading settings...</div>;
+  }
+
+  return (
+    <div className="fade-in">
+      <div style={{ marginBottom: '24px' }}>
+        <h1 className="page-title">Farm Setup & Settings</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Configure your farm details, GS1 prefixes, and default animal preferences.</p>
+      </div>
+
+      <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+        
+        {/* Farm Information */}
+        <div className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Building2 size={20} color="var(--primary)" />
+            Farm Information
+          </h2>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="farmName">Farm Name</label>
+            <input 
+              id="farmName"
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. Green Valley Farm"
+              value={settings.farmName || ''}
+              onChange={e => setSettings({...settings, farmName: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="district">District / Region</label>
+            <div style={{ position: 'relative' }}>
+              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                id="district"
+                className="form-input" 
+                style={{ paddingLeft: '40px' }}
+                type="text" 
+                placeholder="e.g. Free State"
+                value={settings.district || ''}
+                onChange={e => setSettings({...settings, district: e.target.value})}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* GS1 & Logistics */}
+        <div className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Globe size={20} color="var(--primary)" />
+            GS1 & Logistics (FMD)
+          </h2>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="gs1Prefix">GS1 Company Prefix</label>
+            <div style={{ position: 'relative' }}>
+              <Hash size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                id="gs1Prefix"
+                className="form-input" 
+                style={{ paddingLeft: '40px' }}
+                type="text" 
+                placeholder="e.g. 6001234"
+                value={settings.gs1CompanyPrefix || ''}
+                onChange={e => setSettings({...settings, gs1CompanyPrefix: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="gln">Legal Entity GLN</label>
+            <input 
+              id="gln"
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. 6001234567890"
+              value={settings.legalEntityGln || ''}
+              onChange={e => setSettings({...settings, legalEntityGln: e.target.value})}
+            />
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used for issuing FMD transport documents.</p>
+          </div>
+        </div>
+
+        {/* Default Breeds */}
+        <div className="card" style={{ padding: '24px', gridColumn: '1 / -1' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+             <Activity size={20} color="var(--primary)" />
+             Animal Defaults
+          </h2>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '20px', fontSize: '0.9rem' }}>Sets the preferred breed to appear first when adding new animals.</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div className="form-group">
+              <label className="form-label" htmlFor="defaultCattle">Default Cattle Breed</label>
+              <select 
+                id="defaultCattle"
+                className="form-input"
+                value={settings.defaultCattleBreed || ''}
+                onChange={e => setSettings({...settings, defaultCattleBreed: e.target.value as CattleBreed})}
+              >
+                <option value="Bonsmara">Bonsmara</option>
+                <option value="Brahman">Brahman</option>
+                <option value="Nguni">Nguni</option>
+                <option value="Simmentaler">Simmentaler</option>
+                <option value="Afrikaner">Afrikaner</option>
+                <option value="Drakensberger">Drakensberger</option>
+                <option value="Angus">Angus</option>
+                <option value="Boran">Boran</option>
+                <option value="Tuli">Tuli</option>
+                <option value="Sussex">Sussex</option>
+                <option value="Jersey">Jersey</option>
+                <option value="Limousin">Limousin</option>
+                <option value="Holstein Friesian">Holstein Friesian</option>
+                <option value="Wagyu">Wagyu</option>
+                <option value="Zebu / Indicus">Zebu / Indicus</option>
+                <option value="Hereford">Hereford</option>
+                <option value="Charolais">Charolais</option>
+                <option value="Brown Swiss">Brown Swiss</option>
+                <option value="Shorthorn">Shorthorn</option>
+                <option value="Gelbvieh">Gelbvieh</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="defaultSheep">Default Sheep Breed</label>
+              <select 
+                id="defaultSheep"
+                className="form-input"
+                value={settings.defaultSheepBreed || ''}
+                onChange={e => setSettings({...settings, defaultSheepBreed: e.target.value as SheepBreed})}
+              >
+                <option value="Dorper">Dorper</option>
+                <option value="Merino">Merino</option>
+                <option value="Dohne Merino">Dohne Merino</option>
+                <option value="Vleismerino">Vleismerino</option>
+                <option value="Meatmaster">Meatmaster</option>
+                <option value="Van Rooy">Van Rooy</option>
+                <option value="Ile de France">Ile de France</option>
+                <option value="Letelle">Letelle</option>
+                <option value="Damara">Damara</option>
+                <option value="Suffolk">Suffolk</option>
+                <option value="Afrino">Afrino</option>
+                <option value="Texel">Texel</option>
+                <option value="Hampshire Down">Hampshire Down</option>
+                <option value="Rambouillet">Rambouillet</option>
+                <option value="Romney">Romney</option>
+                <option value="Corriedale">Corriedale</option>
+                <option value="Awassi">Awassi</option>
+                <option value="Karakul">Karakul</option>
+                <option value="East Friesian">East Friesian</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+          {message && (
+            <div className={`fade-in`} style={{ 
+              color: message.type === 'success' ? 'var(--primary)' : 'var(--danger)',
+              display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600
+            }}>
+              {message.type === 'success' && <CheckCircle2 size={18} />}
+              {message.text}
+            </div>
+          )}
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            disabled={saving}
+            style={{ minWidth: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            <Save size={18} />
+            {saving ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  );
+};
