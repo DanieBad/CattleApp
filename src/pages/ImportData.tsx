@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
 import { supabase } from '../supabase';
-import { Upload, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Upload, ChevronRight, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import type { Animal, Breed, Status } from '../types';
 
 type Step = 'upload' | 'mapping' | 'preview' | 'success';
@@ -163,11 +163,57 @@ export const ImportData = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('animals')
+        .select('*')
+        .order('tag_number');
+      
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert('No animal data found to export.');
+        return;
+      }
+
+      // Format for export (map back to friendly field names)
+      const exportData = data.map(animal => ({
+        'Tag Number': animal.tag_number,
+        'EID Number': animal.eid_number || '',
+        'Species': animal.species,
+        'Breed': animal.breed,
+        'Sex': animal.sex,
+        'Date of Birth': animal.date_of_birth,
+        'Status': animal.status,
+        'Weight (kg)': animal.weight || '',
+        'Horn Status': animal.horn_status || '',
+        'Is Quarantined': animal.is_quarantined ? 'Yes' : 'No',
+        'Name': animal.name || '',
+        'Notes': animal.notes || ''
+      }));
+
+      const csv = Papa.unparse(exportData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `HealthyHerd_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      alert('Failed to export data. Please try again.');
+    }
+  };
+
   return (
     <div>
       <div className="page-header" style={{ marginBottom: '32px' }}>
-        <h1 className="page-title">Bulk Import Herd</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Upload an Excel CSV file to instantly add multiple animals.</p>
+        <h1 className="page-title">Import & Export Data</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Backup your full database or upload new records via CSV.</p>
       </div>
 
       {/* PROGRESS TRACKER */}
@@ -181,24 +227,50 @@ export const ImportData = () => {
 
       <div className="card fade-in" style={{ padding: '32px' }}>
         
-        {/* STEP 1: UPLOAD */}
+        {/* STEP 1: UPLOAD / EXPORT OPTIONS */}
         {currentStep === 'upload' && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0' }}>
-            <Upload size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
-            <h3 style={{ marginBottom: '8px' }}>Select a CSV File</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '24px', textAlign: 'center', maxWidth: '400px' }}>
-              Ensure your file is saved as a .csv (Comma Separated Values). It should contain a header row.
-            </p>
-            <input 
-              type="file" 
-              accept=".csv" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              onChange={handleFileUpload}
-            />
-            <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-              Browse Files
-            </button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '20px 0' }}>
+            
+            {/* Import Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', borderRight: '1px solid var(--border)' }}>
+              <Upload size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
+              <h3 style={{ marginBottom: '8px' }}>Select a CSV File</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '24px', textAlign: 'center', maxWidth: '300px' }}>
+                Upload new records into your account. Ensure your file has a header row.
+              </p>
+              <input 
+                type="file" 
+                accept=".csv" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileUpload}
+              />
+              <button 
+                className="btn btn-primary" 
+                onClick={() => fileInputRef.current?.click()}
+                style={{ width: '100%', maxWidth: '200px' }}
+              >
+                Browse Files
+              </button>
+            </div>
+
+            {/* Export Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px' }}>
+              <Download size={48} color="var(--primary)" style={{ marginBottom: '16px' }} />
+              <h3 style={{ marginBottom: '8px' }}>Export Database</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '24px', textAlign: 'center', maxWidth: '300px' }}>
+                Download all your animal data as a single CSV spreadsheet for backup or external use.
+              </p>
+              <button 
+                className="btn btn-outline" 
+                onClick={handleExport}
+                style={{ width: '100%', maxWidth: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <Download size={18} />
+                Export CSV
+              </button>
+            </div>
+
           </div>
         )}
 

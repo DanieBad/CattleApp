@@ -94,7 +94,7 @@ const App = () => {
             <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/camps" icon={Tent} label="Pastures & Camps" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/herd/import" icon={Upload} label="Import CSV" onClick={() => setIsSidebarOpen(false)} />
+            <NavItem to="/herd/import" icon={Upload} label="Import/Export" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
             <div style={{ flex: 1 }}></div>
             <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
