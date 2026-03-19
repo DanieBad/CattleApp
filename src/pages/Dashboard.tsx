@@ -6,6 +6,9 @@ import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
+import { 
+  LayoutDashboard, Map, PlusCircle, Settings, ArrowRight, ShieldCheck, ClipboardList, Info
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
@@ -86,6 +89,133 @@ export const Dashboard = () => {
     { name: 'Female (Cows/Heifers)', count: sexCounts['Female'] || 0 },
     { name: 'Male (Bulls/Steers)', count: sexCounts['Male'] || 0 }
   ];
+
+  // --- DEMO DATA FOR EMPTY STATE ---
+  const DEMO_BREED_DATA = [
+    { name: 'Bonsmara', value: 45 },
+    { name: 'Brahman', value: 30 },
+    { name: 'Drakensberger', value: 15 },
+    { name: 'Other', value: 10 }
+  ];
+
+  const DEMO_SEX_DATA = [
+    { name: 'Female (Cows/Heifers)', count: 65 },
+    { name: 'Male (Bulls/Steers)', count: 35 }
+  ];
+
+  if (animals.length === 0) {
+    return (
+      <div className="fade-in">
+        <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '12px', padding: '32px', marginBottom: '40px', display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ backgroundColor: '#0EA5E9', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            <LayoutDashboard size={32} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h1 style={{ margin: 0, color: '#0369A1', fontSize: '1.75rem' }}>Welcome to your Farm Dashboard!</h1>
+            <p style={{ margin: '8px 0 0', color: '#0C4A6E', fontSize: '1.1rem' }}>Let's get your digital farm setup in 3 easy steps to unlock your herd analytics.</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>
+          <div>
+            <h2 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ClipboardList color="var(--primary)" />
+              Getting Started Checklist
+            </h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* STEP 1 */}
+              <div 
+                className="card" 
+                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }}
+                onClick={() => navigate('/settings')}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>1</div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>Configure Farm Details</h3>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Set your farm name, default breeds, and GS1 prefix for documents.</p>
+                </div>
+                <ArrowRight size={20} color="#94A3B8" />
+              </div>
+
+              {/* STEP 2 */}
+              <div 
+                className="card" 
+                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }}
+                onClick={() => navigate('/camps')}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>2</div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>Register Your Pastures & Camps</h3>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Define your camps and grazing areas to enable stocking rate tracking.</p>
+                </div>
+                <ArrowRight size={20} color="#94A3B8" />
+              </div>
+
+              {/* STEP 3 */}
+              <div 
+                className="card" 
+                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px', border: '2px solid var(--primary-light)' }}
+                onClick={() => navigate('/add-animal')}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700 }}>3</div>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: 0 }}>Add Your First Animal</h3>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Register your cattle or sheep to see them appear in your analytics.</p>
+                </div>
+                <PlusCircle size={20} color="var(--primary)" />
+              </div>
+            </div>
+
+            <div style={{ marginTop: '40px', padding: '24px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
+                <Info size={18} color="#64748B" />
+                Quick Tip
+              </h3>
+              <p style={{ margin: '12px 0 0', color: '#64748B', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                You can also use the **Import/Export** tool in the sidebar if you have your animal data in a CSV file or Excel sheet. This will populate your entire herd in seconds.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dashboard Preview</h3>
+              <span className="badge" style={{ backgroundColor: '#E2E8F0', color: '#64748B' }}>Demo Data</span>
+            </div>
+            
+            <div style={{ position: 'relative', opacity: 0.5, pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(to bottom, transparent 60%, var(--background) 100%)' }}></div>
+              
+              <div className="card" style={{ padding: '20px', marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 16px' }}>Breed Performance</h4>
+                <div style={{ height: '200px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={DEMO_BREED_DATA} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value">
+                        {DEMO_BREED_DATA.map((_, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: '20px' }}>
+                <h4 style={{ margin: '0 0 16px' }}>Stock Distribution</h4>
+                <div style={{ height: '180px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={DEMO_SEX_DATA} layout="vertical">
+                      <Bar dataKey="count" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
