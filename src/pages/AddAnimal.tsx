@@ -161,13 +161,26 @@ export const AddAnimal = () => {
               >
                 {formData.species === 'Cattle' ? (
                   <>
-                    <option value="Angus">Angus</option>
+                    <option value="Bonsmara">Bonsmara</option>
                     <option value="Brahman">Brahman</option>
-                    <option value="Hereford">Hereford</option>
-                    <option value="Holstein">Holstein</option>
-                    <option value="Jersey">Jersey</option>
-                    <option value="Tuli">Tuli</option>
+                    <option value="Nguni">Nguni</option>
+                    <option value="Simmentaler">Simmentaler</option>
+                    <option value="Afrikaner">Afrikaner</option>
+                    <option value="Drakensberger">Drakensberger</option>
+                    <option value="Angus">Angus</option>
                     <option value="Boran">Boran</option>
+                    <option value="Tuli">Tuli</option>
+                    <option value="Sussex">Sussex</option>
+                    <option value="Jersey">Jersey</option>
+                    <option value="Limousin">Limousin</option>
+                    <option value="Holstein Friesian">Holstein Friesian</option>
+                    <option value="Wagyu">Wagyu</option>
+                    <option value="Zebu / Indicus">Zebu / Indicus</option>
+                    <option value="Hereford">Hereford</option>
+                    <option value="Charolais">Charolais</option>
+                    <option value="Brown Swiss">Brown Swiss</option>
+                    <option value="Shorthorn">Shorthorn</option>
+                    <option value="Gelbvieh">Gelbvieh</option>
                   </>
                 ) : (
                   <>
