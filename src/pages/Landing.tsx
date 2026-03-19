@@ -11,7 +11,7 @@ export const Landing = () => {
       {/* HEADER */}
       <header style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <img src={logo} alt="HealthyHerd Logo" style={{ height: '70px', mixBlendMode: 'multiply' }} />
+          <img src={logo} alt="HealthyHerd Logo" style={{ height: '70px' }} />
         </div>
         <button 
           onClick={() => navigate('/login')}

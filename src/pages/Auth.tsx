@@ -35,7 +35,7 @@ export const Auth = () => {
     <div className="fade-in" style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '40px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-          <img src={logo} alt="HealthyHerd Logo" style={{ height: '84px', mixBlendMode: 'multiply' }} />
+          <img src={logo} alt="HealthyHerd Logo" style={{ height: '84px' }} />
         </div>
         <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '32px' }}>
           {isLogin ? 'Sign in to access your herd.' : 'Create your free account today.'}
