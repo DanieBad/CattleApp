@@ -16,6 +16,7 @@ export const CampsList = () => {
 
   // Batch move state
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null);
+  const [selectedSpecies, setSelectedSpecies] = useState<'Cattle' | 'Sheep' | null>(null);
   const [selectedAnimals, setSelectedAnimals] = useState<Set<string>>(new Set());
   const [moving, setMoving] = useState(false);
 
@@ -43,7 +44,7 @@ export const CampsList = () => {
       // Fetch active animals to calculate stocking rates and allow moving
       const { data: aData, error: aErr } = await supabase
         .from('animals')
-        .select('id, tag_number, breed, sex, current_camp_id, status')
+        .select('id, tag_number, breed, sex, current_camp_id, status, species')
         .eq('status', 'Active')
         .order('tag_number');
         
@@ -55,7 +56,8 @@ export const CampsList = () => {
         breed: a.breed,
         sex: a.sex,
         currentCampId: a.current_camp_id,
-        status: a.status
+        status: a.status,
+        species: a.species
       })) as unknown as Animal[]);
 
     } catch (error) {
@@ -108,8 +110,9 @@ export const CampsList = () => {
     }
   };
 
-  const openMoveModal = (campId: string) => {
+  const openMoveModal = (campId: string, species: 'Cattle' | 'Sheep') => {
     setSelectedCampId(campId);
+    setSelectedSpecies(species);
     setSelectedAnimals(new Set());
   };
 
@@ -244,13 +247,22 @@ export const CampsList = () => {
                     </p>
                   )}
 
-                  <button 
-                    className="btn btn-outline" 
-                    style={{ width: '100%', fontSize: '0.85rem' }}
-                    onClick={() => openMoveModal(camp.id)}
-                  >
-                    + Batch Move Cattle Here
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn btn-outline" 
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}
+                      onClick={() => openMoveModal(camp.id, 'Cattle')}
+                    >
+                      + Move Cattle
+                    </button>
+                    <button 
+                      className="btn btn-outline" 
+                      style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}
+                      onClick={() => openMoveModal(camp.id, 'Sheep')}
+                    >
+                      + Move Sheep
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -263,18 +275,18 @@ export const CampsList = () => {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}>
           <div className="card fade-in" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--surface)' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
-              <h2 style={{ margin: 0, color: 'var(--primary-dark)' }}>Move Cattle to ⛺ {camps.find(c => c.id === selectedCampId)?.name}</h2>
-              <p style={{ color: 'var(--text-muted)', margin: '8px 0 0' }}>Select active animals below to bulk transfer them to this pasture.</p>
+              <h2 style={{ margin: 0, color: 'var(--primary-dark)' }}>Move {selectedSpecies} to ⛺ {camps.find(c => c.id === selectedCampId)?.name}</h2>
+              <p style={{ color: 'var(--text-muted)', margin: '8px 0 0' }}>Select active {selectedSpecies?.toLowerCase()} below to bulk transfer them to this pasture.</p>
             </div>
             
             <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
               {(() => {
-                const moveCandidates = animals.filter(a => a.currentCampId !== selectedCampId);
+                const moveCandidates = animals.filter(a => a.currentCampId !== selectedCampId && a.species === selectedSpecies);
                 const isAllSelected = moveCandidates.length > 0 && moveCandidates.every(a => selectedAnimals.has(a.id));
                 const isNoneSelected = selectedAnimals.size === 0;
 
                 if (moveCandidates.length === 0) {
-                  return <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>All your active animals are already located in this camp.</p>;
+                  return <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>No active {selectedSpecies?.toLowerCase()} found to move to this camp.</p>;
                 }
 
                 return (
@@ -295,7 +307,7 @@ export const CampsList = () => {
                           }}
                           style={{ width: '22px', height: '22px', cursor: 'pointer' }}
                         />
-                        Select All Animals ({moveCandidates.length})
+                        Select All {selectedSpecies} ({moveCandidates.length})
                       </label>
                     </div>
 
