@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users } from 'lucide-react';
+import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users, LifeBuoy } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { AddAnimal } from './pages/AddAnimal';
@@ -15,9 +15,11 @@ import { Landing } from './pages/Landing';
 import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { UserManagement } from './pages/UserManagement';
+import { Support } from './pages/Support';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
+import { HelpCircle } from 'lucide-react';
 
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
@@ -106,6 +108,7 @@ const App = () => {
                   )}
 
                   <div style={{ flex: 1 }}></div>
+                  <NavItem to="/support" icon={LifeBuoy} label="Help & Support" onClick={() => setIsSidebarOpen(false)} />
                   <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
                   <button 
                     onClick={handleSignOut}
@@ -155,6 +158,7 @@ const App = () => {
                     <Route path="/batch-health" element={<BatchHealth />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/reports" element={<Reports />} />
+                    <Route path="/support" element={<Support />} />
                     {session.user.email === 'djb.rsa@gmail.com' && (
                       <Route path="/admin/users" element={<UserManagement />} />
                     )}
@@ -162,6 +166,11 @@ const App = () => {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>
+
+                {/* Floating Help Button */}
+                <Link to="/support" className="fab-help" title="Need Help?">
+                  <HelpCircle size={28} />
+                </Link>
               </div>
             </div>
           }>

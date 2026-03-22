@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert
+  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -232,6 +232,15 @@ export const Dashboard = () => {
                 You can also use the **Import/Export** tool in the sidebar if you have your animal data in a CSV file or Excel sheet. This will populate your entire herd in seconds.
               </p>
             </div>
+
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+              <button 
+                onClick={() => navigate('/support')} 
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <LifeBuoy size={18} /> Need more help? Visit our Help Center
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -247,8 +256,17 @@ export const Dashboard = () => {
             High-level overview of your active farming operations.
           </p>
         </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            className="btn btn-outline" 
+            style={{ backgroundColor: '#F0F9FF', borderColor: '#BAE6FD', color: '#0369A1' }}
+            onClick={() => navigate('/support')}
+          >
+            <LifeBuoy size={18} /> Quick Start Guide
+          </button>
+        </div>
         
-        {/* Quick Search */}
         <div ref={searchRef} style={{ position: 'relative', width: '300px' }}>
           <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
             <Search size={20} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
