@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import type { Animal, HealthLog, WeightLog, MovementLog, Camp } from '../types';
+import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog } from '../types';
 import { calculateAge } from '../utils';
 
-type Tab = 'overview' | 'health' | 'weight' | 'movement';
+type Tab = 'overview' | 'health' | 'weight' | 'movement' | 'journal';
 
 export const AnimalDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,11 +18,16 @@ export const AnimalDetail = () => {
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [movementLogs, setMovementLogs] = useState<MovementLog[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
+  const [journalLogs, setJournalLogs] = useState<JournalLog[]>([]);
   
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showWeightForm, setShowWeightForm] = useState(false);
   const [showHealthForm, setShowHealthForm] = useState(false);
   const [showMovementForm, setShowMovementForm] = useState(false);
+  const [showJournalForm, setShowJournalForm] = useState(false);
+
+  const [newJournalNote, setNewJournalNote] = useState('');
+  const [newJournalDate, setNewJournalDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [newMovementDate, setNewMovementDate] = useState(new Date().toISOString().split('T')[0]);
   const [newOrigin, setNewOrigin] = useState('');
@@ -159,8 +164,26 @@ export const AnimalDetail = () => {
           createdAt: m.created_at
         })));
       }
+      // 8. Fetch Journal Logs
+      const { data: jData, error: jErr } = await supabase
+        .from('journal_logs')
+        .select('*')
+        .eq('animal_id', id)
+        .order('date_recorded', { ascending: false });
+        
+      if (jData) {
+        setJournalLogs(jData.map(j => ({
+          id: j.id,
+          animalId: j.animal_id,
+          noteText: j.note_text,
+          dateRecorded: j.date_recorded,
+          createdAt: j.created_at
+        })));
+      } else if (jErr && jErr.code !== '42P01') {
+        console.warn('Error fetching journal logs:', jErr);
+      }
 
-      // 8. Fetch Camps to resolve camp names
+      // 9. Fetch Camps to resolve camp names
       const { data: cData } = await supabase.from('camps').select('*');
       if (cData) {
         setCamps(cData.map(c => ({ id: c.id, name: c.name }) as Camp));
@@ -335,6 +358,37 @@ export const AnimalDetail = () => {
     }
   };
 
+  const handleAddJournal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newJournalNote) return;
+    
+    try {
+      const { data, error } = await supabase.from('journal_logs').insert([{
+        animal_id: id,
+        note_text: newJournalNote,
+        date_recorded: newJournalDate
+      }]).select();
+      
+      if (error) throw error;
+      
+      if (data) {
+        const newLog: JournalLog = {
+          id: data[0].id,
+          animalId: data[0].animal_id,
+          noteText: data[0].note_text,
+          dateRecorded: data[0].date_recorded,
+          createdAt: data[0].created_at
+        };
+        setJournalLogs([newLog, ...journalLogs]);
+      }
+      
+      setNewJournalNote('');
+      setShowJournalForm(false);
+    } catch (error: any) {
+      alert('Error adding journal note (Ensure journal_logs table is created): ' + error.message);
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Loading profile from database...</div>;
   }
@@ -499,6 +553,22 @@ export const AnimalDetail = () => {
           }}
         >
           Movement History
+        </button>
+        <button 
+          onClick={() => setActiveTab('journal')}
+          style={{ 
+            padding: '12px 24px', 
+            background: 'none', 
+            border: 'none', 
+            borderBottom: activeTab === 'journal' ? '3px solid var(--primary)' : '3px solid transparent',
+            fontWeight: activeTab === 'journal' ? 600 : 400,
+            color: activeTab === 'journal' ? 'var(--primary-dark)' : 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            marginBottom: '-2px'
+          }}
+        >
+          Journal / Notes
         </button>
       </div>
 
@@ -831,6 +901,50 @@ export const AnimalDetail = () => {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      )}
+
+      {/* TAB CONTENT: JOURNAL */}
+      {activeTab === 'journal' && (
+        <div className="card" style={{ padding: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h2>Journal & Notes</h2>
+            <button className="btn btn-primary" onClick={() => setShowJournalForm(!showJournalForm)}>
+              {showJournalForm ? 'Cancel' : 'Add Note'}
+            </button>
+          </div>
+          
+          {showJournalForm && (
+            <form onSubmit={handleAddJournal} style={{ background: 'var(--surface)', padding: '24px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border)' }}>
+              <h3 style={{ marginBottom: '16px' }}>New Journal Entry</h3>
+              <div className="form-group" style={{ marginBottom: '16px', maxWidth: '300px' }}>
+                <label className="form-label">Date</label>
+                <input type="date" className="form-input" required value={newJournalDate} onChange={e => setNewJournalDate(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label">Note Details</label>
+                <textarea className="form-input" required rows={4} placeholder="Record observations, behavior, or general notes..." value={newJournalNote} onChange={e => setNewJournalNote(e.target.value)}></textarea>
+              </div>
+              <button type="submit" className="btn btn-primary">Save Note</button>
+            </form>
+          )}
+
+          {journalLogs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', background: 'var(--surface)', borderRadius: '8px', border: '1px dashed var(--border)' }}>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No journal entries found for this animal.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {journalLogs.map((log) => (
+                <div key={log.id} style={{ padding: '20px', backgroundColor: 'var(--bg-off)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--primary-dark)', marginBottom: '8px', fontSize: '0.875rem' }}>
+                    {new Date(log.dateRecorded).toLocaleDateString()}
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.noteText}</div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -156,7 +156,13 @@ export const HerdList = () => {
                       <span style={{ fontSize: '1.2rem', marginRight: '6px', verticalAlign: 'middle' }}>
                         {animal.species === 'Sheep' ? '🐑' : '🐄'}
                       </span>
-                      {animal.tagNumber}
+                      <span 
+                        onClick={() => navigate(`/herd/${animal.id}`)}
+                        style={{ cursor: 'pointer', color: 'var(--primary-dark)', textDecoration: 'underline' }}
+                        title="View Profile"
+                      >
+                        {animal.tagNumber}
+                      </span>
                       {animal.isQuarantined && <span title="Quarantined" style={{ marginLeft: '8px', fontSize: '1.2rem', verticalAlign: 'middle' }}>😷</span>}
                     </td>
                     <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{animal.eidNumber || '-'}</td>

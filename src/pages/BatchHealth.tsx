@@ -125,7 +125,7 @@ export const BatchHealth = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-grid-batch" style={{ gap: '24px', alignItems: 'start' }}>
         
         {/* Left Column: Selection List */}
         <div className="card" style={{ padding: 0 }}>

@@ -66,6 +66,14 @@ export interface MovementLog {
   createdAt?: string;
 }
 
+export interface JournalLog {
+  id: string;
+  animalId: string;
+  noteText: string;
+  dateRecorded: string;
+  createdAt?: string;
+}
+
 export interface FarmSettings {
   userId: string;
   farmName: string | null;
