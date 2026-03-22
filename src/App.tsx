@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2 } from 'lucide-react';
+import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { AddAnimal } from './pages/AddAnimal';
@@ -14,6 +14,7 @@ import { Auth } from './pages/Auth';
 import { Landing } from './pages/Landing';
 import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
+import { UserManagement } from './pages/UserManagement';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -98,6 +99,15 @@ const App = () => {
             <NavItem to="/herd/import" icon={Upload} label="Import/Export" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
             <NavItem to="/reports" icon={BarChart2} label="Reports" onClick={() => setIsSidebarOpen(false)} />
+            
+            {/* Admin Section */}
+            {session.user.email === 'djb.rsa@gmail.com' && (
+              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ padding: '0 16px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</div>
+                <NavItem to="/admin/users" icon={Users} label="User Management" onClick={() => setIsSidebarOpen(false)} />
+              </div>
+            )}
+
             <div style={{ flex: 1 }}></div>
             <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
             <button 
@@ -151,6 +161,9 @@ const App = () => {
                   <Route path="/batch-health" element={<BatchHealth />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/reports" element={<Reports />} />
+                  {session.user.email === 'djb.rsa@gmail.com' && (
+                    <Route path="/admin/users" element={<UserManagement />} />
+                  )}
                 </Routes>
           </main>
           
