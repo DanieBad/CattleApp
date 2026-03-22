@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  ArrowUpDown, ChevronUp, ChevronDown, Plus, Search, 
+  MapPin, Calendar, Clock, User, Fingerprint 
+} from 'lucide-react';
 import { supabase } from '../supabase';
 import type { Animal, Camp } from '../types';
 import { calculateAge } from '../utils';
+
+type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' | 'eidNumber';
 
 export const HerdList = () => {
   const navigate = useNavigate();
@@ -11,6 +17,10 @@ export const HerdList = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<'All' | 'Cattle' | 'Sheep'>('All');
+  const [sortConfig, setSortConfig] = useState<{ field: SortField, direction: 'asc' | 'desc' } | null>({
+    field: 'dateOfBirth',
+    direction: 'desc'
+  });
 
   useEffect(() => {
     fetchHerd();
@@ -20,8 +30,7 @@ export const HerdList = () => {
     try {
       const { data, error } = await supabase
         .from('animals')
-        .select('*')
-        .order('date_of_birth', { ascending: false });
+        .select('*');
 
       if (error) throw error;
 
@@ -57,62 +66,115 @@ export const HerdList = () => {
     }
   };
 
-  const filteredHerd = herd.filter(animal => {
-    const matchesSearch = 
-      animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (animal.eidNumber && animal.eidNumber.includes(searchTerm)) ||
-      animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
-    
-    return matchesSearch && matchesSpecies;
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Active': return <span className="badge badge-green">Active</span>;
-      case 'Sold': return <span className="badge badge-blue">Sold</span>;
-      case 'Deceased': return <span className="badge badge-red">Deceased</span>;
-      default: return <span className="badge badge-gray">{status}</span>;
+  const handleSort = (field: SortField) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.field === field && sortConfig.direction === 'asc') {
+      direction = 'desc';
     }
+    setSortConfig({ field, direction });
   };
 
+  const getSortIcon = (field: SortField) => {
+    if (!sortConfig || sortConfig.field !== field) return <ArrowUpDown size={14} style={{ marginLeft: '6px', opacity: 0.3 }} />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp size={14} style={{ marginLeft: '6px', color: 'var(--primary)' }} /> 
+      : <ChevronDown size={14} style={{ marginLeft: '6px', color: 'var(--primary)' }} />;
+  };
+
+  const sortedAndFilteredHerd = [...herd]
+    .filter(animal => {
+      const matchesSearch = 
+        animal.tagNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (animal.eidNumber && animal.eidNumber.includes(searchTerm)) ||
+        animal.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
+        
+      const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
+      
+      return matchesSearch && matchesSpecies;
+    })
+    .sort((a, b) => {
+      if (!sortConfig) return 0;
+      
+      let valA: any = a[sortConfig.field as keyof Animal] ?? '';
+      let valB: any = b[sortConfig.field as keyof Animal] ?? '';
+
+      // Special handling for Age (calculated)
+      if (sortConfig.field === 'age') {
+        valA = new Date(a.dateOfBirth).getTime();
+        valB = new Date(b.dateOfBirth).getTime();
+        // Sorting by age descending means DOB ascending
+        return sortConfig.direction === 'asc' ? valB - valA : valA - valB;
+      }
+
+      // Special handling for Camp (lookup)
+      if (sortConfig.field === 'camp') {
+        const campA = camps.find(c => c.id === a.currentCampId)?.name || '';
+        const campB = camps.find(c => c.id === b.currentCampId)?.name || '';
+        valA = campA;
+        valB = campB;
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+  const SortableHeader = ({ field, label, icon: Icon }: { field: SortField, label: string, icon?: any }) => (
+    <th 
+      onClick={() => handleSort(field)} 
+      style={{ cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background-color 0.2s' }}
+      className="sortable-header"
+    >
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {Icon && <Icon size={16} style={{ marginRight: '8px', opacity: 0.5 }} />}
+        {label}
+        {getSortIcon(field)}
+      </div>
+    </th>
+  );
+
   return (
-    <div>
+    <div className="fade-in">
       <div className="page-header">
-        <h1 className="page-title">My Herd</h1>
-        <button className="btn btn-primary" onClick={() => navigate('/herd/add')}>
-          + Add Animal
+        <div>
+          <h1 className="page-title">My Herd</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Manage and track your active livestock.</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => navigate('/herd/add')} style={{ gap: '8px' }}>
+          <Plus size={20} /> Add Animal
         </button>
       </div>
 
       <div className="card" style={{ padding: '24px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input 
-          type="text" 
-          placeholder="Search by tag, name, or breed..." 
-          className="form-input"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ maxWidth: '400px', flex: 1 }}
-        />
+        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+          <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Search by tag, name, or breed..." 
+            className="form-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ paddingLeft: '40px' }}
+          />
+        </div>
         
-        <div style={{ display: 'flex', backgroundColor: 'var(--surface)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', backgroundColor: '#F1F5F9', padding: '4px', borderRadius: '8px' }}>
           <button 
             onClick={() => setSpeciesFilter('All')}
-            style={{ padding: '8px 16px', background: speciesFilter === 'All' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'All' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ padding: '8px 16px', background: speciesFilter === 'All' ? 'white' : 'transparent', color: speciesFilter === 'All' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: speciesFilter === 'All' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
-            All Animals
+            All
           </button>
           <button 
             onClick={() => setSpeciesFilter('Cattle')}
-            style={{ padding: '8px 16px', background: speciesFilter === 'Cattle' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'Cattle' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ padding: '8px 16px', background: speciesFilter === 'Cattle' ? 'white' : 'transparent', color: speciesFilter === 'Cattle' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: speciesFilter === 'Cattle' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             🐄 Cattle
           </button>
           <button 
             onClick={() => setSpeciesFilter('Sheep')}
-            style={{ padding: '8px 16px', background: speciesFilter === 'Sheep' ? 'var(--primary)' : 'transparent', color: speciesFilter === 'Sheep' ? 'white' : 'var(--text)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+            style={{ padding: '8px 16px', background: speciesFilter === 'Sheep' ? 'white' : 'transparent', color: speciesFilter === 'Sheep' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: speciesFilter === 'Sheep' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
             🐑 Sheep
           </button>
@@ -121,72 +183,89 @@ export const HerdList = () => {
 
       <div className="card">
         <div className="table-container">
-          <table>
+          <table className="herd-table">
             <thead>
               <tr>
-                <th>Tag Number</th>
-                <th>EID (15-digit)</th>
-                <th>Name</th>
-                <th>Breed</th>
-                <th>Sex</th>
-                <th>Age</th>
-                <th>Camp / Pasture</th>
-                <th>Status</th>
-                <th>Weight</th>
+                <SortableHeader field="tagNumber" label="Ear Tag" icon={User} />
+                <SortableHeader field="dateOfBirth" label="Date of Birth" icon={Calendar} />
+                <SortableHeader field="age" label="Age" icon={Clock} />
+                <SortableHeader field="sex" label="Sex" />
+                <SortableHeader field="breed" label="Breed" />
+                <SortableHeader field="camp" label="Camp" icon={MapPin} />
+                <SortableHeader field="eidNumber" label="EID" icon={Fingerprint} />
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    Loading herd data from cloud...
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                      <div className="loading-spinner"></div>
+                      Loading herd data from cloud...
+                    </div>
                   </td>
                 </tr>
-              ) : filteredHerd.length === 0 ? (
+              ) : sortedAndFilteredHerd.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                    No animals found matching your search.
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                    No animals found matching your criteria.
                   </td>
                 </tr>
               ) : (
-                filteredHerd.map(animal => (
-                  <tr key={animal.id} style={animal.isQuarantined ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+                sortedAndFilteredHerd.map(animal => (
+                  <tr 
+                    key={animal.id} 
+                    style={animal.isQuarantined ? { backgroundColor: '#FFF7ED' } : {}}
+                    className="table-row-hover"
+                  >
                     <td style={{ fontWeight: 600 }}>
-                      <span style={{ fontSize: '1.2rem', marginRight: '6px', verticalAlign: 'middle' }}>
-                        {animal.species === 'Sheep' ? '🐑' : '🐄'}
-                      </span>
-                      <span 
-                        onClick={() => navigate(`/herd/${animal.id}`)}
-                        style={{ cursor: 'pointer', color: 'var(--primary-dark)', textDecoration: 'underline' }}
-                        title="View Profile"
-                      >
-                        {animal.tagNumber}
-                      </span>
-                      {animal.isQuarantined && <span title="Quarantined" style={{ marginLeft: '8px', fontSize: '1.2rem', verticalAlign: 'middle' }}>😷</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '1.25rem' }}>
+                          {animal.species === 'Sheep' ? '🐑' : '🐄'}
+                        </span>
+                        <span 
+                          onClick={() => navigate(`/herd/${animal.id}`)}
+                          style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'none' }}
+                          className="hover-underline"
+                        >
+                          {animal.tagNumber}
+                        </span>
+                        {animal.isQuarantined && <span title="Quarantined" style={{ color: '#F97316' }}><Fingerprint size={16} /></span>}
+                      </div>
                     </td>
-                    <td style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>{animal.eidNumber || '-'}</td>
-                    <td>{animal.name || '-'}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{animal.dateOfBirth}</td>
+                    <td>
+                      <span style={{ backgroundColor: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.875rem' }}>
+                        {calculateAge(animal.dateOfBirth).display}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ color: animal.sex === 'Female' ? '#EC4899' : '#3B82F6', fontWeight: 500 }}>
+                        {animal.sex}
+                      </span>
+                    </td>
                     <td>{animal.breed}</td>
-                    <td>{animal.sex}</td>
-                    <td>{calculateAge(animal.dateOfBirth).display}</td>
                     <td>
                       {animal.currentCampId ? (
-                        <span style={{ fontSize: '0.85rem', color: 'var(--primary-dark)', backgroundColor: 'var(--surface)', padding: '2px 8px', borderRadius: '12px', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>
-                          ⛺ {camps.find(c => c.id === animal.currentCampId)?.name || 'Unknown'}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary-dark)', fontWeight: 500 }}>
+                          <MapPin size={14} />
+                          {camps.find(c => c.id === animal.currentCampId)?.name || 'Unknown'}
                         </span>
                       ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>-</span>
+                        <span style={{ color: '#CBD5E1' }}>Unassigned</span>
                       )}
                     </td>
-                    <td>{getStatusBadge(animal.status)}</td>
-                    <td>{animal.weight ? `${animal.weight} kg` : '-'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      {animal.eidNumber || '-'}
+                    </td>
                     <td style={{ textAlign: 'right' }}>
                       <button 
                         className="btn btn-outline"
+                        style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                         onClick={() => navigate(`/herd/${animal.id}`)}
                       >
-                        View Profile
+                        Profile
                       </button>
                     </td>
                   </tr>
