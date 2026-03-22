@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
@@ -62,113 +62,113 @@ const App = () => {
     return <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 600 }}>Loading CattleApp...</div>;
   }
 
-  // If no user is logged in, securely lock down the app and strictly render the Public Routes
-  if (!session) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Auth />} />
-          {/* Catch-all redirect to the landing page */}
-          <Route path="*" element={<Landing />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
-
   return (
     <BrowserRouter>
-      <div className="app-container">
-        
-        {/* Left Sidebar */}
-        {isSidebarOpen && (
-          <div 
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }}
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-        <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-header" style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
-            <img src={logo} alt="HealthyHerd" style={{ height: '64px', objectFit: 'contain', filter: 'brightness(0) invert(1) opacity(0.8)' }} />
-          </div>
-          <nav className="sidebar-nav">
-            <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/camps" icon={Tent} label="Pastures & Camps" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/herd/import" icon={Upload} label="Import/Export" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
-            <NavItem to="/reports" icon={BarChart2} label="Reports" onClick={() => setIsSidebarOpen(false)} />
-            
-            {/* Admin Section */}
-            {session.user.email === 'djb.rsa@gmail.com' && (
-              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ padding: '0 16px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</div>
-                <NavItem to="/admin/users" icon={Users} label="User Management" onClick={() => setIsSidebarOpen(false)} />
-              </div>
-            )}
-
-            <div style={{ flex: 1 }}></div>
-            <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
-            <button 
-              onClick={handleSignOut}
-              className="nav-item" 
-              style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--danger)', marginTop: '8px' }}
-            >
-              <LogOut size={20} />
-              <span>Sign Out</span>
-            </button>
-          </nav>
-        </aside>
-
-        {/* Main Content Area */}
-        <div className="main-content">
-          
-          {/* Top Header */}
-          <header className="header">
-            <button 
-              className="btn btn-outline" 
-              style={{ border: 'none', padding: '8px' }}
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            >
-              <Menu size={24} />
-            </button>
-            <div style={{ flex: 1 }}></div>
-            <button className="btn btn-outline" style={{ border: 'none', padding: '8px', position: 'relative' }}>
-              <Bell size={20} />
-              <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
-            </button>
-            <div style={{
-              width: '36px', height: '36px', borderRadius: '50%', 
-              backgroundColor: 'var(--primary)', color: 'white',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 600, marginLeft: '16px'
-            }}>
-              DB
-            </div>
-          </header>
-
-          {/* Page Routing */}
-          <main className="page-container">
-            <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/herd" element={<HerdList />} />
-                  <Route path="/herd/add" element={<AddAnimal />} />
-                  <Route path="/herd/:id" element={<AnimalDetail />} />
-                  <Route path="/herd/:id/edit" element={<EditAnimal />} />
-                  <Route path="/herd/import" element={<ImportData />} />
-                  <Route path="/camps" element={<CampsList />} />
-                  <Route path="/batch-health" element={<BatchHealth />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/reports" element={<Reports />} />
+      <Routes>
+        {/* PUBLIC ROUTES (Only accessible when NOT logged in) */}
+        {!session ? (
+          <>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Auth />} />
+            {/* Catch-all for guest users: back to landing */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        ) : (
+          /* AUTHENTICATED ROUTES (Only accessible when LOGGED IN) */
+          <Route element={
+            <div className="app-container">
+              {/* Left Sidebar */}
+              {isSidebarOpen && (
+                <div 
+                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 40 }}
+                  onClick={() => setIsSidebarOpen(false)}
+                />
+              )}
+              <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+                <div className="sidebar-header" style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
+                  <img src={logo} alt="HealthyHerd" style={{ height: '64px', objectFit: 'contain', filter: 'brightness(0) invert(1) opacity(0.8)' }} />
+                </div>
+                <nav className="sidebar-nav">
+                  <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/camps" icon={Tent} label="Pastures & Camps" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/herd/import" icon={Upload} label="Import/Export" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/reports" icon={BarChart2} label="Reports" onClick={() => setIsSidebarOpen(false)} />
+                  
+                  {/* Admin Section */}
                   {session.user.email === 'djb.rsa@gmail.com' && (
-                    <Route path="/admin/users" element={<UserManagement />} />
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <div style={{ padding: '0 16px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</div>
+                      <NavItem to="/admin/users" icon={Users} label="User Management" onClick={() => setIsSidebarOpen(false)} />
+                    </div>
                   )}
-                </Routes>
-          </main>
-          
-        </div>
-      </div>
+
+                  <div style={{ flex: 1 }}></div>
+                  <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
+                  <button 
+                    onClick={handleSignOut}
+                    className="nav-item" 
+                    style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--danger)', marginTop: '8px' }}
+                  >
+                    <LogOut size={20} />
+                    <span>Sign Out</span>
+                  </button>
+                </nav>
+              </aside>
+
+              {/* Main Content Area */}
+              <div className="main-content">
+                <header className="header">
+                  <button 
+                    className="btn btn-outline" 
+                    style={{ border: 'none', padding: '8px' }}
+                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  >
+                    <Menu size={24} />
+                  </button>
+                  <div style={{ flex: 1 }}></div>
+                  <button className="btn btn-outline" style={{ border: 'none', padding: '8px', position: 'relative' }}>
+                    <Bell size={20} />
+                    <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
+                  </button>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '50%', 
+                    backgroundColor: 'var(--primary)', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 600, marginLeft: '16px'
+                  }}>
+                    {session.user.email?.substring(0, 2).toUpperCase() || 'DB'}
+                  </div>
+                </header>
+
+                <main className="page-container">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/herd" element={<HerdList />} />
+                    <Route path="/herd/add" element={<AddAnimal />} />
+                    <Route path="/herd/:id" element={<AnimalDetail />} />
+                    <Route path="/herd/:id/edit" element={<EditAnimal />} />
+                    <Route path="/herd/import" element={<ImportData />} />
+                    <Route path="/camps" element={<CampsList />} />
+                    <Route path="/batch-health" element={<BatchHealth />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/reports" element={<Reports />} />
+                    {session.user.email === 'djb.rsa@gmail.com' && (
+                      <Route path="/admin/users" element={<UserManagement />} />
+                    )}
+                    {/* Catch-all for authenticated users: back to dashboard */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            </div>
+          }>
+            <Route path="*" element={<span />} />
+          </Route>
+        )}
+      </Routes>
     </BrowserRouter>
   );
 };
