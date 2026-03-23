@@ -337,7 +337,7 @@ export const Dashboard = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
         
         {/* Animal Types Chart */}
-        <div className="card" style={{ padding: '24px', height: '400px', cursor: 'pointer' }} onClick={() => navigate('/herd')}>
+        <div className="card" style={{ padding: '24px', height: '400px', cursor: 'pointer', transition: 'box-shadow 0.2s' }} onClick={() => navigate('/herd')} onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }} onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
           <h3 style={{ marginBottom: '24px' }}>Herd Composition (Active)</h3>
           {animalTypesChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">

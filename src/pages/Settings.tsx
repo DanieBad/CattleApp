@@ -13,7 +13,9 @@ export const Settings = () => {
     defaultCattleBreed: 'Bonsmara',
     defaultSheepBreed: 'Dorper',
     gs1CompanyPrefix: '',
-    legalEntityGln: ''
+    legalEntityGln: '',
+    glnCertificateUrl: '',
+    brandCertificateUrl: ''
   });
 
   useEffect(() => {
@@ -40,7 +42,9 @@ export const Settings = () => {
           defaultCattleBreed: data.default_cattle_breed as CattleBreed || 'Bonsmara',
           defaultSheepBreed: data.default_sheep_breed as SheepBreed || 'Dorper',
           gs1CompanyPrefix: data.gs1_company_prefix || '',
-          legalEntityGln: data.legal_entity_gln || ''
+          legalEntityGln: data.legal_entity_gln || '',
+          glnCertificateUrl: data.gln_certificate_url || '',
+          brandCertificateUrl: data.brand_certificate_url || ''
         });
       }
     } catch (error) {
@@ -67,6 +71,8 @@ export const Settings = () => {
         default_sheep_breed: settings.defaultSheepBreed,
         gs1_company_prefix: settings.gs1CompanyPrefix,
         legal_entity_gln: settings.legalEntityGln,
+        gln_certificate_url: settings.glnCertificateUrl,
+        brand_certificate_url: settings.brandCertificateUrl,
         updated_at: new Date().toISOString()
       };
 
@@ -81,6 +87,35 @@ export const Settings = () => {
     } catch (error: any) {
       console.error('Error saving settings:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save settings' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>, fieldName: 'glnCertificateUrl' | 'brandCertificateUrl') => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${fieldName}-${Math.random()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+      
+      setSettings(prev => ({ ...prev, [fieldName]: data.publicUrl }));
+      setMessage({ type: 'success', text: 'Document uploaded successfully! Please save settings.' });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setMessage({ type: 'error', text: 'Upload failed (ensure "documents" bucket exists in Supabase): ' + error.message });
     } finally {
       setSaving(false);
     }
@@ -133,6 +168,19 @@ export const Settings = () => {
               />
             </div>
           </div>
+          
+          <div className="form-group" style={{ marginTop: '16px' }}>
+            <label className="form-label">Brand Certificate</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input type="file" onChange={e => handleUpload(e, 'brandCertificateUrl')} className="form-input" style={{ flex: 1 }} />
+              {settings.brandCertificateUrl && (
+                <a href={settings.brandCertificateUrl} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ whiteSpace: 'nowrap' }}>
+                  View Uploaded Document
+                </a>
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Upload a PDF or Image of your registered brand certificate.</p>
+          </div>
         </div>
 
         {/* GS1 & Logistics */}
@@ -169,6 +217,19 @@ export const Settings = () => {
               onChange={e => setSettings({...settings, legalEntityGln: e.target.value})}
             />
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used for issuing FMD transport documents.</p>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '16px' }}>
+            <label className="form-label">GLN Certificate</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input type="file" onChange={e => handleUpload(e, 'glnCertificateUrl')} className="form-input" style={{ flex: 1 }} />
+              {settings.glnCertificateUrl && (
+                <a href={settings.glnCertificateUrl} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ whiteSpace: 'nowrap' }}>
+                  View Uploaded Document
+                </a>
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Upload a PDF or Image of your GLN certificate.</p>
           </div>
         </div>
 

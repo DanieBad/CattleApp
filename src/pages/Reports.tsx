@@ -5,9 +5,9 @@ import { calculateAge } from '../utils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
-import { Scale, MapPin, Heart, ShieldAlert, ChevronRight } from 'lucide-react';
+import { Scale, MapPin, Heart, ShieldAlert, ChevronRight, DollarSign } from 'lucide-react';
 
-type ReportId = 'weight' | 'pasture' | 'reproductive' | 'health';
+type ReportId = 'weight' | 'pasture' | 'reproductive' | 'health' | 'financial';
 
 interface ReportCard {
   id: ReportId;
@@ -45,6 +45,13 @@ const REPORT_CARDS: ReportCard[] = [
     title: 'Health & Withdrawal Compliance',
     description: 'Treatment history and animals still within medicine withdrawal periods.',
     color: '#F59E0B',
+  },
+  {
+    id: 'financial',
+    icon: <DollarSign size={24} />,
+    title: 'Sales & Financials',
+    description: 'Track sold animals, purchase vs selling price, and profit margins over any timeline.',
+    color: '#059669',
   },
 ];
 
@@ -534,6 +541,106 @@ const HealthComplianceReport = ({ animals, healthLogs }: { animals: Animal[]; he
 };
 
 
+// ──────────────── SALES & FINANCIAL REPORT ────────────────
+const FinancialReport = ({ animals }: { animals: Animal[] }) => {
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const salesData = animals.filter(a => a.status === 'Sold').map(a => {
+    const sd = (a as any).updatedAt ? new Date((a as any).updatedAt) : new Date();
+    return { ...a, soldDate: sd };
+  }).filter(a => {
+    const sdTime = a.soldDate.getTime();
+    return sdTime >= new Date(startDate).getTime() && sdTime <= new Date(endDate + 'T23:59:59').getTime();
+  }).sort((a, b) => b.soldDate.getTime() - a.soldDate.getTime());
+
+  const totalSales = salesData.reduce((sum, a) => sum + (a.soldPrice || 0), 0);
+  const totalPurchase = salesData.reduce((sum, a) => sum + (a.purchasePrice || 0), 0);
+  const profit = totalSales - totalPurchase;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      <div className="card" style={{ padding: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'flex-end', backgroundColor: '#F8FAFC' }}>
+        <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
+          <label className="form-label">Start Date</label>
+          <input type="date" className="form-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        </div>
+        <div className="form-group" style={{ margin: 0, minWidth: '200px' }}>
+          <label className="form-label">End Date</label>
+          <input type="date" className="form-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+        <div className="card" style={{ padding: '20px' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Animals Sold</p>
+          <p style={{ fontSize: '2.2rem', fontWeight: 800, color: '#059669' }}>{salesData.length}</p>
+        </div>
+        <div className="card" style={{ padding: '20px' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Revenue</p>
+          <p style={{ fontSize: '2.2rem', fontWeight: 800, color: '#059669' }}>R {totalSales.toFixed(2)}</p>
+        </div>
+        <div className="card" style={{ padding: '20px' }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Purchase Cost</p>
+          <p style={{ fontSize: '2.2rem', fontWeight: 800, color: '#F59E0B' }}>R {totalPurchase.toFixed(2)}</p>
+        </div>
+        <div className="card" style={{ padding: '20px', borderTop: `4px solid ${profit >= 0 ? '#10B981' : '#EF4444'}` }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Gross Profit/Loss</p>
+          <p style={{ fontSize: '2.2rem', fontWeight: 800, color: profit >= 0 ? '#10B981' : '#EF4444' }}>
+            {profit < 0 ? '-' : ''}R {Math.abs(profit).toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+          <h3>Sales Ledger</h3>
+        </div>
+        {salesData.length === 0 ? (
+          <p style={{ padding: '24px', color: 'var(--text-muted)' }}>No animals were sold in this timeframe.</p>
+        ) : (
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date Sold</th>
+                  <th>Ear Tag</th>
+                  <th>Species/Breed</th>
+                  <th>Purchase Price</th>
+                  <th>Sold Price</th>
+                  <th>Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {salesData.map(animal => {
+                  const m = (animal.soldPrice || 0) - (animal.purchasePrice || 0);
+                  return (
+                    <tr key={animal.id}>
+                      <td>{animal.soldDate.toLocaleDateString()}</td>
+                      <td style={{ fontWeight: 600 }}>{animal.tagNumber}</td>
+                      <td>{animal.species} / {animal.breed}</td>
+                      <td>R {(animal.purchasePrice || 0).toFixed(2)}</td>
+                      <td style={{ fontWeight: 600, color: '#059669' }}>R {(animal.soldPrice || 0).toFixed(2)}</td>
+                      <td style={{ color: m >= 0 ? '#10B981' : '#EF4444', fontWeight: 500 }}>
+                        {m >= 0 ? '+' : '-'}R {Math.abs(m).toFixed(2)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 // ──────────────── MAIN REPORTS PAGE ────────────────
 export const Reports = () => {
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
@@ -559,7 +666,7 @@ export const Reports = () => {
           id: a.id, species: a.species || 'Cattle', tagNumber: a.tag_number, name: a.name,
           breed: a.breed, sex: a.sex, dateOfBirth: a.date_of_birth, status: a.status,
           sireId: a.sire_id, damId: a.dam_id, weight: a.weight, currentCampId: a.current_camp_id,
-          hornStatus: a.horn_status,
+          hornStatus: a.horn_status, brand: a.brand, originGln: a.origin_gln, previousOwnerTag: a.previous_owner_tag, previousOwnerBrand: a.previous_owner_brand, arrivalDate: a.arrival_date, purchasePrice: a.purchase_price, soldPrice: a.sold_price, updatedAt: a.updated_at
         })));
 
         setWeightLogs((wRes.data || []).map((w: any) => ({
@@ -641,6 +748,7 @@ export const Reports = () => {
           {activeReport === 'pasture' && <PastureReport movementLogs={movementLogs} camps={camps} />}
           {activeReport === 'reproductive' && <ReproductiveReport animals={animals} />}
           {activeReport === 'health' && <HealthComplianceReport animals={animals} healthLogs={healthLogs} />}
+          {activeReport === 'financial' && <FinancialReport animals={animals} />}
         </div>
       )}
     </div>

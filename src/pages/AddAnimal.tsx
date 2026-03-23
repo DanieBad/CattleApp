@@ -32,7 +32,16 @@ export const AddAnimal = () => {
     weight: undefined,
     currentCampId: '',
     hornStatus: undefined,
+    brand: '',
+    originGln: '',
+    previousOwnerTag: '',
+    previousOwnerBrand: '',
+    arrivalDate: new Date().toISOString().split('T')[0],
+    purchasePrice: undefined
   });
+  
+  const [numberOfOffspring, setNumberOfOffspring] = useState(1);
+  const [prevVaccines, setPrevVaccines] = useState<string[]>([]);
 
   useEffect(() => {
     fetchParents();
@@ -92,41 +101,64 @@ export const AddAnimal = () => {
     e.preventDefault();
     setSaving(true);
     
-    // Create the full Animal object for Supabase (snake_case)
-    const newAnimal = {
-      species: formData.species || 'Cattle',
-      tag_number: formData.tagNumber || 'UNKNOWN',
-      eid_number: formData.eidNumber || null,
-      is_quarantined: formData.isQuarantined || false,
-      name: formData.name || null,
-      breed: formData.breed || 'Other',
-      sex: formData.sex || 'Female',
-      date_of_birth: formData.dateOfBirth || new Date().toISOString().split('T')[0],
-      status: formData.status || 'Active',
-      sire_id: formData.sireId || null,
-      dam_id: formData.damId || null,
-      weight: formData.weight || null,
-      current_camp_id: formData.currentCampId || null,
-      horn_status: formData.hornStatus || null
-    };
-
     try {
-      const { data: insertedAnimal, error } = await supabase.from('animals').insert([newAnimal]).select().single();
-      if (error) throw error;
+      for (let i = 0; i < numberOfOffspring; i++) {
+        const tagSuffix = numberOfOffspring > 1 ? `-${i + 1}` : '';
+        const tagNumber = formData.tagNumber + tagSuffix;
+        
+        // Create the full Animal object for Supabase (snake_case)
+        const newAnimal = {
+          species: formData.species || 'Cattle',
+          tag_number: tagNumber || 'UNKNOWN',
+          eid_number: formData.eidNumber || null,
+          is_quarantined: formData.isQuarantined || false,
+          name: formData.name || null,
+          breed: formData.breed || 'Other',
+          sex: formData.sex || 'Female',
+          date_of_birth: formData.dateOfBirth || new Date().toISOString().split('T')[0],
+          status: formData.status || 'Active',
+          sire_id: formData.sireId || null,
+          dam_id: formData.damId || null,
+          weight: formData.weight || null,
+          current_camp_id: formData.currentCampId || null,
+          horn_status: formData.hornStatus || null,
+          brand: formData.brand || null,
+          origin_gln: formData.originGln || null,
+          previous_owner_tag: formData.previousOwnerTag || null,
+          previous_owner_brand: formData.previousOwnerBrand || null,
+          arrival_date: formData.arrivalDate || null,
+          purchase_price: formData.purchasePrice || null
+        };
 
-      // Log initial movement if camp is assigned
-      if (formData.currentCampId && insertedAnimal) {
-        const destCamp = camps.find(c => c.id === formData.currentCampId)?.name || 'Unassigned';
-        await supabase.from('movement_log').insert([{
-          animal_id: insertedAnimal.id,
-          movement_date: new Date().toISOString().split('T')[0],
-          origin: 'Initial Assignment / Purchase',
-          destination: destCamp,
-          notes: 'Automatic log on creation'
-        }]);
+        const { data: insertedAnimal, error } = await supabase.from('animals').insert([newAnimal]).select().single();
+        if (error) throw error;
+
+        // Log initial movement if camp is assigned
+        if (formData.currentCampId && insertedAnimal) {
+          const destCamp = camps.find(c => c.id === formData.currentCampId)?.name || 'Unassigned';
+          await supabase.from('movement_log').insert([{
+            animal_id: insertedAnimal.id,
+            movement_date: new Date().toISOString().split('T')[0],
+            origin: formData.originGln ? `Farm GLN: ${formData.originGln}` : 'Initial Assignment / Purchase',
+            destination: destCamp,
+            notes: 'Automatic log on creation'
+          }]);
+        }
+        
+        // Log previous vaccines
+        if (prevVaccines.length > 0 && insertedAnimal) {
+          const vaccineInserts = prevVaccines.map(v => ({
+            animal_id: insertedAnimal.id,
+            treatment_type: 'Vaccination',
+            medication: v,
+            date_administered: formData.arrivalDate || new Date().toISOString().split('T')[0],
+            notes: 'Vaccinated by previous owner prior to arrival'
+          }));
+          await supabase.from('health_logs').insert(vaccineInserts);
+        }
       }
       
-      alert(`Successfully saved ${newAnimal.tag_number}!`);
+      alert(`Successfully saved ${numberOfOffspring > 1 ? numberOfOffspring + ' animals' : formData.tagNumber}!`);
       navigate('/herd');
     } catch (error: any) {
       console.error('Error saving animal:', error);
@@ -286,6 +318,23 @@ export const AddAnimal = () => {
               </select>
             </div>
 
+            {formData.species === 'Sheep' && formData.damId && (
+              <div className="form-group">
+                <label className="form-label">Number of Offspring</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input 
+                    type="number" 
+                    min={1} 
+                    max={4}
+                    className="form-input"
+                    value={numberOfOffspring}
+                    onChange={e => setNumberOfOffspring(parseInt(e.target.value))}
+                  />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>If &gt; 1, tags will be suffixed with -1, -2, etc.</span>
+                </div>
+              </div>
+            )}
+
             <div className="form-group">
               <label className="form-label">Date of Birth</label>
               <input 
@@ -378,6 +427,88 @@ export const AddAnimal = () => {
                   <option key={c.id} value={c.id}>{c.tagNumber} {c.name ? `(${c.name})` : ''}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <h3 style={{ marginTop: '32px', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid var(--border)' }}>Traceability & Purchasing</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="form-group">
+              <label className="form-label">Origin Farm GLN</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="e.g. 6001234567890"
+                value={formData.originGln || ''}
+                onChange={e => setFormData({...formData, originGln: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Current Farm Brand</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="e.g. XYZ"
+                value={formData.brand || ''}
+                onChange={e => setFormData({...formData, brand: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Previous Owner Tag</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Previous tag..."
+                value={formData.previousOwnerTag || ''}
+                onChange={e => setFormData({...formData, previousOwnerTag: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Previous Owner Brand</label>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Previous brand..."
+                value={formData.previousOwnerBrand || ''}
+                onChange={e => setFormData({...formData, previousOwnerBrand: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Arrival Date</label>
+              <input 
+                type="date" 
+                className="form-input" 
+                value={formData.arrivalDate || ''}
+                onChange={e => setFormData({...formData, arrivalDate: e.target.value})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Purchase Price (R)</label>
+              <input 
+                type="number" 
+                className="form-input" 
+                placeholder="0.00"
+                value={formData.purchasePrice || ''}
+                onChange={e => setFormData({...formData, purchasePrice: parseFloat(e.target.value)})}
+              />
+            </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="form-label">Vaccinations from Previous Owner</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever'].map(vac => (
+                  <label key={vac} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--surface)', padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={prevVaccines.includes(vac)}
+                      onChange={e => {
+                        if (e.target.checked) setPrevVaccines([...prevVaccines, vac]);
+                        else setPrevVaccines(prevVaccines.filter(v => v !== vac));
+                      }}
+                    />
+                    <span style={{ fontSize: '0.85rem' }}>{vac}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 

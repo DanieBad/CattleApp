@@ -8,7 +8,7 @@ import { supabase } from '../supabase';
 import type { Animal, Camp } from '../types';
 import { calculateAge } from '../utils';
 
-type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' | 'eidNumber';
+type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' | 'eidNumber' | 'lastBirthDate';
 
 export const HerdList = () => {
   const navigate = useNavigate();
@@ -49,8 +49,27 @@ export const HerdList = () => {
         sireId: dbAnimal.sire_id,
         damId: dbAnimal.dam_id,
         weight: dbAnimal.weight,
-        currentCampId: dbAnimal.current_camp_id
+        currentCampId: dbAnimal.current_camp_id,
+        // Optional fields from Supabase
+        brand: dbAnimal.brand,
+        originGln: dbAnimal.origin_gln,
+        previousOwnerTag: dbAnimal.previous_owner_tag,
+        previousOwnerBrand: dbAnimal.previous_owner_brand,
+        arrivalDate: dbAnimal.arrival_date,
+        purchasePrice: dbAnimal.purchase_price,
+        soldPrice: dbAnimal.sold_price
       }));
+
+      // Calculate lastBirthDate for females
+      mappedHerd.forEach(animal => {
+        if (animal.sex === 'Female') {
+          const offspring = mappedHerd.filter(a => a.damId === animal.id && a.dateOfBirth);
+          if (offspring.length > 0) {
+            const latest = offspring.reduce((a, b) => new Date(a.dateOfBirth).getTime() > new Date(b.dateOfBirth).getTime() ? a : b);
+            (animal as any).lastBirthDate = latest.dateOfBirth;
+          }
+        }
+      });
 
       setHerd(mappedHerd);
 
@@ -189,6 +208,7 @@ export const HerdList = () => {
                 <SortableHeader field="tagNumber" label="Ear Tag" icon={User} />
                 <SortableHeader field="dateOfBirth" label="Date of Birth" icon={Calendar} />
                 <SortableHeader field="age" label="Age" icon={Clock} />
+                <SortableHeader field="lastBirthDate" label="Last Birth" icon={Calendar} />
                 <SortableHeader field="sex" label="Sex" />
                 <SortableHeader field="breed" label="Breed" />
                 <SortableHeader field="camp" label="Camp" icon={MapPin} />
@@ -239,6 +259,9 @@ export const HerdList = () => {
                       <span style={{ backgroundColor: '#F1F5F9', padding: '4px 8px', borderRadius: '6px', fontSize: '0.875rem' }}>
                         {calculateAge(animal.dateOfBirth).display}
                       </span>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {animal.sex === 'Female' ? ((animal as any).lastBirthDate || '—') : '—'}
                     </td>
                     <td>
                       <span style={{ color: animal.sex === 'Female' ? '#EC4899' : '#3B82F6', fontWeight: 500 }}>

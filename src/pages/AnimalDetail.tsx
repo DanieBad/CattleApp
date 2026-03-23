@@ -197,13 +197,29 @@ export const AnimalDetail = () => {
   };
 
   const handleStatusChange = async (newStatus: 'Sold' | 'Deceased') => {
-    if (!window.confirm(`Are you sure you want to mark this animal as ${newStatus}?`)) return;
+    let soldPrice: number | null = null;
+    if (newStatus === 'Sold') {
+      const priceStr = window.prompt(`Are you sure you want to mark this animal as Sold?\nEnter the Sold Price (or leave blank if none):`);
+      if (priceStr === null) return; // cancelled
+      if (priceStr.trim() !== '') {
+        soldPrice = parseFloat(priceStr);
+        if (isNaN(soldPrice)) {
+          alert("Invalid price entered. Action cancelled.");
+          return;
+        }
+      }
+    } else {
+      if (!window.confirm(`Are you sure you want to mark this animal as ${newStatus}?`)) return;
+    }
     
     try {
-      const { error } = await supabase.from('animals').update({ status: newStatus }).eq('id', id);
+      const updateData: any = { status: newStatus };
+      if (soldPrice !== null) updateData.sold_price = soldPrice;
+      
+      const { error } = await supabase.from('animals').update(updateData).eq('id', id);
       if (error) throw error;
       
-      setAnimal(prev => prev ? { ...prev, status: newStatus } : null);
+      setAnimal(prev => prev ? { ...prev, status: newStatus, soldPrice: soldPrice !== null ? soldPrice : prev.soldPrice } : null);
     } catch (error: any) {
       console.error('Failed to update status:', error);
       alert('Error: ' + error.message);
@@ -641,6 +657,18 @@ export const AnimalDetail = () => {
                   </p>
                 </div>
               )}
+              {animal.brand && (
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Ownership Brand</p>
+                  <p style={{ fontWeight: 500 }}>{animal.brand}</p>
+                </div>
+              )}
+              {animal.status === 'Sold' && animal.soldPrice && (
+                <div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Sold Price</p>
+                  <p style={{ fontWeight: 500, color: '#059669' }}>R {animal.soldPrice.toFixed(2)}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -652,7 +680,7 @@ export const AnimalDetail = () => {
                 onClick={() => navigate(`/add-animal?${animal.sex === 'Female' ? 'damId' : 'sireId'}=${animal.id}`)}
                 style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> Add Calf
+                <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> {animal.species === 'Sheep' ? 'Add Lamb' : 'Add Calf'}
               </button>
             </div>
             
@@ -661,7 +689,7 @@ export const AnimalDetail = () => {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {offspring.map(calf => (
-                  <AnimalCard key={calf.id} ani={calf} title="Calf" />
+                  <AnimalCard key={calf.id} ani={calf} title={animal.species === 'Sheep' ? 'Lamb' : 'Calf'} />
                 ))}
               </div>
             )}
@@ -727,7 +755,37 @@ export const AnimalDetail = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Medication (Optional)</label>
-                  <input type="text" className="form-input" placeholder="e.g. Ivermectin" value={newMedication} onChange={e => setNewMedication(e.target.value)} />
+                  {newTreatmentType === 'Vaccination' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <select 
+                        className="form-select" 
+                        value={['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever'].includes(newMedication) ? newMedication : (newMedication ? 'Other' : '')}
+                        onChange={e => {
+                          if (e.target.value !== 'Other') {
+                            setNewMedication(e.target.value);
+                          } else {
+                            // Leave it as current so input shows up
+                            if (['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever', ''].includes(newMedication)) {
+                                setNewMedication('Other Vaccine Name');
+                            }
+                          }
+                        }}
+                      >
+                        <option value="">-- Select SA Top 5 --</option>
+                        <option value="FMD (Foot & Mouth Disease)">FMD (Foot & Mouth Disease)</option>
+                        <option value="Covexin 10 / Multivax">Covexin 10 / Multivax</option>
+                        <option value="Anthrax">Anthrax</option>
+                        <option value="Botulism">Botulism</option>
+                        <option value="Rift Valley Fever">Rift Valley Fever</option>
+                        <option value="Other">Other (Type manually)</option>
+                      </select>
+                      {(!['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever', ''].includes(newMedication)) && (
+                        <input type="text" className="form-input" placeholder="Enter other vaccine..." value={newMedication} onChange={e => setNewMedication(e.target.value)} />
+                      )}
+                    </div>
+                  ) : (
+                    <input type="text" className="form-input" placeholder="e.g. Ivermectin" value={newMedication} onChange={e => setNewMedication(e.target.value)} />
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Dosage (Optional)</label>

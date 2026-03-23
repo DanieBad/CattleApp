@@ -23,6 +23,13 @@ export interface Animal {
   notes?: string;
   weight?: number;        // Current weight in kg
   currentCampId?: string | null; // ID of physical pasture
+  brand?: string;         // Brand info
+  originGln?: string;     // Previous farm GLN
+  previousOwnerTag?: string;
+  previousOwnerBrand?: string;
+  arrivalDate?: string;
+  purchasePrice?: number;
+  soldPrice?: number;
 }
 
 export interface Camp {
@@ -82,6 +89,8 @@ export interface FarmSettings {
   defaultSheepBreed: SheepBreed | null;
   gs1CompanyPrefix: string | null;
   legalEntityGln: string | null;
+  glnCertificateUrl?: string | null;
+  brandCertificateUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
