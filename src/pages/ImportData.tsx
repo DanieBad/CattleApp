@@ -161,8 +161,7 @@ export const ImportData = () => {
         weight: animal.weight || null,
         horn_status: animal.hornStatus || null,
         purchase_price: animal.purchasePrice || null,
-        sold_price: animal.soldPrice || null,
-        notes: animal.notes || null
+        sold_price: animal.soldPrice || null
       }));
       
       const { error } = await supabase.from('animals').insert(payload);
@@ -374,20 +373,29 @@ export const ImportData = () => {
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 10 }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Tag Number</th>
+                    <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Species</th>
                     <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Breed</th>
                     <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Sex</th>
                     <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Date of Birth</th>
+                    <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Status</th>
                     <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Weight</th>
+                    <th style={{ textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)' }}>Prices</th>
                   </tr>
                 </thead>
                 <tbody>
                   {parsedAnimals.map((row, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px' }}>{row.tagNumber || <span style={{color:'red'}}>MISSING</span>}</td>
+                      <td style={{ padding: '12px' }}>{row.species}</td>
                       <td style={{ padding: '12px' }}>{row.breed}</td>
                       <td style={{ padding: '12px' }}>{row.sex}</td>
                       <td style={{ padding: '12px' }}>{row.dateOfBirth || <span style={{color:'red'}}>MISSING</span>}</td>
+                      <td style={{ padding: '12px' }}>{row.status}</td>
                       <td style={{ padding: '12px' }}>{row.weight ? `${row.weight} kg` : '-'}</td>
+                      <td style={{ padding: '12px', fontSize: '0.85rem' }}>
+                        {row.purchasePrice && <div>In: R{row.purchasePrice}</div>}
+                        {row.soldPrice && <div style={{color:'var(--primary)'}}>Out: R{row.soldPrice}</div>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
