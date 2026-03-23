@@ -1,0 +1,151 @@
+Tag Number,EID Number,Species,Breed,Sex,Date of Birth,Status,Weight (kg),Horn Status,Name,Notes,Purchase Price,Sold Price,Sire Tag,Dam Tag
+C-1001,982000438160082,Cattle,Nguni,Male,2024-06-13,Active,762,Horned,Animal_1,Healthy specimen,14331,,,
+C-1002,982000934129196,Cattle,Hereford,Male,2024-01-29,Active,284,Horned,Animal_2,Healthy specimen,10643,,,
+C-1003,982000961962192,Cattle,Boran,Male,2024-05-06,Active,872,Polled,Animal_3,Healthy specimen,21928,,C-1002,
+C-1004,982000445795892,Cattle,Hereford,Male,2022-10-07,Active,213,Polled,Animal_4,Healthy specimen,15472,,,
+C-1005,982000944940845,Cattle,Simmentaler,Male,2023-11-08,Active,375,Horned,Animal_5,Healthy specimen,22473,,,
+C-1006,982000682540165,Cattle,Afrikaner,Female,2023-02-08,Active,253,Horned,Animal_6,Healthy specimen,15517,,,
+C-1007,982000466031891,Cattle,Angus,Female,2024-09-29,Active,342,Horned,Animal_7,Healthy specimen,16176,,C-1002,C-1007
+C-1008,982000252869714,Cattle,Brahman,Female,2023-08-01,Active,780,Polled,Animal_8,Healthy specimen,21039,,,
+C-1009,982000618231314,Cattle,Nguni,Female,2025-05-24,Active,479,Polled,Animal_9,Healthy specimen,18552,,C-1005,C-1006
+C-1010,982000494392284,Cattle,Angus,Female,2024-10-17,Active,672,Scurred,Animal_10,Healthy specimen,19998,,C-1005,
+C-1011,982000232681327,Cattle,Brahman,Female,2025-11-07,Active,463,Scurred,Animal_11,Healthy specimen,21217,,C-1005,C-1006
+C-1012,982000551687722,Cattle,Angus,Female,2022-04-10,Active,626,Polled,Animal_12,Healthy specimen,11889,,,
+C-1013,982000902565680,Cattle,Bonsmara,Female,2023-04-19,Active,788,Scurred,Animal_13,Healthy specimen,10755,,,
+C-1014,982000962400813,Cattle,Angus,Female,2025-01-05,Active,695,Scurred,Animal_14,Healthy specimen,14078,,C-1002,
+C-1015,982000318212203,Cattle,Nguni,Female,2024-06-21,Active,395,Horned,Animal_15,Healthy specimen,9309,,,
+C-1016,982000767147660,Cattle,Angus,Female,2023-04-09,Active,432,Scurred,Animal_16,Healthy specimen,19313,,,
+C-1017,982000838133780,Cattle,Brahman,Female,2022-08-25,Active,286,Polled,Animal_17,Healthy specimen,11615,,,
+C-1018,982000698828786,Cattle,Afrikaner,Female,2024-09-19,Active,152,Horned,Animal_18,Healthy specimen,13211,,C-1004,C-1006
+C-1019,982000357578348,Cattle,Simmentaler,Female,2026-02-14,Active,335,Scurred,Animal_19,Healthy specimen,9541,,C-1002,C-1012
+C-1020,982000318123575,Cattle,Brahman,Female,2024-04-22,Active,316,Scurred,Animal_20,Healthy specimen,19894,,C-1002,C-1007
+C-1021,982000876225603,Cattle,Bonsmara,Female,2024-10-25,Active,703,Polled,Animal_21,Healthy specimen,18782,,C-1002,C-1007
+C-1022,982000589435339,Cattle,Simmentaler,Female,2024-09-28,Active,602,Horned,Animal_22,Healthy specimen,21382,,C-1002,
+C-1023,982000125956960,Cattle,Simmentaler,Female,2022-03-29,Active,351,Scurred,Animal_23,Healthy specimen,17220,,,
+C-1024,982000952221729,Cattle,Hereford,Female,2023-03-02,Active,697,Horned,Animal_24,Healthy specimen,14151,,,
+C-1025,982000253832592,Cattle,Simmentaler,Female,2025-01-24,Active,359,Horned,Animal_25,Healthy specimen,18974,,C-1004,C-1008
+C-1026,982000509177565,Cattle,Afrikaner,Female,2023-10-27,Active,484,Scurred,Animal_26,Healthy specimen,15319,,,
+C-1027,982000992935114,Cattle,Afrikaner,Female,2022-10-10,Active,691,Scurred,Animal_27,Healthy specimen,10574,,,
+C-1028,982000560532288,Cattle,Boran,Female,2022-04-08,Active,686,Scurred,Animal_28,Healthy specimen,8427,,,
+C-1029,982000423745611,Cattle,Brahman,Female,2023-10-28,Active,775,Scurred,Animal_29,Healthy specimen,18747,,,
+C-1030,982000451660473,Cattle,Brahman,Female,2023-09-05,Active,841,Horned,Animal_30,Healthy specimen,20321,,,
+C-1031,982000124993492,Cattle,Boran,Female,2025-02-11,Active,601,Scurred,Animal_31,Healthy specimen,23333,,C-1004,C-1026
+C-1032,982000209511090,Cattle,Simmentaler,Female,2024-04-07,Active,266,Horned,Animal_32,Healthy specimen,20324,,C-1001,
+C-1033,982000924083448,Cattle,Boran,Male,2024-09-18,Active,672,Scurred,Animal_33,Healthy specimen,18509,,,
+C-1034,982000394134792,Cattle,Brahman,Female,2024-12-07,Active,575,Scurred,Animal_34,Healthy specimen,15037,,C-1004,
+C-1035,982000802183471,Cattle,Hereford,Female,2024-09-08,Active,504,Scurred,Animal_35,Healthy specimen,23957,,C-1003,
+C-1036,982000973175155,Cattle,Angus,Male,2025-03-28,Active,171,Scurred,Animal_36,Healthy specimen,19901,,C-1001,C-1026
+C-1037,982000498214600,Cattle,Hereford,Male,2024-11-22,Active,643,Polled,Animal_37,Healthy specimen,9840,,,C-1029
+C-1038,982000255998051,Cattle,Nguni,Female,2025-11-18,Active,533,Polled,Animal_38,Healthy specimen,8204,,C-1002,C-1015
+C-1039,982000546356801,Cattle,Simmentaler,Female,2026-03-13,Active,528,Scurred,Animal_39,Healthy specimen,19585,,C-1005,C-1015
+C-1040,982000892214678,Cattle,Boran,Female,2025-10-26,Active,172,Horned,Animal_40,Healthy specimen,13710,,,C-1008
+C-1041,982000271985934,Cattle,Boran,Male,2026-01-15,Active,610,Polled,Animal_41,Healthy specimen,12211,,C-1005,C-1014
+C-1042,982000689569598,Cattle,Simmentaler,Female,2024-12-02,Active,249,Horned,Animal_42,Healthy specimen,17895,,,
+C-1043,982000612040617,Cattle,Boran,Female,2025-05-16,Active,277,Horned,Animal_43,Healthy specimen,21364,,,C-1008
+C-1044,982000347689144,Cattle,Hereford,Male,2025-10-15,Active,442,Scurred,Animal_44,Healthy specimen,10620,,C-1004,C-1016
+C-1045,982000347028511,Cattle,Bonsmara,Female,2024-11-10,Active,209,Scurred,Animal_45,Healthy specimen,11692,,,C-1007
+C-1046,982000893178864,Cattle,Nguni,Male,2024-11-08,Active,497,Horned,Animal_46,Healthy specimen,22655,,C-1005,C-1025
+C-1047,982000549669423,Cattle,Nguni,Female,2025-05-20,Active,417,Scurred,Animal_47,Healthy specimen,22481,,,
+C-1048,982000829814053,Cattle,Afrikaner,Female,2024-05-12,Active,761,Scurred,Animal_48,Healthy specimen,12913,,C-1004,
+C-1049,982000203634866,Cattle,Bonsmara,Male,2025-05-11,Active,840,Horned,Animal_49,Healthy specimen,12786,,,C-1013
+C-1050,982000547373102,Cattle,Brahman,Male,2025-04-21,Active,748,Scurred,Animal_50,Healthy specimen,11401,,C-1004,C-1019
+C-1051,982000198646709,Cattle,Nguni,Male,2024-05-21,Sold,816,Horned,Animal_51,Sold at auction,11623,16662,C-1001,
+C-1052,982000792210018,Cattle,Afrikaner,Female,2025-02-16,Active,773,Polled,Animal_52,Healthy specimen,23278,,C-1004,C-1015
+C-1053,982000175053926,Cattle,Boran,Male,2025-08-01,Active,216,Scurred,Animal_53,Healthy specimen,20252,,,
+C-1054,982000668429270,Cattle,Simmentaler,Male,2025-01-03,Active,191,Scurred,Animal_54,Healthy specimen,14427,,C-1004,C-1015
+C-1055,982000409429102,Cattle,Boran,Female,2024-09-14,Active,844,Horned,Animal_55,Healthy specimen,24501,,C-1004,C-1024
+C-1056,982000921571595,Cattle,Angus,Female,2026-03-05,Active,765,Polled,Animal_56,Healthy specimen,24368,,C-1004,C-1009
+C-1057,982000596779647,Cattle,Angus,Male,2025-07-21,Active,827,Polled,Animal_57,Healthy specimen,20491,,C-1003,
+C-1058,982000952800435,Cattle,Boran,Male,2025-05-18,Sold,247,Polled,Animal_58,Sold at auction,15747,18570,,C-1016
+C-1059,982000374091126,Cattle,Boran,Male,2025-10-25,Active,414,Horned,Animal_59,Healthy specimen,14731,,,C-1015
+C-1060,982000411623464,Cattle,Hereford,Female,2024-05-07,Active,419,Polled,Animal_60,Healthy specimen,13343,,,C-1029
+C-1061,982000340501369,Cattle,Bonsmara,Female,2025-05-08,Sold,254,Horned,Animal_61,Sold at auction,17855,22715,C-1003,C-1014
+C-1062,982000173667961,Cattle,Afrikaner,Female,2025-06-20,Active,157,Horned,Animal_62,Healthy specimen,15858,,C-1002,
+C-1063,982000516867108,Cattle,Angus,Female,2024-07-26,Active,330,Horned,Animal_63,Healthy specimen,21961,,C-1002,
+C-1064,982000983980475,Cattle,Nguni,Male,2026-01-04,Active,693,Scurred,Animal_64,Healthy specimen,21640,,,C-1013
+C-1065,982000969154799,Cattle,Simmentaler,Male,2024-09-01,Active,773,Scurred,Animal_65,Healthy specimen,19641,,C-1001,
+C-1066,982000605751962,Cattle,Boran,Male,2024-07-29,Active,698,Horned,Animal_66,Healthy specimen,23073,,C-1002,C-1016
+C-1067,982000916762873,Cattle,Angus,Male,2025-04-10,Active,612,Horned,Animal_67,Healthy specimen,15952,,C-1004,C-1019
+C-1068,982000707696193,Cattle,Brahman,Female,2024-08-06,Active,791,Polled,Animal_68,Healthy specimen,19861,,,
+C-1069,982000113854936,Cattle,Brahman,Female,2025-07-25,Active,488,Scurred,Animal_69,Healthy specimen,18585,,C-1003,C-1010
+C-1070,982000790735900,Cattle,Bonsmara,Male,2025-04-29,Active,668,Polled,Animal_70,Healthy specimen,8201,,,
+C-1071,982000876714197,Cattle,Nguni,Male,2024-09-20,Active,256,Horned,Animal_71,Healthy specimen,12158,,,C-1016
+C-1072,982000632459456,Cattle,Hereford,Female,2025-12-31,Active,289,Scurred,Animal_72,Healthy specimen,13936,,,
+C-1073,982000823850044,Cattle,Afrikaner,Female,2025-09-26,Active,371,Scurred,Animal_73,Healthy specimen,24913,,C-1001,C-1015
+C-1074,982000341562545,Cattle,Angus,Male,2025-09-30,Active,731,Horned,Animal_74,Healthy specimen,18916,,C-1003,
+C-1075,982000999241098,Cattle,Hereford,Female,2024-06-06,Sold,349,Polled,Animal_75,Sold at auction,23651,32863,C-1002,
+C-1076,982000414877431,Cattle,Bonsmara,Female,2024-11-14,Active,460,Polled,Animal_76,Healthy specimen,13491,,C-1002,
+C-1077,982000456416374,Cattle,Afrikaner,Female,2026-03-11,Active,602,Polled,Animal_77,Healthy specimen,23366,,C-1005,C-1026
+C-1078,982000836343936,Cattle,Brahman,Male,2025-11-08,Active,687,Scurred,Animal_78,Healthy specimen,24268,,,C-1006
+C-1079,982000984497887,Cattle,Simmentaler,Male,2025-08-25,Sold,674,Polled,Animal_79,Sold at auction,10924,13556,,C-1027
+C-1080,982000162205934,Cattle,Boran,Male,2025-02-01,Active,840,Scurred,Animal_80,Healthy specimen,16204,,,
+C-1081,982000367786001,Cattle,Brahman,Male,2025-06-19,Active,328,Scurred,Animal_81,Healthy specimen,19093,,,C-1028
+C-1082,982000161860638,Cattle,Angus,Female,2026-02-23,Active,875,Scurred,Animal_82,Healthy specimen,13257,,,C-1030
+C-1083,982000742276288,Cattle,Nguni,Male,2025-09-10,Active,562,Scurred,Animal_83,Healthy specimen,15977,,,C-1009
+C-1084,982000691819163,Cattle,Afrikaner,Male,2024-06-03,Active,454,Polled,Animal_84,Healthy specimen,10057,,C-1005,C-1014
+C-1085,982000155818732,Cattle,Simmentaler,Female,2025-03-12,Active,470,Horned,Animal_85,Healthy specimen,18805,,C-1005,
+C-1086,982000811440913,Cattle,Nguni,Male,2024-07-07,Active,676,Polled,Animal_86,Healthy specimen,19385,,,C-1008
+C-1087,982000843074172,Cattle,Bonsmara,Male,2024-05-14,Active,708,Horned,Animal_87,Healthy specimen,12760,,,C-1020
+C-1088,982000387705677,Cattle,Bonsmara,Male,2025-02-06,Active,742,Horned,Animal_88,Healthy specimen,8601,,C-1003,
+C-1089,982000911565272,Cattle,Angus,Female,2025-10-21,Sold,377,Horned,Animal_89,Sold at auction,15951,20008,,C-1017
+C-1090,982000842472470,Cattle,Bonsmara,Female,2025-03-07,Active,604,Polled,Animal_90,Healthy specimen,12186,,,C-1017
+C-1091,982000298666912,Cattle,Angus,Female,2025-04-12,Active,248,Scurred,Animal_91,Healthy specimen,11456,,C-1001,C-1012
+C-1092,982000571259068,Cattle,Bonsmara,Male,2025-12-15,Active,689,Scurred,Animal_92,Healthy specimen,18561,,C-1003,
+C-1093,982000815200921,Cattle,Boran,Male,2024-03-31,Active,440,Scurred,Animal_93,Healthy specimen,15722,,C-1005,C-1023
+C-1094,982000531071587,Cattle,Simmentaler,Male,2024-05-19,Active,526,Polled,Animal_94,Healthy specimen,14539,,C-1004,
+C-1095,982000531643350,Cattle,Brahman,Male,2024-08-02,Active,433,Scurred,Animal_95,Healthy specimen,11511,,C-1001,C-1021
+C-1096,982000654624260,Cattle,Nguni,Female,2025-07-01,Active,535,Horned,Animal_96,Healthy specimen,22974,,C-1005,C-1019
+C-1097,982000817504056,Cattle,Brahman,Female,2025-03-11,Sold,556,Polled,Animal_97,Sold at auction,23241,32113,C-1004,C-1026
+C-1098,982000369315145,Cattle,Angus,Female,2026-03-21,Active,263,Scurred,Animal_98,Healthy specimen,9726,,C-1003,
+C-1099,982000415775524,Cattle,Angus,Female,2025-09-27,Active,560,Horned,Animal_99,Healthy specimen,16751,,C-1004,
+C-1100,982000567740587,Cattle,Angus,Female,2024-06-20,Active,820,Scurred,Animal_100,Healthy specimen,20717,,C-1001,
+S-2001,982111310871547,Sheep,Van Rooy,Male,2022-05-22,Active,85,Polled,Sheep_1,Typical breed characteristics,2980,,,
+S-2002,982111434992808,Sheep,Dorper,Male,2022-07-13,Active,99,Polled,Sheep_2,Typical breed characteristics,2852,,,
+S-2003,982111946992164,Sheep,Suffolk,Female,2025-12-01,Active,109,Polled,Sheep_3,Typical breed characteristics,2570,,S-2002,
+S-2004,982111912390714,Sheep,Texel,Female,2025-03-27,Sold,39,Polled,Sheep_4,Typical breed characteristics,4783,5759,S-2002,S-2003
+S-2005,982111450167384,Sheep,Meatmaster,Female,2025-05-13,Active,32,Polled,Sheep_5,Typical breed characteristics,3748,,S-2002,S-2005
+S-2006,982111451462878,Sheep,Merino,Female,2023-07-19,Active,53,Polled,Sheep_6,Typical breed characteristics,1568,,,
+S-2007,982111150099630,Sheep,Van Rooy,Female,2024-04-08,Active,38,Polled,Sheep_7,Typical breed characteristics,4730,,,
+S-2008,982111742856335,Sheep,Suffolk,Female,2024-09-07,Active,82,Polled,Sheep_8,Typical breed characteristics,4237,,,
+S-2009,982111897533249,Sheep,Suffolk,Female,2023-05-13,Active,32,Polled,Sheep_9,Typical breed characteristics,3989,,,
+S-2010,982111723636166,Sheep,Van Rooy,Female,2025-02-07,Active,57,Polled,Sheep_10,Typical breed characteristics,3598,,S-2002,S-2009
+S-2011,982111311273761,Sheep,Van Rooy,Female,2023-05-14,Active,105,Polled,Sheep_11,Typical breed characteristics,2285,,,
+S-2012,982111195093316,Sheep,Van Rooy,Female,2024-04-17,Active,51,Polled,Sheep_12,Typical breed characteristics,4153,,,
+S-2013,982111190200704,Sheep,Texel,Female,2023-08-23,Active,59,Polled,Sheep_13,Typical breed characteristics,2177,,,
+S-2014,982111756818096,Sheep,Texel,Female,2023-04-09,Active,105,Polled,Sheep_14,Typical breed characteristics,4299,,,
+S-2015,982111538931712,Sheep,Dorper,Female,2024-04-20,Active,36,Polled,Sheep_15,Typical breed characteristics,4734,,,
+S-2016,982111157522311,Sheep,Dorper,Female,2025-04-27,Active,70,Polled,Sheep_16,Typical breed characteristics,4619,,S-2002,S-2003
+S-2017,982111675177386,Sheep,Meatmaster,Female,2026-02-15,Active,119,Polled,Sheep_17,Typical breed characteristics,4253,,S-2001,S-2013
+S-2018,982111389975197,Sheep,Suffolk,Female,2025-12-11,Active,100,Polled,Sheep_18,Typical breed characteristics,4895,,S-2001,S-2008
+S-2019,982111985363542,Sheep,Merino,Male,2025-07-23,Active,68,Polled,Sheep_19,Typical breed characteristics,3691,,S-2002,S-2015
+S-2020,982111491658423,Sheep,Van Rooy,Female,2025-07-16,Active,56,Polled,Sheep_20,Typical breed characteristics,2815,,S-2001,S-2012
+S-2021,982111535860252,Sheep,Van Rooy,Female,2026-02-24,Active,75,Polled,Sheep_21,Typical breed characteristics,2568,,S-2002,S-2010
+S-2022,982111615580498,Sheep,Suffolk,Male,2026-03-15,Active,72,Polled,Sheep_22,Typical breed characteristics,1772,,S-2002,S-2007
+S-2023,982111691108923,Sheep,Van Rooy,Female,2025-04-24,Active,120,Polled,Sheep_23,Typical breed characteristics,4129,,S-2001,S-2014
+S-2024,982111663928426,Sheep,Merino,Female,2025-04-18,Active,84,Polled,Sheep_24,Typical breed characteristics,4242,,,
+S-2025,982111995211328,Sheep,Meatmaster,Male,2025-07-20,Sold,45,Polled,Sheep_25,Typical breed characteristics,1782,2451,S-2001,S-2012
+S-2026,982111801956001,Sheep,Van Rooy,Female,2025-07-03,Active,75,Polled,Sheep_26,Typical breed characteristics,2859,,S-2001,S-2008
+S-2027,982111659690432,Sheep,Van Rooy,Male,2025-10-24,Active,101,Polled,Sheep_27,Typical breed characteristics,3120,,S-2001,S-2003
+S-2028,982111695787551,Sheep,Merino,Male,2025-04-05,Active,86,Polled,Sheep_28,Typical breed characteristics,2972,,S-2002,
+S-2029,982111357656520,Sheep,Texel,Male,2025-09-15,Active,88,Polled,Sheep_29,Typical breed characteristics,4821,,,S-2010
+S-2030,982111711134507,Sheep,Texel,Male,2025-11-05,Active,97,Polled,Sheep_30,Typical breed characteristics,2582,,,S-2009
+S-2031,982111331890001,Sheep,Merino,Female,2025-12-21,Active,98,Polled,Sheep_31,Typical breed characteristics,2880,,S-2001,S-2012
+S-2032,982111795578063,Sheep,Suffolk,Female,2025-08-10,Active,52,Polled,Sheep_32,Typical breed characteristics,2469,,S-2001,S-2014
+S-2033,982111132788681,Sheep,Merino,Male,2026-03-05,Active,54,Polled,Sheep_33,Typical breed characteristics,1972,,S-2002,S-2005
+S-2034,982111878702972,Sheep,Dorper,Male,2025-08-20,Sold,98,Polled,Sheep_34,Typical breed characteristics,4525,6109,S-2001,
+S-2035,982111609020574,Sheep,Suffolk,Male,2025-08-03,Active,66,Polled,Sheep_35,Typical breed characteristics,3473,,,S-2015
+S-2036,982111121540396,Sheep,Merino,Male,2025-10-10,Active,98,Polled,Sheep_36,Typical breed characteristics,4043,,S-2002,S-2010
+S-2037,982111486036425,Sheep,Van Rooy,Male,2026-03-18,Active,119,Polled,Sheep_37,Typical breed characteristics,1906,,S-2001,
+S-2038,982111810904523,Sheep,Suffolk,Female,2025-04-01,Active,58,Polled,Sheep_38,Typical breed characteristics,2731,,S-2001,
+S-2039,982111101529674,Sheep,Texel,Female,2025-10-26,Active,109,Polled,Sheep_39,Typical breed characteristics,2652,,S-2002,S-2005
+S-2040,982111958164597,Sheep,Meatmaster,Male,2026-03-09,Active,39,Polled,Sheep_40,Typical breed characteristics,1999,,S-2002,
+S-2041,982111894151248,Sheep,Dorper,Male,2025-08-09,Active,44,Polled,Sheep_41,Typical breed characteristics,4706,,S-2002,S-2009
+S-2042,982111520000614,Sheep,Suffolk,Male,2025-10-29,Active,49,Polled,Sheep_42,Typical breed characteristics,1754,,S-2002,
+S-2043,982111926260238,Sheep,Meatmaster,Female,2025-06-04,Sold,119,Polled,Sheep_43,Typical breed characteristics,3803,5404,S-2002,
+S-2044,982111989764479,Sheep,Van Rooy,Male,2025-05-02,Active,92,Polled,Sheep_44,Typical breed characteristics,3652,,S-2001,S-2008
+S-2045,982111347772429,Sheep,Suffolk,Male,2025-03-26,Active,53,Polled,Sheep_45,Typical breed characteristics,1666,,,S-2004
+S-2046,982111973932887,Sheep,Texel,Female,2026-01-12,Active,55,Polled,Sheep_46,Typical breed characteristics,3305,,S-2002,
+S-2047,982111614139608,Sheep,Van Rooy,Male,2025-06-17,Active,99,Polled,Sheep_47,Typical breed characteristics,4491,,S-2001,S-2005
+S-2048,982111190882821,Sheep,Suffolk,Female,2025-07-16,Active,66,Polled,Sheep_48,Typical breed characteristics,2985,,S-2001,
+S-2049,982111537633046,Sheep,Meatmaster,Male,2025-06-09,Active,53,Polled,Sheep_49,Typical breed characteristics,4354,,,S-2011
+S-2050,982111388037256,Sheep,Meatmaster,Female,2025-08-21,Sold,92,Polled,Sheep_50,Typical breed characteristics,4552,6415,S-2001,S-2010

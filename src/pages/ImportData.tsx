@@ -28,6 +28,11 @@ const OPTIONAL_FIELDS = [
   { key: 'eidNumber', label: 'EID (15-digit)' },
   { key: 'weight', label: 'Current Weight (kg)' },
   { key: 'hornStatus', label: 'Horn Status (Polled, Horned, etc)' },
+  { key: 'species', label: 'Species (Cattle/Sheep)' },
+  { key: 'status', label: 'Status (Active/Sold/Deceased)' },
+  { key: 'purchasePrice', label: 'Purchase Price' },
+  { key: 'soldPrice', label: 'Sold Price' },
+  { key: 'notes', label: 'Notes' },
 ];
 
 export const ImportData = () => {
@@ -92,14 +97,18 @@ export const ImportData = () => {
       return {
         _tempId: index, // Local ID for error tracking
         tagNumber: getVal('tagNumber'),
+        species: (getVal('species') || 'Cattle') as any,
         breed: getVal('breed') as Breed || 'Other',
         sex: getVal('sex').match(/female|f/i) ? 'Female' : 'Male',
         dateOfBirth: getVal('dateOfBirth'),
-        status: 'Active' as Status,
+        status: (getVal('status') || 'Active') as Status,
         name: getVal('name'),
         eidNumber: getVal('eidNumber'),
         weight: getVal('weight') ? parseFloat(getVal('weight')) : undefined,
-        hornStatus: getVal('hornStatus') as any
+        hornStatus: getVal('hornStatus') as any,
+        purchasePrice: getVal('purchasePrice') ? parseFloat(getVal('purchasePrice')) : undefined,
+        soldPrice: getVal('soldPrice') ? parseFloat(getVal('soldPrice')) : undefined,
+        notes: getVal('notes')
       };
     });
 
@@ -144,12 +153,16 @@ export const ImportData = () => {
         tag_number: animal.tagNumber || 'UNKNOWN',
         eid_number: animal.eidNumber || null,
         name: animal.name || null,
+        species: animal.species || 'Cattle',
         breed: animal.breed || 'Other',
         sex: animal.sex || 'Female',
         date_of_birth: animal.dateOfBirth,
         status: animal.status || 'Active',
         weight: animal.weight || null,
-        horn_status: animal.hornStatus || null
+        horn_status: animal.hornStatus || null,
+        purchase_price: animal.purchasePrice || null,
+        sold_price: animal.soldPrice || null,
+        notes: animal.notes || null
       }));
       
       const { error } = await supabase.from('animals').insert(payload);
