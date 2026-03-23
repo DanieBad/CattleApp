@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../supabase';
 import { 
   LifeBuoy, MessageSquare, Bug, Lightbulb, Search, 
-  ChevronDown, ChevronUp, Send, CheckCircle2, AlertCircle 
+  ChevronDown, ChevronUp, Send, CheckCircle2, AlertCircle, Mail 
 } from 'lucide-react';
 
 const FAQS = [
@@ -230,9 +230,15 @@ export const Support = () => {
                   <LifeBuoy size={18} color="var(--primary)" />
                   Direct Support
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '0' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '16px' }}>
                   Typically we respond within 12-24 hours. For critical emergencies, please use the <strong>Bug</strong> report type for higher priority.
                 </p>
+                <a 
+                  href="mailto:info@healthyherd.app" 
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}
+                >
+                  <Mail size={18} /> info@healthyherd.app
+                </a>
               </div>
 
               <div className="card" style={{ padding: '24px' }}>

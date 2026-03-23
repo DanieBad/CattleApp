@@ -5,7 +5,7 @@ import { calculateAge } from '../utils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
-import { Scale, MapPin, Heart, ShieldAlert, ChevronRight, DollarSign } from 'lucide-react';
+import { Scale, MapPin, Heart, ShieldAlert, ChevronRight, DollarSign, Download } from 'lucide-react';
 
 type ReportId = 'weight' | 'pasture' | 'reproductive' | 'health' | 'financial';
 
@@ -715,10 +715,24 @@ export const Reports = () => {
           </>
         )}
       </div>
-      <h1 className="page-title">{activeCard?.title ?? 'Reports Hub'}</h1>
-      <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>
-        {activeCard ? '' : 'Select a report to view detailed analytics for your farm.'}
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div>
+          <h1 className="page-title">{activeCard?.title ?? 'Reports Hub'}</h1>
+          <p style={{ color: 'var(--text-muted)', marginBottom: 0 }}>
+            {activeCard ? '' : 'Select a report to view detailed analytics for your farm.'}
+          </p>
+        </div>
+        
+        {activeReport && (
+          <button 
+            className="btn btn-primary" 
+            onClick={() => window.print()} 
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px' }}
+          >
+            <Download size={18} /> Download PDF
+          </button>
+        )}
+      </div>
 
       {!activeReport ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>

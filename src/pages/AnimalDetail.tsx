@@ -677,7 +677,7 @@ export const AnimalDetail = () => {
               <h3 style={{ margin: 0 }}>Registered Offspring ({offspring.length})</h3>
               <button 
                 className="btn btn-outline" 
-                onClick={() => navigate(`/add-animal?${animal.sex === 'Female' ? 'damId' : 'sireId'}=${animal.id}`)}
+                onClick={() => navigate(`/herd/add?${animal.sex === 'Female' ? 'damId' : 'sireId'}=${animal.id}`)}
                 style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> {animal.species === 'Sheep' ? 'Add Lamb' : 'Add Calf'}
