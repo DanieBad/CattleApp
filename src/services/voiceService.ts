@@ -21,19 +21,29 @@ export class VoiceService {
     }
 
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = false; // Stop listening after one phrase
+    
+    // Chrome does well with continuous listening (allowing pauses without cutting off), 
+    // but iOS Safari requires continuous=false to work reliably.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    this.recognition.continuous = !isIOS; 
     this.recognition.interimResults = false;
     this.recognition.lang = options.language || 'en-ZA'; // default to SA English, but handles local accents well
 
+    let finalTranscript = '';
+
     this.recognition.onstart = () => {
       this.isListening = true;
+      finalTranscript = '';
       if (options.onStart) options.onStart();
     };
 
     this.recognition.onresult = (event: any) => {
       if (!event.results || event.results.length === 0) return;
-      const transcript = event.results[0][0].transcript;
-      if (options.onResult) options.onResult(transcript);
+      let currentResult = '';
+      for (let i = 0; i < event.results.length; i++) {
+        currentResult += event.results[i][0].transcript + ' ';
+      }
+      finalTranscript = currentResult;
     };
 
     this.recognition.onerror = (event: any) => {
@@ -51,6 +61,13 @@ export class VoiceService {
 
     this.recognition.onend = () => {
       this.isListening = false;
+      
+      const textToSubmit = finalTranscript.trim();
+      if (textToSubmit.length > 0) {
+        if (options.onResult) options.onResult(textToSubmit);
+      }
+      finalTranscript = '';
+
       if (options.onEnd) options.onEnd();
     };
   }
