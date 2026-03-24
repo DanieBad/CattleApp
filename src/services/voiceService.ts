@@ -109,12 +109,10 @@ Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
 Common Speech-to-Text Errors (Correct these automatically):
-- "0985" -> "C-1098"
-- "book golf", "buu golf", "poo calf" -> "bull calf"
-- "oxy tetra cycline", "oxitox", "oxytet" -> "oxytetracycline"
-- "giffgaff", "gift", "giff" -> "give"
+- "0985" -> "C-0985"
+- "buu golf", "buclz", "bucles" -> "bull calf"
+- "c1006" -> "C-1006" (Strictly use the exact digits spoken, do not add extra zeros).
 - "porn", "pawn" -> "born"
-- "c10006" -> "C-10006"
 
 Return ONLY a valid JSON object. Do not wrap it in markdown or backticks.
 
