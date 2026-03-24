@@ -120,7 +120,8 @@ Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "data": {
-    "tagNumber": "C-123" (Extract and format the tag nicely, e.g., C-1098),
+    "tagNumber": "C-123" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
+    "motherTag": "C-1006" (The tag of the cow that gave birth, if mentioned),
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD" (calculate relative to ${today} if they say "today" or "yesterday"),
@@ -178,15 +179,25 @@ const parseLocalFallback = (transcript: string): any => {
   
   if (isAdd && isAnimal) {
     const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu');
-    let tag = 'UNKNOWN';
-    const tagMatch = lower.match(/(?:cow|to|tag|mother)\s*([a-z0-9\-]+)/i);
-    if (tagMatch) tag = tagMatch[1].toUpperCase();
+    let motherTag = '';
+    const motherMatch = lower.match(/(?:to\s+cow|mother|dam)\s*([a-z0-9\-]+)/i);
+    if (motherMatch) motherTag = motherMatch[1].toUpperCase();
+    if (motherTag.match(/^[0-9]+$/)) motherTag = 'C-' + motherTag;
+
+    let tag = 'PENDING';
+    const tagMatch = lower.match(/(?:tag|number|is)\s*([a-z0-9\-]+)/i);
+    if (tagMatch) {
+      tag = tagMatch[1].toUpperCase();
+    } else if (motherTag) {
+      tag = motherTag + '-C1';
+    }
     if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
 
     return {
       action: 'add_animal',
       data: {
-        tagNumber: tag + (lower.includes('calf') ? '-CALF' : ''),
+        tagNumber: tag,
+        motherTag: motherTag,
         species: 'Cattle',
         sex: isBull ? 'Male' : 'Female',
         dateOfBirth: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]

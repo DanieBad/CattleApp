@@ -24,14 +24,28 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
     setErrorMessage(null);
     try {
       if (actionType === 'add_animal') {
+        let damId: string | null = null;
+        
+        // Step 1: If a mother tag was provided, Look up her UUID
+        if (parsedData.motherTag) {
+          const { data: motherData } = await supabase
+            .from('animals')
+            .select('id')
+            .ilike('tag_number', parsedData.motherTag)
+            .single();
+          if (motherData) damId = motherData.id;
+        }
+
+        // Step 2: Insert the calf
         const { error } = await supabase.from('animals').insert([{
           species: parsedData.species || 'Cattle',
-          tag_number: parsedData.tagNumber || 'UNKNOWN',
+          tag_number: parsedData.tagNumber || 'PENDING',
           sex: parsedData.sex || 'Unknown',
           status: 'Active',
           date_of_birth: parsedData.dateOfBirth || new Date().toISOString().split('T')[0],
           breed: parsedData.breed || 'Crossbreed',
-          notes: `Added via Voice Prompt: "${transcript}"`
+          dam_id: damId, // Correctly link to mother
+          notes: `Added via Voice Prompt: "${transcript}"${parsedData.motherTag ? `. Mother: ${parsedData.motherTag}` : ''}`
         }]);
         if (error) throw error;
       } else if (actionType === 'add_health_log') {
@@ -94,8 +108,14 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
                 <div style={{ fontWeight: 600 }}>{parsedData.tagNumber || 'Not specified'}</div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Species & Type</label>
-                <div>{parsedData.species} {parsedData.sex === 'Male' ? '(Bull/Ram)' : '(Cow/Ewe)'}</div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Cattle Type</label>
+                <div>{parsedData.sex === 'Male' ? 'Bull/Ram' : 'Cow/Ewe'}</div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Mother (Dam)</label>
+                <div style={{ color: parsedData.motherTag ? 'var(--primary)' : '#64748B' }}>
+                  {parsedData.motherTag || 'None/Unknown'}
+                </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Date of Birth</label>
