@@ -145,6 +145,7 @@ Transcript: "${transcript}"`;
     return JSON.parse(responseText);
   } catch (error: any) {
     console.error("Gemini AI API Error:", error);
-    throw new Error("Failed to parse intent via AI. Check console for details.");
+    let errorMsg = error.message || String(error);
+    throw new Error(`AI Error: ${errorMsg}`);
   }
 };
