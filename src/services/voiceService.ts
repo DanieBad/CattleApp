@@ -1,6 +1,5 @@
 // Support for both standard and WebKit-prefixed implementations
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface VoiceServiceOptions {
   onStart?: () => void;
@@ -95,42 +94,14 @@ export class VoiceService {
 }
 
 /**
- * Uses Google Gemini AI to parse the voice transcript into a structured JSON intent.
+ * Uses OpenAI GPT-4o-mini to parse the voice transcript into a structured JSON intent.
  * Note: For this Phase 1 prototype, the API key is used client-side for immediate testing.
- * In a full production environment, this exact prompt logic should be moved to a Supabase Edge Function!
  */
 export const extractIntentFromText = async (transcript: string): Promise<any> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('Google Gemini API Key is missing! Please add VITE_GEMINI_API_KEY to your .env.local file.');
+    throw new Error('OpenAI API Key is missing! Please add VITE_OPENAI_API_KEY to your .env.local file.');
   }
-
-  // Dynamically query available models to bypass 404 regional restrictions
-  const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-  if (!modelsResponse.ok) {
-    throw new Error(`Failed to list models. Is the API Key correct? (${modelsResponse.status})`);
-  }
-  const modelsData = await modelsResponse.json();
-  
-  const validModels = modelsData.models?.filter((m: any) => 
-    m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini')
-  ) || [];
-  
-  if (validModels.length === 0) {
-    throw new Error("No compatible Gemini models were found for this API key.");
-  }
-  
-  // Prefer the fastest modern model available
-  const flashModel = validModels.find((m: any) => m.name.includes('1.5-flash'));
-  const flash2Model = validModels.find((m: any) => m.name.includes('2.0-flash'));
-  const proModel = validModels.find((m: any) => m.name.includes('pro'));
-  const chosenModel = flashModel || flash2Model || proModel || validModels[0];
-  
-  const targetModelName = chosenModel.name.replace('models/', '');
-  console.log("Auto-selected Gemini Model:", targetModelName);
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: targetModelName });
 
   const prompt = `You are an AI assistant for a Cattle Management app.
 Extract the intended action and data from the farmer's voice transcript.
@@ -156,20 +127,94 @@ Expected JSON Format:
 Transcript: "${transcript}"`;
 
   try {
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text().trim();
-    
-    // Fallback cleanup in case the LLM wraps it in markdown despite instructions
-    if (responseText.startsWith('\`\`\`json')) {
-      responseText = responseText.replace(/^\`\`\`json/g, '').replace(/\`\`\`$/g, '').trim();
-    } else if (responseText.startsWith('\`\`\`')) {
-      responseText = responseText.replace(/^\`\`\`/g, '').replace(/\`\`\`$/g, '').trim();
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You extract structured JSON from cattle farm voice transcripts.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0,
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `OpenAI API Error (${response.status})`);
     }
 
+    const result = await response.json();
+    const responseText = result.choices[0].message.content.trim();
     return JSON.parse(responseText);
   } catch (error: any) {
-    console.error("Gemini AI API Error:", error);
-    let errorMsg = error.message || String(error);
-    throw new Error(`AI Error: ${errorMsg}`);
+    console.error("OpenAI API Error, falling back to local parser:", error);
+    return parseLocalFallback(transcript);
   }
+};
+
+/**
+ * A robust local regex-based parser that acts as a fallback when AI is unavailable.
+ * It handles common cattle management phrases and formatting.
+ */
+const parseLocalFallback = (transcript: string): any => {
+  const lower = transcript.toLowerCase();
+  
+  // 1. ADD ANIMAL Intent
+  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born');
+  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer');
+  
+  if (isAdd && isAnimal) {
+    const isBull = lower.includes('bull') || lower.includes('male');
+    let tag = 'UNKNOWN';
+    const tagMatch = lower.match(/(?:cow|to|tag|mother)\s*([a-z0-9\-]+)/i);
+    if (tagMatch) tag = tagMatch[1].toUpperCase();
+    if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
+
+    return {
+      action: 'add_animal',
+      data: {
+        tagNumber: tag + (lower.includes('calf') ? '-CALF' : ''),
+        species: 'Cattle',
+        sex: isBull ? 'Male' : 'Female',
+        dateOfBirth: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      }
+    };
+  }
+
+  // 2. HEALTH LOG Intent
+  const isHealth = lower.includes('give') || lower.includes('treat') || lower.includes('dose') || lower.includes('medication') || lower.includes('giffgaff');
+  if (isHealth) {
+    let tag = 'UNKNOWN';
+    const tagMatch = lower.match(/(?:cow|calf|bull|to|tag)\s*([a-z0-9\-]+)/i);
+    if (tagMatch) tag = tagMatch[1].toUpperCase();
+    if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
+
+    let dosage = '';
+    const doseMatch = lower.match(/([0-9\.]+\s*(?:ml|cc|mg|g))/i);
+    if (doseMatch) dosage = doseMatch[1].replace(/\s+/g, '');
+
+    let med = 'Unknown Medication';
+    const medMatch = lower.match(/(?:of|with)\s+([a-z\s]+?)(?:\s+today|\s+yesterday|$)/i);
+    if (medMatch) med = medMatch[1].trim();
+    med = med.charAt(0).toUpperCase() + med.slice(1);
+
+    return {
+      action: 'add_health_log',
+      data: {
+        tagNumber: tag,
+        treatmentType: 'Medication',
+        dosage: dosage,
+        medication: med,
+        dateAdministered: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+      }
+    };
+  }
+
+  throw new Error(`Could not understand intent locally: "${transcript}". Please check your internet/billing or try phrasing it directly.`);
 };
