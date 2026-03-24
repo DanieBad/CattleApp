@@ -138,12 +138,19 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
   }
   
   // Health / Treatment Action
-  const isTreatAction = lower.includes('give') || lower.includes('treat') || lower.includes('dose') || lower.includes('medicate') || lower.includes('inject');
+  const isTreatAction = lower.includes('give') || lower.includes('treat') || lower.includes('dose') || lower.includes('medicate') || lower.includes('inject') || lower.includes('giffgaff');
   if (isTreatAction) {
     let targetTag = 'UNKNOWN';
-    const matchTag = lower.match(/(?:cow|calf|bull|heifer|to|tag|animal)\s+([a-z0-9\-]+)/i);
+    
+    // Try strict match first
+    let matchTag = lower.match(/(?:cow|calf|bull|heifer|to|tag|animal)\s+([a-z0-9\-]+)/i);
+    if (!matchTag) {
+        // Fallback: look for exactly something like c - 1098 or c-1098 anywhere
+        matchTag = lower.match(/([a-z]\s*-\s*[0-9]+)/i);
+    }
+
     if (matchTag && matchTag[1]) {
-      targetTag = matchTag[1].toUpperCase();
+      targetTag = matchTag[1].replace(/\s+/g, '').toUpperCase();
       if (targetTag.match(/^[0-9]+$/)) targetTag = 'C-' + targetTag;
     }
 
