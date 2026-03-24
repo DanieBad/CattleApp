@@ -106,8 +106,8 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Using gemini-1.5-flash-latest or gemini-pro to avoid 404 model errors on new API keys
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+  // Using gemini-pro (1.0) to ensure 100% availability on all free-tier accounts regardless of region
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
   const prompt = `You are an AI assistant for a Cattle Management app.
 Extract the intended action and data from the farmer's voice transcript.
