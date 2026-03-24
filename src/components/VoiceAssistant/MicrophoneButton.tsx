@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Mic, StopCircle } from 'lucide-react';
 import { VoiceService } from '../../services/voiceService';
-import { supabase } from '../../supabase';
 
 interface MicrophoneButtonProps {
   onTranscriptComplete: (text: string) => void;
@@ -15,26 +14,12 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscript
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from('farm_settings')
-            .select('voice_language')
-            .eq('user_id', user.id)
-            .single();
-          if (data?.voice_language) {
-            setLanguage(data.voice_language);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching voice language:", err);
-      } finally {
-        setIsReady(true);
-      }
-    };
-    fetchSettings();
+    // Read from localStorage (fallback to en-ZA)
+    const storedLang = localStorage.getItem('voice_language');
+    if (storedLang) {
+      setLanguage(storedLang);
+    }
+    setIsReady(true);
   }, []);
 
   useEffect(() => {

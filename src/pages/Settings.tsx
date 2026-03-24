@@ -46,7 +46,7 @@ export const Settings = () => {
           legalEntityGln: data.legal_entity_gln || '',
           glnCertificateUrl: data.gln_certificate_url || '',
           brandCertificateUrl: data.brand_certificate_url || '',
-          voiceLanguage: data.voice_language as any || 'en-ZA'
+          voiceLanguage: (localStorage.getItem('voice_language') as any) || 'en-ZA'
         });
       }
     } catch (error) {
@@ -75,9 +75,13 @@ export const Settings = () => {
         legal_entity_gln: settings.legalEntityGln,
         gln_certificate_url: settings.glnCertificateUrl,
         brand_certificate_url: settings.brandCertificateUrl,
-        voice_language: settings.voiceLanguage,
         updated_at: new Date().toISOString()
       };
+
+      // Save voice language to localStorage to avoid Supabase missing column errors
+      if (settings.voiceLanguage) {
+        localStorage.setItem('voice_language', settings.voiceLanguage);
+      }
 
       const { error } = await supabase
         .from('farm_settings')
