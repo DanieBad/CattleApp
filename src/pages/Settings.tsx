@@ -15,7 +15,8 @@ export const Settings = () => {
     gs1CompanyPrefix: '',
     legalEntityGln: '',
     glnCertificateUrl: '',
-    brandCertificateUrl: ''
+    brandCertificateUrl: '',
+    voiceLanguage: 'en-ZA'
   });
 
   useEffect(() => {
@@ -44,7 +45,8 @@ export const Settings = () => {
           gs1CompanyPrefix: data.gs1_company_prefix || '',
           legalEntityGln: data.legal_entity_gln || '',
           glnCertificateUrl: data.gln_certificate_url || '',
-          brandCertificateUrl: data.brand_certificate_url || ''
+          brandCertificateUrl: data.brand_certificate_url || '',
+          voiceLanguage: data.voice_language as any || 'en-ZA'
         });
       }
     } catch (error) {
@@ -73,6 +75,7 @@ export const Settings = () => {
         legal_entity_gln: settings.legalEntityGln,
         gln_certificate_url: settings.glnCertificateUrl,
         brand_certificate_url: settings.brandCertificateUrl,
+        voice_language: settings.voiceLanguage,
         updated_at: new Date().toISOString()
       };
 
@@ -301,6 +304,20 @@ export const Settings = () => {
                 <option value="Karakul">Karakul</option>
                 <option value="East Friesian">East Friesian</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="voiceLanguage">Voice Assistant Language</label>
+              <select 
+                id="voiceLanguage"
+                className="form-input"
+                value={settings.voiceLanguage || 'en-ZA'}
+                onChange={e => setSettings({...settings, voiceLanguage: e.target.value as any})}
+              >
+                <option value="en-ZA">English (South Africa)</option>
+                <option value="af-ZA">Afrikaans (Suid-Afrika)</option>
+              </select>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Determines how the app listens for your voice commands.</p>
             </div>
           </div>
         </div>

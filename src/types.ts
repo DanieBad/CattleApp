@@ -91,6 +91,7 @@ export interface FarmSettings {
   legalEntityGln: string | null;
   glnCertificateUrl?: string | null;
   brandCertificateUrl?: string | null;
+  voiceLanguage?: 'en-ZA' | 'af-ZA';
   createdAt?: string;
   updatedAt?: string;
 }

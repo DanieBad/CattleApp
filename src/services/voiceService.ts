@@ -108,11 +108,19 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
 Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
-Common Speech-to-Text Errors (Correct these automatically):
+Common Speech-to-Text Errors & Translation (Correct these automatically):
 - "0985" -> "C-0985"
-- "buu golf", "buclz", "bucles" -> "bull calf"
+- "buu golf", "buclz", "bucles", "bul kalf" -> "bull calf"
 - "c1006" -> "C-1006" (Strictly use the exact digits spoken, do not add extra zeros).
 - "porn", "pawn" -> "born"
+- "koei", "vers" -> "cow" (Female)
+- "bul", "os" -> "bull" (Male)
+- "gister" -> "yesterday"
+- "vandag" -> "today"
+- "gee", "giff" -> "give"
+- "dose", "dosis" -> "dosage"
+
+Note: The farmer may speak in English, Afrikaans, or a mix ("Fanagalo"). Always respond with the structured JSON in English.
 
 Return ONLY a valid JSON object. Do not wrap it in markdown or backticks.
 
