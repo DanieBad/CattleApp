@@ -37,7 +37,7 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
         }
 
         // Step 2: Insert the calf
-        const { error } = await supabase.from('animals').insert([{
+        const { data: insertedAnimal, error } = await supabase.from('animals').insert([{
           species: parsedData.species || 'Cattle',
           tag_number: parsedData.tagNumber || 'PENDING',
           sex: parsedData.sex || 'Unknown',
@@ -45,9 +45,17 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
           date_of_birth: parsedData.dateOfBirth || new Date().toISOString().split('T')[0],
           breed: parsedData.breed || 'Crossbreed',
           dam_id: damId, // Correctly link to mother
-          notes: `Added via Voice Prompt: "${transcript}"${parsedData.motherTag ? `. Mother: ${parsedData.motherTag}` : ''}`
-        }]);
+        }]).select().single();
         if (error) throw error;
+
+        // Step 3: Record the voice transcript in a Journal entry (since 'animals' table has no 'notes' column)
+        if (insertedAnimal) {
+          await supabase.from('journal_logs').insert([{
+            animal_id: insertedAnimal.id,
+            note_text: `Added via Voice Prompt: "${transcript}"${parsedData.motherTag ? `. Mother: ${parsedData.motherTag}` : ''}`,
+            date_recorded: new Date().toISOString().split('T')[0]
+          }]);
+        }
       } else if (actionType === 'add_health_log') {
         // Step 1: Look up the animal UUID by tag Number
         const searchTag = parsedData.tagNumber;
