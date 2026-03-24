@@ -1,5 +1,6 @@
 // Support for both standard and WebKit-prefixed implementations
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface VoiceServiceOptions {
   onStart?: () => void;
@@ -94,88 +95,56 @@ export class VoiceService {
 }
 
 /**
- * Mocks an AI / LLM intent extraction call.
- * In production (Phase 1), this would call a Supabase Edge Function to parse text with OpenAI/Gemini.
- * In Phase 2, this could run a WASM local model.
+ * Uses Google Gemini AI to parse the voice transcript into a structured JSON intent.
+ * Note: For this Phase 1 prototype, the API key is used client-side for immediate testing.
+ * In a full production environment, this exact prompt logic should be moved to a Supabase Edge Function!
  */
 export const extractIntentFromText = async (transcript: string): Promise<any> => {
-  // Simulate network or AI processing delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  const lower = transcript.toLowerCase();
-  
-  // Relaxing "add" requirement since STT often hears "at", "had", or "new"
-  const isAddAction = lower.includes('add') || lower.includes('at') || lower.includes('had') || lower.includes('new');
-  
-  // Handle STT misinterpretations like "book golf" (bull calf) or "car" (cow)
-  const hasAnimalType = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('golf') || lower.includes('book');
-  
-  if (isAddAction && hasAnimalType) {
-    const isBull = lower.includes('bull') || lower.includes('book');
-    const isCalf = lower.includes('calf') || lower.includes('golf');
-    
-    // Improved regex to capture tags with hyphens or numbers (like c-1098 or car number 1098)
-    let motherTag = 'UNKNOWN';
-    const match = lower.match(/(?:cow|to|tag|mother|car(?:\s+number)?)\s*([a-z0-9\-]+)/i);
-    if (match && match[1]) {
-      motherTag = match[1].toUpperCase();
-      // If it heard "car number 1098", we might want to manually prepend the 'C-' if it missed the letter
-      if (motherTag.match(/^[0-9]+$/)) {
-        motherTag = 'C-' + motherTag; 
-      }
-    }
-    
-    return {
-      action: 'add_animal',
-      data: {
-        species: 'Cattle',
-        sex: isBull ? 'Male' : 'Female',
-        tagNumber: motherTag + (isCalf ? '-CALF' : ''),
-        dateOfBirth: lower.includes('today') ? new Date().toISOString().split('T')[0] : undefined,
-        status: 'Active',
-      }
-    };
-  }
-  
-  // Health / Treatment Action
-  const isTreatAction = lower.includes('give') || lower.includes('treat') || lower.includes('dose') || lower.includes('medicate') || lower.includes('inject') || lower.includes('giffgaff');
-  if (isTreatAction) {
-    let targetTag = 'UNKNOWN';
-    
-    // Try strict match first
-    let matchTag = lower.match(/(?:cow|calf|bull|heifer|to|tag|animal)\s+([a-z0-9\-]+)/i);
-    if (!matchTag) {
-        // Fallback: look for exactly something like c - 1098 or c-1098 anywhere
-        matchTag = lower.match(/([a-z]\s*-\s*[0-9]+)/i);
-    }
-
-    if (matchTag && matchTag[1]) {
-      targetTag = matchTag[1].replace(/\s+/g, '').toUpperCase();
-      if (targetTag.match(/^[0-9]+$/)) targetTag = 'C-' + targetTag;
-    }
-
-    let dosage = '';
-    const doseMatch = lower.match(/([0-9\.]+\s*(?:ml|cc|mg|g|tablets?|pills?))/i);
-    if (doseMatch) dosage = doseMatch[1].replace(/\s+/g, '');
-
-    let medication = 'Unknown';
-    const medMatch = lower.match(/(?:of|with)\s+([a-z\s]+?)(?:\s+today|\s+yesterday|$)/i);
-    if (medMatch && medMatch[1]) medication = medMatch[1].trim();
-
-    // Capitalize medication nicely
-    medication = medication.charAt(0).toUpperCase() + medication.slice(1);
-
-    return {
-      action: 'add_health_log',
-      data: {
-        tagNumber: targetTag,
-        treatmentType: 'Medication',
-        dosage: dosage,
-        medication: medication,
-        dateAdministered: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }
-    };
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Google Gemini API Key is missing! Please add VITE_GEMINI_API_KEY to your .env.local file.');
   }
 
-  throw new Error(`Could not clearly understand the intent from what ran: "${transcript}". Please try saying 'Add a bull calf to cow C-1098' or 'Give cow C-1098 5ml of oxytetracycline'.`);
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+  const prompt = `You are an AI assistant for a Cattle Management app.
+Extract the intended action and data from the farmer's voice transcript.
+Correct any obvious speech-to-text spelling errors (e.g., "0985" -> "C-1098", "book golf" -> "bull calf", "oxy tetra cycline" -> "oxytetracycline", "giffgaff" -> "give cow").
+
+Return ONLY a valid JSON object. Do not wrap it in markdown or backticks.
+
+Expected JSON Format:
+{
+  "action": "add_animal" | "add_health_log",
+  "data": {
+    "tagNumber": "C-123" (Extract and format the tag nicely, e.g., C-1098),
+    "species": "Cattle",
+    "sex": "Male" | "Female" | "Unknown",
+    "dateOfBirth": "YYYY-MM-DD" (calculate relative to today if they say "today" or "yesterday"),
+    "treatmentType": "Medication" | "Vaccine" | "Procedure",
+    "medication": "Name of drug",
+    "dosage": "5ml" (keep unit),
+    "dateAdministered": "YYYY-MM-DD"
+  }
+}
+
+Transcript: "${transcript}"`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    let responseText = result.response.text().trim();
+    
+    // Fallback cleanup in case the LLM wraps it in markdown despite instructions
+    if (responseText.startsWith('\`\`\`json')) {
+      responseText = responseText.replace(/^\`\`\`json/g, '').replace(/\`\`\`$/g, '').trim();
+    } else if (responseText.startsWith('\`\`\`')) {
+      responseText = responseText.replace(/^\`\`\`/g, '').replace(/\`\`\`$/g, '').trim();
+    }
+
+    return JSON.parse(responseText);
+  } catch (error: any) {
+    console.error("Gemini AI API Error:", error);
+    throw new Error("Failed to parse intent via AI. Check console for details.");
+  }
 };
