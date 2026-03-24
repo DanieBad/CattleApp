@@ -70,7 +70,7 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscript
         title="Voice Command"
         style={{
           position: 'fixed',
-          bottom: '100px', // Placed above the Help FAB
+          bottom: '24px', // Lower since Help FAB is removed
           right: '24px',
           width: '60px',
           height: '60px',

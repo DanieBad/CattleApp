@@ -19,11 +19,9 @@ import { Support } from './pages/Support';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
-import { HelpCircle } from 'lucide-react';
 import { MicrophoneButton } from './components/VoiceAssistant/MicrophoneButton';
 import { VoiceConfirmationModal } from './components/VoiceAssistant/VoiceConfirmationModal';
 import { extractIntentFromText } from './services/voiceService';
-import type { Animal } from './types';
 
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
@@ -46,17 +44,17 @@ const App = () => {
 
   // Global Voice Assistant State
   const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [voiceParsedData, setVoiceParsedData] = useState<Partial<Animal> | null>(null);
+  const [voiceParsedData, setVoiceParsedData] = useState<any | null>(null);
+  const [voiceActionType, setVoiceActionType] = useState<string>('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   const handleVoiceTranscript = async (text: string) => {
     setVoiceTranscript(text);
     try {
       const parsed = await extractIntentFromText(text);
-      if (parsed.action === 'add_animal') {
-        setVoiceParsedData(parsed.data);
-        setIsVoiceModalOpen(true);
-      }
+      setVoiceActionType(parsed.action);
+      setVoiceParsedData(parsed.data);
+      setIsVoiceModalOpen(true);
     } catch (err: any) {
       alert(err.message);
     }
@@ -189,16 +187,12 @@ const App = () => {
                   </Routes>
                 </main>
 
-                {/* Floating Help Button */}
-                <Link to="/support" className="fab-help" title="Need Help?">
-                  <HelpCircle size={28} />
-                </Link>
-
                 {/* Global Voice Assistant Elements */}
                 <MicrophoneButton onTranscriptComplete={handleVoiceTranscript} />
                 <VoiceConfirmationModal 
                   isOpen={isVoiceModalOpen}
                   transcript={voiceTranscript}
+                  actionType={voiceActionType}
                   parsedData={voiceParsedData}
                   onConfirm={() => {
                     setIsVoiceModalOpen(false);
