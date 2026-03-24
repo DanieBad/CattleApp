@@ -105,9 +105,32 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
     throw new Error('Google Gemini API Key is missing! Please add VITE_GEMINI_API_KEY to your .env.local file.');
   }
 
+  // Dynamically query available models to bypass 404 regional restrictions
+  const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+  if (!modelsResponse.ok) {
+    throw new Error(`Failed to list models. Is the API Key correct? (${modelsResponse.status})`);
+  }
+  const modelsData = await modelsResponse.json();
+  
+  const validModels = modelsData.models?.filter((m: any) => 
+    m.supportedGenerationMethods?.includes('generateContent') && m.name.includes('gemini')
+  ) || [];
+  
+  if (validModels.length === 0) {
+    throw new Error("No compatible Gemini models were found for this API key.");
+  }
+  
+  // Prefer the fastest modern model available
+  const flashModel = validModels.find((m: any) => m.name.includes('1.5-flash'));
+  const flash2Model = validModels.find((m: any) => m.name.includes('2.0-flash'));
+  const proModel = validModels.find((m: any) => m.name.includes('pro'));
+  const chosenModel = flashModel || flash2Model || proModel || validModels[0];
+  
+  const targetModelName = chosenModel.name.replace('models/', '');
+  console.log("Auto-selected Gemini Model:", targetModelName);
+
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Using gemini-pro (1.0) to ensure 100% availability on all free-tier accounts regardless of region
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: targetModelName });
 
   const prompt = `You are an AI assistant for a Cattle Management app.
 Extract the intended action and data from the farmer's voice transcript.
