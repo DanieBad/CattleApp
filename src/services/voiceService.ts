@@ -31,14 +31,20 @@ export class VoiceService {
     };
 
     this.recognition.onresult = (event: any) => {
+      if (!event.results || event.results.length === 0) return;
       const transcript = event.results[0][0].transcript;
       if (options.onResult) options.onResult(transcript);
     };
 
     this.recognition.onerror = (event: any) => {
-      let message = "An error occurred with speech recognition.";
+      let message = `Speech recognition error: ${event.error}`;
       if (event.error === 'not-allowed') {
-        message = "Microphone access denied. Please allow microphone permissions.";
+        message = "Microphone access denied. Please check your iPhone Settings > Safari > Microphone.";
+      } else if (event.error === 'no-speech') {
+        // It's common on iOS to time out if no speech is detected immediately
+        message = "No speech was detected. Please try again.";
+      } else if (event.error === 'aborted') {
+        return; // Ignore manual aborts
       }
       if (options.onError) options.onError(message);
     };
@@ -81,12 +87,16 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
   
   const lower = transcript.toLowerCase();
   
-  if (lower.includes('add') && (lower.includes('calf') || lower.includes('cow') || lower.includes('bull'))) {
+  // Relaxing "add" requirement since STT often hears "at", "had", or "new"
+  const isAddAction = lower.includes('add') || lower.includes('at') || lower.includes('had') || lower.includes('new');
+  const hasAnimalType = lower.includes('calf') || lower.includes('cow') || lower.includes('bull');
+  
+  if (isAddAction && hasAnimalType) {
     const isBull = lower.includes('bull');
     
-    // Very rudimentary regex for the mock "cow xyz" -> extract "xyz"
+    // Improved regex to capture tags with hyphens or numbers (like c-1098)
     let motherTag = 'UNKNOWN';
-    const match = lower.match(/(?:cow|tag)\s+([a-z0-9]+)/);
+    const match = lower.match(/(?:cow|to|tag|mother)\s+([a-z0-9\-]+)/);
     if (match && match[1]) {
       motherTag = match[1].toUpperCase();
     }
@@ -96,12 +106,12 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
       data: {
         species: 'Cattle',
         sex: isBull ? 'Male' : 'Female',
-        tagNumber: motherTag + '-CALF', // Just simulating a tag generation for now
+        tagNumber: motherTag + (lower.includes('calf') ? '-CALF' : ''),
         dateOfBirth: lower.includes('today') ? new Date().toISOString().split('T')[0] : undefined,
         status: 'Active',
       }
     };
   }
   
-  throw new Error("Could not clearly understand the intent. Please try saying 'Add a bull calf to cow XYZ, born today'.");
+  throw new Error(`Could not clearly understand the intent from what ran: "${transcript}". Please try saying 'Add a bull calf to cow C-1098'.`);
 };
