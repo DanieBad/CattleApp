@@ -10,9 +10,6 @@ import {
   LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MicrophoneButton } from '../components/VoiceAssistant/MicrophoneButton';
-import { VoiceConfirmationModal } from '../components/VoiceAssistant/VoiceConfirmationModal';
-import { extractIntentFromText } from '../services/voiceService';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -23,24 +20,8 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [voiceParsedData, setVoiceParsedData] = useState<Partial<Animal> | null>(null);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  const handleVoiceTranscript = async (text: string) => {
-    setVoiceTranscript(text);
-    try {
-      const parsed = await extractIntentFromText(text);
-      if (parsed.action === 'add_animal') {
-        setVoiceParsedData(parsed.data);
-        setIsVoiceModalOpen(true);
-      }
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -411,19 +392,6 @@ export const Dashboard = () => {
         </div>
 
       </div>
-
-      {/* Voice Assistant Elements */}
-      <MicrophoneButton onTranscriptComplete={handleVoiceTranscript} />
-      <VoiceConfirmationModal 
-        isOpen={isVoiceModalOpen}
-        transcript={voiceTranscript}
-        parsedData={voiceParsedData}
-        onConfirm={() => {
-          setIsVoiceModalOpen(false);
-          fetchDashboardData();
-        }}
-        onCancel={() => setIsVoiceModalOpen(false)}
-      />
     </div>
   );
 };
