@@ -103,9 +103,18 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
     throw new Error('OpenAI API Key is missing! Please add VITE_OPENAI_API_KEY to your .env.local file.');
   }
 
+  const today = new Date().toISOString().split('T')[0];
   const prompt = `You are an AI assistant for a Cattle Management app.
 Extract the intended action and data from the farmer's voice transcript.
-Correct any obvious speech-to-text spelling errors (e.g., "0985" -> "C-1098", "book golf" -> "bull calf", "oxy tetra cycline" -> "oxytetracycline", "giffgaff" -> "give cow").
+Today's Date: ${today}
+
+Common Speech-to-Text Errors (Correct these automatically):
+- "0985" -> "C-1098"
+- "book golf", "buu golf", "poo calf" -> "bull calf"
+- "oxy tetra cycline", "oxitox", "oxytet" -> "oxytetracycline"
+- "giffgaff", "gift", "giff" -> "give"
+- "porn", "pawn" -> "born"
+- "c10006" -> "C-10006"
 
 Return ONLY a valid JSON object. Do not wrap it in markdown or backticks.
 
@@ -116,11 +125,11 @@ Expected JSON Format:
     "tagNumber": "C-123" (Extract and format the tag nicely, e.g., C-1098),
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
-    "dateOfBirth": "YYYY-MM-DD" (calculate relative to today if they say "today" or "yesterday"),
+    "dateOfBirth": "YYYY-MM-DD" (calculate relative to ${today} if they say "today" or "yesterday"),
     "treatmentType": "Medication" | "Vaccine" | "Procedure",
     "medication": "Name of drug",
-    "dosage": "5ml" (keep unit),
-    "dateAdministered": "YYYY-MM-DD"
+    "dosage": "5ml",
+    "dateAdministered": "YYYY-MM-DD" (calculate relative to ${today})
   }
 }
 
@@ -166,11 +175,11 @@ const parseLocalFallback = (transcript: string): any => {
   const lower = transcript.toLowerCase();
   
   // 1. ADD ANIMAL Intent
-  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born');
-  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer');
+  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('porn');
+  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf');
   
   if (isAdd && isAnimal) {
-    const isBull = lower.includes('bull') || lower.includes('male');
+    const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu');
     let tag = 'UNKNOWN';
     const tagMatch = lower.match(/(?:cow|to|tag|mother)\s*([a-z0-9\-]+)/i);
     if (tagMatch) tag = tagMatch[1].toUpperCase();
