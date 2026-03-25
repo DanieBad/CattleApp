@@ -222,11 +222,14 @@ Transcript: "${transcript}"`;
     parsed.data.tagNumber = isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD";
   }
 
-  // Double-check fallback tag logic if AI missed it
-  if (parsed.action === 'add_animal' && (!parsed.data.tagNumber || parsed.data.tagNumber.toLowerCase() === 'unknown')) {
-    if (parsed.data.motherTag) {
+  // Force Fallback Tag naming convention if AI missed the prefix
+  if (parsed.action === 'add_animal') {
+    const rawTag = parsed.data.tagNumber ? parsed.data.tagNumber.toString().toUpperCase() : 'UNKNOWN';
+    const isGenericTag = ['UNKNOWN', 'C1', 'CALF', 'PENDING'].includes(rawTag);
+    
+    if (isGenericTag && parsed.data.motherTag) {
       parsed.data.tagNumber = `${parsed.data.motherTag}-C1`;
-    } else {
+    } else if (!parsed.data.tagNumber) {
       parsed.data.tagNumber = "PENDING";
     }
   }
