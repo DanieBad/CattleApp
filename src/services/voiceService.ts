@@ -109,8 +109,8 @@ Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
 - "buu golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table" -> "bull calf"
-- "0985" -> "0985" (Be literal with tag numbers unless a specific farm prefix like "C" is spoken).
-- "c1006" -> "C1006" (Strictly use the exact digits/letters spoken, do not add extra hyphens).
+- "0985", "c1006", "315" -> BE LITERAL. Only use the exact digits/letters spoken. Do NOT add extra hyphens, zeros, or "C-" prefixes.
+- "at a", "adder" -> "add a"
 - "porn", "pawn" -> "born"
 - "koei", "vers" -> "cow" (Female)
 - "bul", "os" -> "bull" (Male)
@@ -121,23 +121,15 @@ Today's Date: ${today}
 
 Note: "to cow [X]" ALWAYS means X is the mother (dam_id), NOT the animal being added.
 
-Note: The farmer may speak in English, Afrikaans, or a mix ("Fanagalo"). Always respond with the structured JSON in English.
-
-Return ONLY a valid JSON object. Do not wrap it in markdown or backticks.
-
 Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "data": {
-    "tagNumber": "123" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
-    "motherTag": "1006" (The tag of the cow that gave birth, if mentioned),
+    "tagNumber": "[LITERAL_TAG]" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
+    "motherTag": "[LITERAL_TAG]" (The tag of the cow that gave birth, if mentioned),
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
-    "dateOfBirth": "YYYY-MM-DD" (calculate relative to ${today} if they say "today" or "yesterday"),
-    "treatmentType": "Medication" | "Vaccine" | "Procedure",
-    "medication": "Name of drug",
-    "dosage": "5ml",
-    "dateAdministered": "YYYY-MM-DD" (calculate relative to ${today})
+    "dateOfBirth": "YYYY-MM-DD"
   }
 }
 
@@ -183,7 +175,7 @@ const parseLocalFallback = (transcript: string): any => {
   const lower = transcript.toLowerCase();
   
   // 1. ADD ANIMAL Intent
-  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('porn');
+  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('at a') || lower.includes('porn');
   const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf') || lower.includes('book');
   
   if (isAdd && isAnimal) {
