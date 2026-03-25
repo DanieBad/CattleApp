@@ -171,18 +171,22 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
                 <div>Log Health Treatment</div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Tag Number (Patient)</label>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Target Group</label>
                 <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                  {parsedData.isBatch ? 'ALL ACTIVE HERD' : (parsedData.tagNumber || 'Not specified')}
+                  {parsedData.tagNumber || 'Not specified'}
                 </div>
               </div>
               <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Treatment</label>
+                <div style={{ fontWeight: 600 }}>{parsedData.treatmentType || 'General Treatment'}</div>
+              </div>
+              <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Medication</label>
-                <div>{parsedData.medication} {parsedData.dosage ? `(${parsedData.dosage})` : ''}</div>
+                <div>{parsedData.medication || 'None'} {parsedData.dosage ? `(${parsedData.dosage})` : ''}</div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Date Administered</label>
-                <div>{parsedData.dateAdministered}</div>
+                <div>{parsedData.dateAdministered || 'Today'}</div>
               </div>
             </>
           )}

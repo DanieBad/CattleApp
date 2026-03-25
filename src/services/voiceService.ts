@@ -132,7 +132,7 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
 
   const isAfrikaans = language.startsWith('af');
   const whisperPrompt = isAfrikaans 
-    ? ' n Boer wat praat oor beeste, skape, koeie, bulle, kalwers, inentings, ontwurming, en al my diere.'
+    ? ' n Boer wat praat oor beeste, skape, koeie, bulle, kalwers, skaap, inentings, ontwurming, en al my diere.'
     : 'A farmer talking about cattle, sheep, cows, bulls, calves, vaccinations, deworming, and all my animals.';
 
   const formData = new FormData();
@@ -174,23 +174,24 @@ export const extractIntentFromText = async (transcript: string, language: string
 Extract the intended action and data from the transcript.
 
 ### RULES:
-1. **BATCH ACTIONS**: Recognize "all my cattle", "all my sheep", "whole herd", "everything in camp X".
-2. **BATCH FILTERS**: If batch action, set "isBatch": true and "targetSpecies": "Cattle" | "Sheep" | null.
-3. **TREATMENTS**: "dewormed" or "ontwurm" -> treatmentType: "Deworming". "vaccinated" or "ingeënt" -> Vaccination.
-4. **FALLBACK TAGS**: If adding animal and no tag spoken, set "tagNumber" to "[motherTag]-C1".
+1. **BATCH ACTIONS**: Recognize "all my cattle", "all my sheep", "all skape", "al my beeste", "whole herd", "everything in camp X".
+2. **BATCH FILTERS**: If batch action, set "isBatch": true.
+3. **SPECIES**: If transcript mentions "sheep" or "skape", set "targetSpecies" to "Sheep". If "cattle" or "beeste", set to "Cattle".
+4. **TREATMENTS**: "dewormed" or "ontwurm" -> treatmentType: "Deworming". "vaccinated" or "ingeënt" -> Vaccination. "checkup" -> Checkup.
+5. **FALLBACK TAGS**: If adding animal and no tag spoken, set "tagNumber" to "[motherTag]-C1".
 
 Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "isBatch": boolean,
   "data": {
-    "tagNumber": "[ID]",
+    "tagNumber": "[ID or Group Name]",
     "targetSpecies": "Cattle" | "Sheep" | null,
     "motherTag": "[DAM_ID]",
     "species": "Cattle" | "Sheep",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD",
-    "treatmentType": "Vaccination" | "Deworming" | "Other",
+    "treatmentType": "Vaccination" | "Deworming" | "Other" | "Checkup",
     "medication": "[MED]",
     "dosage": "[DOSE]",
     "dateAdministered": "YYYY-MM-DD"
@@ -219,6 +220,17 @@ Transcript: "${transcript}"`;
   
   if (parsed.isBatch) {
     parsed.data.isBatch = true;
+    
+    // Normalize targetSpecies if AI missed it but it was in the text
+    const textLower = transcript.toLowerCase();
+    if (!parsed.data.targetSpecies) {
+      if (textLower.includes('sheep') || textLower.includes('skaap') || textLower.includes('skape')) {
+        parsed.data.targetSpecies = 'Sheep';
+      } else if (textLower.includes('cattle') || textLower.includes('beeste')) {
+        parsed.data.targetSpecies = 'Cattle';
+      }
+    }
+
     const speciesText = parsed.data.targetSpecies === 'Sheep' ? (isAfrikaans ? "AL MY SKAPE" : "ALL MY SHEEP") : (isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD");
     parsed.data.tagNumber = speciesText;
   }
