@@ -1,5 +1,7 @@
-// Support for both standard and WebKit-prefixed implementations
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+/**
+ * VoiceService handles audio recording and uses OpenAI Whisper for transcription,
+ * then GPT-4o-mini for intent extraction.
+ */
 
 export interface VoiceServiceOptions {
   onStart?: () => void;
@@ -10,103 +12,120 @@ export interface VoiceServiceOptions {
 }
 
 export class VoiceService {
-  private recognition: any = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
   private isListening = false;
+  private options: VoiceServiceOptions;
 
   constructor(options: VoiceServiceOptions) {
-    if (!SpeechRecognition) {
-      console.warn("Speech Recognition API is not supported in this browser.");
-      if (options.onError) options.onError("Browser not supported");
-      return;
-    }
-
-    this.recognition = new SpeechRecognition();
-    
-    // Chrome does well with continuous listening (allowing pauses without cutting off), 
-    // but iOS Safari requires continuous=false to work reliably.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    this.recognition.continuous = !isIOS; 
-    this.recognition.interimResults = true; // Changed to true for better mobile response
-    this.recognition.lang = options.language || 'en-ZA'; 
-
-    let finalTranscript = '';
-
-    this.recognition.onstart = () => {
-      this.isListening = true;
-      finalTranscript = '';
-      if (options.onStart) options.onStart();
-    };
-
-    this.recognition.onresult = (event: any) => {
-      if (!event.results || event.results.length === 0) return;
-      
-      let currentResult = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal || !this.recognition.continuous) {
-          currentResult += event.results[i][0].transcript + ' ';
-        }
-      }
-      
-      if (currentResult.trim()) {
-        finalTranscript = currentResult;
-      }
-    };
-
-    this.recognition.onerror = (event: any) => {
-      let message = `Speech recognition error: ${event.error}`;
-      if (event.error === 'not-allowed') {
-        message = "Microphone access denied. Please check your iPhone Settings > Safari > Microphone.";
-      } else if (event.error === 'no-speech') {
-        // It's common on iOS to time out if no speech is detected immediately
-        message = "No speech was detected. Please try again.";
-      } else if (event.error === 'aborted') {
-        return; // Ignore manual aborts
-      }
-      if (options.onError) options.onError(message);
-    };
-
-    this.recognition.onend = () => {
-      this.isListening = false;
-      
-      const textToSubmit = finalTranscript.trim();
-      if (textToSubmit.length > 0) {
-        if (options.onResult) options.onResult(textToSubmit);
-      }
-      finalTranscript = '';
-
-      if (options.onEnd) options.onEnd();
-    };
+    this.options = options;
   }
 
-  public start() {
-    if (this.recognition && !this.isListening) {
-      try {
-        this.recognition.start();
-      } catch (e) {
-        console.error("Failed to start speech recognition", e);
+  public async start() {
+    if (this.isListening) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks = [];
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onstart = () => {
+        this.isListening = true;
+        if (this.options.onStart) this.options.onStart();
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        this.isListening = false;
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        
+        try {
+          const transcript = await transcribeAudioWithWhisper(audioBlob);
+          if (transcript && this.options.onResult) {
+            this.options.onResult(transcript);
+          }
+        } catch (err: any) {
+          if (this.options.onError) this.options.onError(err.message);
+        }
+
+        if (this.options.onEnd) this.options.onEnd();
+        
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      this.mediaRecorder.start();
+    } catch (err: any) {
+      console.error("Failed to start audio recording:", err);
+      let message = "Could not access microphone.";
+      if (err.name === 'NotAllowedError') {
+        message = "Microphone access denied. Please check your browser settings.";
       }
+      if (this.options.onError) this.options.onError(message);
     }
   }
 
   public stop() {
-    if (this.recognition && this.isListening) {
-      this.recognition.stop();
+    if (this.mediaRecorder && this.isListening) {
+      this.mediaRecorder.stop();
     }
   }
 
   public isSupported() {
-    return !!SpeechRecognition;
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 }
 
 /**
+ * Transcribes audio using OpenAI Whisper API.
+ */
+export const transcribeAudioWithWhisper = async (audioBlob: Blob): Promise<string> => {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OpenAI API Key is missing! (Check Vercel Env Vars)');
+  }
+
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('model', 'whisper-1');
+  
+  // prompt helps with specific terminology
+  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, and medical treatments like penicillin.');
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || `Whisper API Error (${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.text;
+  } catch (error: any) {
+    console.error("Whisper Transcription Error:", error);
+    throw error;
+  }
+};
+
+/**
  * Uses OpenAI GPT-4o-mini to parse the voice transcript into a structured JSON intent.
- * Note: For this Phase 1 prototype, the API key is used client-side for immediate testing.
  */
 export const extractIntentFromText = async (transcript: string): Promise<any> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('OpenAI API Key is missing! Please add VITE_OPENAI_API_KEY to your .env.local file.');
+    throw new Error('OpenAI API Key is missing!');
   }
 
   const today = new Date().toISOString().split('T')[0];
@@ -114,47 +133,32 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
 Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
-- Phonetic Corrections: 
-  - "buu golf", "boot golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table", "book of" -> "bull calf"
-  - "at a", "adder", "at the", "a-t-a" -> "add a"
-  - "porn", "pawn", "bone" -> "born"
-  - "koei", "vers", "count", "gown", "goan", "gone" -> "cow" (Female)
-  - "bul", "os", "full" -> "bull" (Male)
-  - "gister" -> "yesterday"
-  - "vandag" -> "today"
-  - "gee", "giff", "gift" -> "give"
-  - "dose", "dosis", "does" -> "dosage"
-
-- Relationship Logic:
-  - "to cow [X]", "to count [X]", "to gown [X]", "mother [X]", "dam [X]" ALWAYS means X is the mother (dam_id).
-  - If a transcript says "Add a bull calf to count 315", then 315 is the motherTag, NOT the tagNumber for the new animal.
-  - If the new animal's tag isn't spoken, generate it as [MotherTag]-C1 (e.g., 315-C1).
-
-- Tag Number Cleaning:
-  - "0985", "c1006", "315" -> BE LITERAL. Only use the exact digits/letters spoken. Do NOT add extra hyphens, zeros, or "C-" prefixes.
+### RULES:
+1. **LITERAL TAGS ONLY**: Tag numbers must only contain digits and letters (e.g., "315", "C102"). 
+2. **NO TEMPORAL TAGS**: Never use words like "MORNING", "TODAY", "YESTERDAY", "NOW" as a tag number.
+3. **MOTHER RELATIONSHIP**: Phrases like "to cow 315", "cow 315 gave birth", "from 315" mean 315 is the mother (dam_id).
+4. **GENERATED TAGS**: If the new animal's tag is not spoken, generate one as [MotherTag]-C1 (e.g., "315-C1").
+5. **SEX DETECTION**: "bull calf" -> Male, "heifer" -> Female, "cow" -> Female, "bull" -> Male.
 
 Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "data": {
-    "tagNumber": "[LITERAL_TAG]" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
-    "motherTag": "[LITERAL_TAG]" (The tag of the cow that gave birth, if mentioned),
+    "tagNumber": "[CLEAN_TAG]",
+    "motherTag": "[MOTHER_TAG_IF_ANY]",
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
-    "dateOfBirth": "YYYY-MM-DD"
+    "dateOfBirth": "YYYY-MM-DD",
+    "treatmentType": "Medication" (for health logs),
+    "medication": "[MED_NAME]",
+    "dosage": "[DOSAGE]",
+    "dateAdministered": "YYYY-MM-DD"
   }
 }
 
 Transcript: "${transcript}"`;
 
   try {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    console.log("Attempting Intent Extraction...", { hasKey: !!apiKey, transcript: transcript.substring(0, 20) + "..." });
-    
-    if (!apiKey) {
-      throw new Error('OpenAI API Key is missing! (Check Vercel Env Vars)');
-    }
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -164,7 +168,7 @@ Transcript: "${transcript}"`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You extract structured JSON from cattle farm voice transcripts.' },
+          { role: 'system', content: 'You extract structured JSON from cattle farm transcripts. Be extremely strict about tag numbers.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0,
@@ -183,81 +187,16 @@ Transcript: "${transcript}"`;
     
     console.log("Voice Assistant Diagnostic:", {
       transcript: transcript,
-      today: today,
       interpretedJSON: parsedData
     });
 
     return parsedData;
   } catch (error: any) {
-    console.error("OpenAI API Error, falling back to local parser:", error);
-    return parseLocalFallback(transcript);
-  }
-};
-
-/**
- * A robust local regex-based parser that acts as a fallback when AI is unavailable.
- * It handles common cattle management phrases and formatting.
- */
-const parseLocalFallback = (transcript: string): any => {
-  const lower = transcript.toLowerCase();
-  
-  // 1. ADD ANIMAL Intent
-  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('at a') || lower.includes('porn') || lower.includes('pawn') || lower.includes('bone');
-  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf') || lower.includes('book') || lower.includes('count') || lower.includes('gown');
-  
-  if (isAdd && isAnimal) {
-    const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu') || lower.includes('book');
-    let motherTag = '';
-    const motherMatch = lower.match(/(?:to\s+cow|mother|dam)\s*([a-z0-9\-]+)/i);
-    if (motherMatch) motherTag = motherMatch[1].toUpperCase();
-
-    let tag = 'PENDING';
-    const tagMatch = lower.match(/(?:tag|number|is)\s*([a-z0-9\-]+)/i);
-    if (tagMatch && tagMatch[1].toUpperCase() !== motherTag) {
-      tag = tagMatch[1].toUpperCase();
-    } else if (motherTag) {
-      tag = `${motherTag}-C1`; // Standard pending tag for calves
-    }
-
+    console.error("Intent Extraction Error:", error);
+    // Return a basic fallback if AI parsing fails
     return {
-      action: 'add_animal',
-      data: {
-        tagNumber: tag,
-        motherTag: motherTag,
-        species: 'Cattle',
-        sex: isBull ? 'Male' : 'Female',
-        dateOfBirth: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }
+      action: transcript.toLowerCase().includes('give') ? 'add_health_log' : 'add_animal',
+      data: { tagNumber: 'UNKNOWN', transcript_raw: transcript }
     };
   }
-
-  // 2. HEALTH LOG Intent (Using regex for better tense matching)
-  const isHealth = /\b(give|gave|treat|shot|injec|dose|med|giff|gift)\b/i.test(lower);
-  if (isHealth) {
-    let tag = 'UNKNOWN';
-    const tagMatch = lower.match(/(?:cow|calf|bull|to|tag)\s*([a-z0-9\-]+)/i);
-    if (tagMatch) tag = tagMatch[1].toUpperCase();
-
-    let dosage = '';
-    const doseMatch = lower.match(/([0-9\.]+\s*(?:ml|cc|mg|g))/i);
-    if (doseMatch) dosage = doseMatch[1].replace(/\s+/g, '');
-
-    let med = 'Unknown Medication';
-    const medMatch = lower.match(/(?:of|with)\s+([a-z\s]+?)(?:\s+today|\s+yesterday|$)/i);
-    if (medMatch) med = medMatch[1].trim();
-    med = med.charAt(0).toUpperCase() + med.slice(1);
-
-    return {
-      action: 'add_health_log',
-      data: {
-        tagNumber: tag,
-        treatmentType: 'Medication',
-        dosage: dosage,
-        medication: med,
-        dateAdministered: lower.includes('yesterday') ? new Date(Date.now() - 86400000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }
-    };
-  }
-
-  throw new Error(`Could not understand intent locally: "${transcript}". Please check your internet/billing or try phrasing it directly.`);
 };
