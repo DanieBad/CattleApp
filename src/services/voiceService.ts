@@ -1,7 +1,11 @@
 /**
  * VoiceService handles audio recording and uses OpenAI Whisper for transcription,
  * then GPT-4o-mini for intent extraction.
+ * 
+ * Includes a fallback to native SpeechRecognition if Whisper API is blocked (e.g., CORS on some iPhones).
  */
+
+const SpeechRecognitionFallback = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 export interface VoiceServiceOptions {
   onStart?: () => void;
@@ -16,18 +20,41 @@ export class VoiceService {
   private audioChunks: Blob[] = [];
   private isListening = false;
   private options: VoiceServiceOptions;
+  private recognitionFallback: any = null;
 
   constructor(options: VoiceServiceOptions) {
     this.options = options;
+    
+    if (SpeechRecognitionFallback) {
+      this.recognitionFallback = new SpeechRecognitionFallback();
+      this.recognitionFallback.continuous = false;
+      this.recognitionFallback.interimResults = false;
+      this.recognitionFallback.lang = options.language || 'en-ZA';
+      
+      this.recognitionFallback.onresult = (event: any) => {
+        const textToSubmit = event.results[0][0].transcript;
+        if (textToSubmit && this.options.onResult) {
+          this.options.onResult(textToSubmit);
+        }
+      };
+      
+      this.recognitionFallback.onerror = (event: any) => {
+        if (this.options.onError) this.options.onError(`Fallback Error: ${event.error}`);
+      };
+      
+      this.recognitionFallback.onend = () => {
+        this.isListening = false;
+        if (this.options.onEnd) this.options.onEnd();
+      };
+    }
   }
 
   public async start() {
     if (this.isListening) return;
 
     try {
+      // 1. Try Professional Recording (Whisper)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // iOS Safari support: prefer audio/mp4 if webm isn't available
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
         ? 'audio/webm' 
         : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
@@ -36,9 +63,7 @@ export class VoiceService {
       this.audioChunks = [];
 
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
+        if (event.data.size > 0) this.audioChunks.push(event.data);
       };
 
       this.mediaRecorder.onstart = () => {
@@ -47,16 +72,7 @@ export class VoiceService {
       };
 
       this.mediaRecorder.onstop = async () => {
-        this.isListening = true; // Still "working"
-        if (this.audioChunks.length === 0) {
-          if (this.options.onError) this.options.onError("No audio data recorded. Please try again.");
-          this.isListening = false;
-          if (this.options.onEnd) this.options.onEnd();
-          return;
-        }
-
         const actualMimeType = this.mediaRecorder?.mimeType || 'audio/webm';
-        // iOS Safari: some versions prefer no explicit blob type if it's already in the chunks
         const audioBlob = new Blob(this.audioChunks, actualMimeType ? { type: actualMimeType } : {});
         
         try {
@@ -66,39 +82,48 @@ export class VoiceService {
             this.options.onResult(transcript);
           }
         } catch (err: any) {
-          console.error("Transcription Flow Error:", err);
-          const msg = err.message === 'Load failed' 
-            ? "API Connection Failed. Please check your internet or Vercel API settings." 
-            : `Error: ${err.message}`;
-          if (this.options.onError) this.options.onError(msg);
+          console.warn("Whisper failed, falling back to native engine...", err);
+          // If Whisper fails (e.g., Load Failed), we let the user try again with fallback
+          if (this.recognitionFallback) {
+            this.isListening = false;
+            // Option: either auto-start fallback or just alert once and switch
+            if (this.options.onError) this.options.onError("High-accuracy AI is temporarily blocked by your browser settings. Falling back to native voice.");
+            this.startFallback(); 
+          } else {
+            if (this.options.onError) this.options.onError("Failed to connect to voice engine. Please check your internet.");
+          }
         }
 
         this.isListening = false;
         if (this.options.onEnd) this.options.onEnd();
-        
-        // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
       };
 
       this.mediaRecorder.start();
     } catch (err: any) {
-      console.error("Failed to start audio recording:", err);
-      let message = "Could not access microphone.";
-      if (err.name === 'NotAllowedError') {
-        message = "Microphone access denied. Please check your browser settings.";
-      }
-      if (this.options.onError) this.options.onError(message);
+      console.warn("MediaRecorder start failed, using native fallback", err);
+      this.startFallback();
+    }
+  }
+
+  private startFallback() {
+    if (this.recognitionFallback && !this.isListening) {
+      this.isListening = true;
+      if (this.options.onStart) this.options.onStart();
+      this.recognitionFallback.start();
     }
   }
 
   public stop() {
     if (this.mediaRecorder && this.isListening) {
       this.mediaRecorder.stop();
+    } else if (this.recognitionFallback && this.isListening) {
+      this.recognitionFallback.stop();
     }
   }
 
   public isSupported() {
-    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !!SpeechRecognitionFallback;
   }
 }
 
@@ -107,37 +132,26 @@ export class VoiceService {
  */
 export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: string = 'webm'): Promise<string> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API Key is missing! (Check Vercel Env Vars)');
-  }
+  if (!apiKey) throw new Error('OpenAI API Key is missing!');
 
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${extension}`);
   formData.append('model', 'whisper-1');
-  
-  // prompt helps with specific terminology
-  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, and medical treatments like penicillin.');
+  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, and treatments like penicillin.');
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: formData
-    });
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+    body: formData
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `Whisper API Error (${response.status})`);
-    }
-
-    const data = await response.json();
-    return data.text;
-  } catch (error: any) {
-    console.error("Whisper Transcription Error:", error);
-    throw error;
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || "API Error");
   }
+
+  const data = await response.json();
+  return data.text;
 };
 
 /**
@@ -145,9 +159,7 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
  */
 export const extractIntentFromText = async (transcript: string): Promise<any> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OpenAI API Key is missing!');
-  }
+  if (!apiKey) throw new Error('OpenAI API Key is missing!');
 
   const today = new Date().toISOString().split('T')[0];
   const prompt = `You are an AI assistant for a Cattle Management app.
@@ -155,69 +167,45 @@ Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
 ### RULES:
-1. **LITERAL TAGS ONLY**: Tag numbers must only contain digits and letters (e.g., "315", "C102"). 
-2. **NO TEMPORAL TAGS**: Never use words like "MORNING", "TODAY", "YESTERDAY", "NOW" as a tag number.
-3. **MOTHER RELATIONSHIP**: Phrases like "to cow 315", "cow 315 gave birth", "from 315" mean 315 is the mother (dam_id).
-4. **GENERATED TAGS**: If the new animal's tag is not spoken, generate one as [MotherTag]-C1 (e.g., "315-C1").
-5. **SEX DETECTION**: "bull calf" -> Male, "heifer" -> Female, "cow" -> Female, "bull" -> Male.
+1. **LITERAL TAGS ONLY**: IDs must only be digits/letters (e.g. "315").
+2. **NO TEMPORAL TAGS**: Do NOT use "MORNING", "TODAY", "YES" as IDs.
+3. **DAM/MOTHER**: "to cow 315" means 315 is motherTag.
+4. **GENERATED TAGS**: If new tag isn't spoken, use [MotherTag]-C1.
+5. **PHONETIC CORRECTION**: "bull golf" -> bull calf, "Go 315" -> Cow 315.
 
 Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "data": {
-    "tagNumber": "[CLEAN_TAG]",
-    "motherTag": "[MOTHER_TAG_IF_ANY]",
+    "tagNumber": "[ID]",
+    "motherTag": "[DAM_ID]",
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD",
-    "treatmentType": "Medication" (for health logs),
-    "medication": "[MED_NAME]",
-    "dosage": "[DOSAGE]",
+    "treatmentType": "Medication",
+    "medication": "[MED]",
+    "dosage": "[DOSE]",
     "dateAdministered": "YYYY-MM-DD"
   }
 }
 
 Transcript: "${transcript}"`;
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You extract structured JSON from cattle farm transcripts. Be extremely strict about tag numbers.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0,
-        response_format: { type: 'json_object' }
-      })
-    });
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You extract JSON from cattle transcripts. Be strict about IDs.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0,
+      response_format: { type: 'json_object' }
+    })
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || `OpenAI API Error (${response.status})`);
-    }
-
-    const result = await response.json();
-    const responseText = result.choices[0].message.content.trim();
-    const parsedData = JSON.parse(responseText);
-    
-    console.log("Voice Assistant Diagnostic:", {
-      transcript: transcript,
-      interpretedJSON: parsedData
-    });
-
-    return parsedData;
-  } catch (error: any) {
-    console.error("Intent Extraction Error:", error);
-    // Return a basic fallback if AI parsing fails
-    return {
-      action: transcript.toLowerCase().includes('give') ? 'add_health_log' : 'add_animal',
-      data: { tagNumber: 'UNKNOWN', transcript_raw: transcript }
-    };
-  }
+  if (!response.ok) throw new Error("AI Intent Extraction Failed");
+  const result = await response.json();
+  return JSON.parse(result.choices[0].message.content);
 };
