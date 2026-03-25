@@ -76,7 +76,7 @@ export class VoiceService {
         
         try {
           const extension = actualMimeType.includes('mp4') ? 'm4a' : 'webm';
-          const transcript = await transcribeAudioWithWhisper(audioBlob, extension);
+          const transcript = await transcribeAudioWithWhisper(audioBlob, extension, this.options.language);
           if (transcript && this.options.onResult) {
             this.options.onResult(transcript);
           }
@@ -126,14 +126,20 @@ export class VoiceService {
 /**
  * Transcribes audio using OpenAI Whisper API.
  */
-export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: string = 'webm'): Promise<string> => {
+export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: string = 'webm', language: string = 'en-ZA'): Promise<string> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) throw new Error('OpenAI API Key is missing!');
+
+  const isAfrikaans = language.startsWith('af');
+  const whisperPrompt = isAfrikaans 
+    ? ' n Boer wat praat oor beeste, koeie, bulle, kalwers, inentings, en al my beeste.'
+    : 'A farmer talking about cattle, cows, bulls, calves, vaccinations, and all my cattle.';
 
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${extension}`);
   formData.append('model', 'whisper-1');
-  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, vaccinations, and all my cattle.');
+  formData.append('prompt', whisperPrompt);
+  if (isAfrikaans) formData.append('language', 'af');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -153,21 +159,26 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
 /**
  * Uses OpenAI GPT-4o-mini to parse the voice transcript into a structured JSON intent.
  */
-export const extractIntentFromText = async (transcript: string): Promise<any> => {
+export const extractIntentFromText = async (transcript: string, language: string = 'en-ZA'): Promise<any> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) throw new Error('OpenAI API Key is missing!');
 
   const today = new Date().toISOString().split('T')[0];
-  const prompt = `You are an AI assistant for a Cattle Management app.
-Extract the intended action and data from the farmer's voice transcript.
-Today's Date: ${today}
+  const isAfrikaans = language.startsWith('af');
+
+  const systemMessage = isAfrikaans
+    ? 'Jy is \'n assistent vir \'n beesbestuur-toepassing. Jy onttrek JSON uit Afrikaanse transkripsies.'
+    : 'You are an AI assistant for a Cattle Management app. You extract JSON from cattle transcripts.';
+
+  const prompt = `Today's Date: ${today}
+Extract the intended action and data from the transcript.
 
 ### RULES:
-1. **LITERAL TAGS ONLY**: IDs must only be digits/letters (e.g. "315").
-2. **BATCH ACTIONS**: Recognize "all my cattle", "the whole herd", "entire herd", "everything".
-3. **BATCH SCHEMA**: If a batch action is detected, set "isBatch": true.
-4. **DAM/MOTHER**: "to cow 315" means 315 is motherTag.
-5. **PHONETIC CORRECTION**: "bull golf" -> bull calf, "Go 315" -> Cow 315.
+1. **LITERAL TAGS**: IDs must only be digits/letters (e.g. "315").
+2. **BATCH ACTIONS**: Recognize "all my cattle", "whole herd" (English) or "al my beeste", "hele kudde" (Afrikaans).
+3. **BATCH SCHEMA**: If batch action, set "isBatch": true.
+4. **DAM/MOTHER**: "van koei 315" or "to cow 315" means 315 is motherTag.
+5. **AFRIKAANS TERMS**: "inenting" -> Vaccination, "ontwurm" -> Deworming, "beeste" -> Cattle.
 
 Expected JSON Format:
 {
@@ -194,7 +205,7 @@ Transcript: "${transcript}"`;
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You extract JSON from cattle transcripts. Handle "all cattle" commands.' },
+        { role: 'system', content: systemMessage },
         { role: 'user', content: prompt }
       ],
       temperature: 0,
@@ -206,10 +217,9 @@ Transcript: "${transcript}"`;
   const result = await response.json();
   const parsed = JSON.parse(result.choices[0].message.content);
   
-  // Flatten isBatch into the data object for easier modal handling
   if (parsed.isBatch) {
     parsed.data.isBatch = true;
-    parsed.data.tagNumber = "ALL ACTIVE HERD";
+    parsed.data.tagNumber = isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD";
   }
   
   return parsed;

@@ -53,8 +53,9 @@ const App = () => {
   const handleVoiceTranscript = async (text: string) => {
     setIsProcessingVoice(true);
     setVoiceTranscript(text);
+    const language = localStorage.getItem('voice_language') || 'en-ZA';
     try {
-      const parsed = await extractIntentFromText(text);
+      const parsed = await extractIntentFromText(text, language);
       setVoiceActionType(parsed.action);
       setVoiceParsedData(parsed.data);
       setIsVoiceModalOpen(true);
