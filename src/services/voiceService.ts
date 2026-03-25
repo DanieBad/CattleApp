@@ -109,7 +109,8 @@ Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
 - "buu golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table" -> "bull calf"
-- "c1006" -> "C-1006" (Strictly use the exact digits spoken, do not add extra zeros).
+- "0985" -> "0985" (Be literal with tag numbers unless a specific farm prefix like "C" is spoken).
+- "c1006" -> "C1006" (Strictly use the exact digits/letters spoken, do not add extra hyphens).
 - "porn", "pawn" -> "born"
 - "koei", "vers" -> "cow" (Female)
 - "bul", "os" -> "bull" (Male)
@@ -128,8 +129,8 @@ Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
   "data": {
-    "tagNumber": "C-123" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
-    "motherTag": "C-1006" (The tag of the cow that gave birth, if mentioned),
+    "tagNumber": "123" (The UNIQUE tag for the NEW animal. If not spoken, generate one like [MotherTag]-C1),
+    "motherTag": "1006" (The tag of the cow that gave birth, if mentioned),
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD" (calculate relative to ${today} if they say "today" or "yesterday"),
@@ -190,7 +191,6 @@ const parseLocalFallback = (transcript: string): any => {
     let motherTag = '';
     const motherMatch = lower.match(/(?:to\s+cow|mother|dam)\s*([a-z0-9\-]+)/i);
     if (motherMatch) motherTag = motherMatch[1].toUpperCase();
-    if (motherTag.match(/^[0-9]+$/)) motherTag = 'C-' + motherTag;
 
     let tag = 'PENDING';
     const tagMatch = lower.match(/(?:tag|number|is)\s*([a-z0-9\-]+)/i);
@@ -199,7 +199,6 @@ const parseLocalFallback = (transcript: string): any => {
     } else if (motherTag) {
       tag = `${motherTag}-C1`; // Standard pending tag for calves
     }
-    if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
 
     return {
       action: 'add_animal',
@@ -219,7 +218,6 @@ const parseLocalFallback = (transcript: string): any => {
     let tag = 'UNKNOWN';
     const tagMatch = lower.match(/(?:cow|calf|bull|to|tag)\s*([a-z0-9\-]+)/i);
     if (tagMatch) tag = tagMatch[1].toUpperCase();
-    if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
 
     let dosage = '';
     const doseMatch = lower.match(/([0-9\.]+\s*(?:ml|cc|mg|g))/i);
