@@ -58,11 +58,17 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
         }
       } else if (actionType === 'add_health_log') {
         if (parsedData.isBatch) {
-          // BATCH LOGIC: Fetch all active animals and insert logs for each
-          const { data: activeAnimals, error: fetchError } = await supabase
+          // BATCH LOGIC: Fetch active animals, filtered by species if specified
+          let query = supabase
             .from('animals')
             .select('id')
             .eq('status', 'Active');
+          
+          if (parsedData.targetSpecies) {
+            query = query.eq('species', parsedData.targetSpecies);
+          }
+
+          const { data: activeAnimals, error: fetchError } = await query;
           
           if (fetchError || !activeAnimals || activeAnimals.length === 0) {
             throw new Error("No active animals found to apply batch treatment to.");

@@ -132,8 +132,8 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
 
   const isAfrikaans = language.startsWith('af');
   const whisperPrompt = isAfrikaans 
-    ? ' n Boer wat praat oor beeste, koeie, bulle, kalwers, inentings, en al my beeste.'
-    : 'A farmer talking about cattle, cows, bulls, calves, vaccinations, and all my cattle.';
+    ? ' n Boer wat praat oor beeste, skape, koeie, bulle, kalwers, inentings, ontwurming, en al my diere.'
+    : 'A farmer talking about cattle, sheep, cows, bulls, calves, vaccinations, deworming, and all my animals.';
 
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${extension}`);
@@ -167,18 +167,17 @@ export const extractIntentFromText = async (transcript: string, language: string
   const isAfrikaans = language.startsWith('af');
 
   const systemMessage = isAfrikaans
-    ? 'Jy is \'n assistent vir \'n beesbestuur-toepassing. Jy onttrek JSON uit Afrikaanse transkripsies.'
-    : 'You are an AI assistant for a Cattle Management app. You extract JSON from cattle transcripts.';
+    ? 'Jy is \'n assistent vir \'n bees- en skaapbestuur-toepassing. Jy onttrek JSON uit transkripsies.'
+    : 'You are an AI assistant for a Cattle and Sheep Management app. You extract JSON from transcripts.';
 
   const prompt = `Today's Date: ${today}
 Extract the intended action and data from the transcript.
 
 ### RULES:
-1. **LITERAL TAGS**: IDs must only be digits/letters (e.g. "315").
-2. **FALLBACK TAGS**: If adding an animal and no tag is spoken, but a mother is mentioned, set "tagNumber" to "[motherTag]-C1".
-3. **BATCH ACTIONS**: Recognize "all my cattle", "whole herd" (English) or "al my beeste", "hele kudde" (Afrikaans).
-4. **BATCH SCHEMA**: If batch action, set "isBatch": true.
-5. **DAM/MOTHER**: "van koei 315" or "to cow 315" means 315 is motherTag.
+1. **BATCH ACTIONS**: Recognize "all my cattle", "all my sheep", "whole herd", "everything in camp X".
+2. **BATCH FILTERS**: If batch action, set "isBatch": true and "targetSpecies": "Cattle" | "Sheep" | null.
+3. **TREATMENTS**: "dewormed" or "ontwurm" -> treatmentType: "Deworming". "vaccinated" or "ingeënt" -> Vaccination.
+4. **FALLBACK TAGS**: If adding animal and no tag spoken, set "tagNumber" to "[motherTag]-C1".
 
 Expected JSON Format:
 {
@@ -186,8 +185,9 @@ Expected JSON Format:
   "isBatch": boolean,
   "data": {
     "tagNumber": "[ID]",
+    "targetSpecies": "Cattle" | "Sheep" | null,
     "motherTag": "[DAM_ID]",
-    "species": "Cattle",
+    "species": "Cattle" | "Sheep",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD",
     "treatmentType": "Vaccination" | "Deworming" | "Other",
@@ -219,13 +219,14 @@ Transcript: "${transcript}"`;
   
   if (parsed.isBatch) {
     parsed.data.isBatch = true;
-    parsed.data.tagNumber = isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD";
+    const speciesText = parsed.data.targetSpecies === 'Sheep' ? (isAfrikaans ? "AL MY SKAPE" : "ALL MY SHEEP") : (isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD");
+    parsed.data.tagNumber = speciesText;
   }
 
-  // Force Fallback Tag naming convention if AI missed the prefix
+  // Force Fallback Tag naming convention
   if (parsed.action === 'add_animal') {
     const rawTag = parsed.data.tagNumber ? parsed.data.tagNumber.toString().toUpperCase() : 'UNKNOWN';
-    const isGenericTag = ['UNKNOWN', 'C1', 'CALF', 'PENDING'].includes(rawTag);
+    const isGenericTag = ['UNKNOWN', 'C1', 'CALF', 'PENDING', 'LAMB'].includes(rawTag);
     
     if (isGenericTag && parsed.data.motherTag) {
       parsed.data.tagNumber = `${parsed.data.motherTag}-C1`;
