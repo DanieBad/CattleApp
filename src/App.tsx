@@ -22,6 +22,7 @@ import type { Session } from '@supabase/supabase-js';
 import { MicrophoneButton } from './components/VoiceAssistant/MicrophoneButton';
 import { VoiceConfirmationModal } from './components/VoiceAssistant/VoiceConfirmationModal';
 import { extractIntentFromText } from './services/voiceService';
+import { isMobile } from './utils/deviceUtils';
 
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
@@ -47,8 +48,10 @@ const App = () => {
   const [voiceParsedData, setVoiceParsedData] = useState<any | null>(null);
   const [voiceActionType, setVoiceActionType] = useState<string>('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
   const handleVoiceTranscript = async (text: string) => {
+    setIsProcessingVoice(true);
     setVoiceTranscript(text);
     try {
       const parsed = await extractIntentFromText(text);
@@ -57,6 +60,8 @@ const App = () => {
       setIsVoiceModalOpen(true);
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setIsProcessingVoice(false);
     }
   };
 
@@ -187,8 +192,13 @@ const App = () => {
                   </Routes>
                 </main>
 
-                {/* Global Voice Assistant Elements */}
-                <MicrophoneButton onTranscriptComplete={handleVoiceTranscript} />
+                {/* Global Voice Assistant Elements - Mobile Only */}
+                {isMobile() && (
+                  <MicrophoneButton 
+                    onTranscriptComplete={handleVoiceTranscript} 
+                    isProcessing={isProcessingVoice}
+                  />
+                )}
                 <VoiceConfirmationModal 
                   isOpen={isVoiceModalOpen}
                   transcript={voiceTranscript}

@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, StopCircle } from 'lucide-react';
+import { Mic, StopCircle, Loader2 } from 'lucide-react';
 import { VoiceService } from '../../services/voiceService';
 
 interface MicrophoneButtonProps {
   onTranscriptComplete: (text: string) => void;
+  isProcessing?: boolean;
 }
 
-export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscriptComplete }) => {
+export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ 
+  onTranscriptComplete, 
+  isProcessing = false 
+}) => {
   const [isListening, setIsListening] = useState(false);
   const [, setError] = useState<string | null>(null);
   const [voiceService, setVoiceService] = useState<VoiceService | null>(null);
@@ -76,10 +80,18 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscript
           .listening-anim {
             animation: pulse-ring 2s infinite;
           }
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .spinner {
+            animation: spin 1s linear infinite;
+          }
         `}
       </style>
       <button 
         onClick={toggleListening}
+        disabled={isProcessing}
         className={isListening ? 'listening-anim' : ''}
         title="Voice Command"
         style={{
@@ -101,7 +113,13 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscript
           transition: 'background-color 0.3s ease',
         }}
       >
-        {isListening ? <StopCircle size={30} /> : <Mic size={30} />}
+        {isProcessing ? (
+          <Loader2 size={30} className="spinner" />
+        ) : isListening ? (
+          <StopCircle size={30} />
+        ) : (
+          <Mic size={30} />
+        )}
       </button>
     </>
   );

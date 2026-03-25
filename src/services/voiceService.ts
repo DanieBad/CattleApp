@@ -26,8 +26,8 @@ export class VoiceService {
     // but iOS Safari requires continuous=false to work reliably.
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     this.recognition.continuous = !isIOS; 
-    this.recognition.interimResults = false;
-    this.recognition.lang = options.language || 'en-ZA'; // default to SA English, but handles local accents well
+    this.recognition.interimResults = true; // Changed to true for better mobile response
+    this.recognition.lang = options.language || 'en-ZA'; 
 
     let finalTranscript = '';
 
@@ -39,11 +39,17 @@ export class VoiceService {
 
     this.recognition.onresult = (event: any) => {
       if (!event.results || event.results.length === 0) return;
+      
       let currentResult = '';
-      for (let i = 0; i < event.results.length; i++) {
-        currentResult += event.results[i][0].transcript + ' ';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal || !this.recognition.continuous) {
+          currentResult += event.results[i][0].transcript + ' ';
+        }
       }
-      finalTranscript = currentResult;
+      
+      if (currentResult.trim()) {
+        finalTranscript = currentResult;
+      }
     };
 
     this.recognition.onerror = (event: any) => {
@@ -108,18 +114,24 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
 Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
-- "buu golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table" -> "bull calf"
-- "0985", "c1006", "315" -> BE LITERAL. Only use the exact digits/letters spoken. Do NOT add extra hyphens, zeros, or "C-" prefixes.
-- "at a", "adder" -> "add a"
-- "porn", "pawn" -> "born"
-- "koei", "vers" -> "cow" (Female)
-- "bul", "os" -> "bull" (Male)
-- "gister" -> "yesterday"
-- "vandag" -> "today"
-- "gee", "giff" -> "give"
-- "dose", "dosis" -> "dosage"
+- Phonetic Corrections: 
+  - "buu golf", "boot golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table", "book of" -> "bull calf"
+  - "at a", "adder", "at the", "a-t-a" -> "add a"
+  - "porn", "pawn", "bone" -> "born"
+  - "koei", "vers", "count", "gown", "goan", "gone" -> "cow" (Female)
+  - "bul", "os", "full" -> "bull" (Male)
+  - "gister" -> "yesterday"
+  - "vandag" -> "today"
+  - "gee", "giff", "gift" -> "give"
+  - "dose", "dosis", "does" -> "dosage"
 
-Note: "to cow [X]" ALWAYS means X is the mother (dam_id), NOT the animal being added.
+- Relationship Logic:
+  - "to cow [X]", "to count [X]", "to gown [X]", "mother [X]", "dam [X]" ALWAYS means X is the mother (dam_id).
+  - If a transcript says "Add a bull calf to count 315", then 315 is the motherTag, NOT the tagNumber for the new animal.
+  - If the new animal's tag isn't spoken, generate it as [MotherTag]-C1 (e.g., 315-C1).
+
+- Tag Number Cleaning:
+  - "0985", "c1006", "315" -> BE LITERAL. Only use the exact digits/letters spoken. Do NOT add extra hyphens, zeros, or "C-" prefixes.
 
 Expected JSON Format:
 {
@@ -160,7 +172,15 @@ Transcript: "${transcript}"`;
 
     const result = await response.json();
     const responseText = result.choices[0].message.content.trim();
-    return JSON.parse(responseText);
+    const parsedData = JSON.parse(responseText);
+    
+    console.log("Voice Assistant Diagnostic:", {
+      transcript: transcript,
+      today: today,
+      interpretedJSON: parsedData
+    });
+
+    return parsedData;
   } catch (error: any) {
     console.error("OpenAI API Error, falling back to local parser:", error);
     return parseLocalFallback(transcript);
