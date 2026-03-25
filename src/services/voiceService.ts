@@ -108,9 +108,7 @@ export const extractIntentFromText = async (transcript: string): Promise<any> =>
 Extract the intended action and data from the farmer's voice transcript.
 Today's Date: ${today}
 
-Common Speech-to-Text Errors & Translation (Correct these automatically):
-- "0985" -> "C-0985"
-- "buu golf", "buclz", "bucles", "bul kalf" -> "bull calf"
+- "buu golf", "buclz", "bucles", "bul kalf", "book called", "book calf", "book a table" -> "bull calf"
 - "c1006" -> "C-1006" (Strictly use the exact digits spoken, do not add extra zeros).
 - "porn", "pawn" -> "born"
 - "koei", "vers" -> "cow" (Female)
@@ -119,6 +117,8 @@ Common Speech-to-Text Errors & Translation (Correct these automatically):
 - "vandag" -> "today"
 - "gee", "giff" -> "give"
 - "dose", "dosis" -> "dosage"
+
+Note: "to cow [X]" ALWAYS means X is the mother (dam_id), NOT the animal being added.
 
 Note: The farmer may speak in English, Afrikaans, or a mix ("Fanagalo"). Always respond with the structured JSON in English.
 
@@ -183,10 +183,10 @@ const parseLocalFallback = (transcript: string): any => {
   
   // 1. ADD ANIMAL Intent
   const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('porn');
-  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf');
+  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf') || lower.includes('book');
   
   if (isAdd && isAnimal) {
-    const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu');
+    const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu') || lower.includes('book');
     let motherTag = '';
     const motherMatch = lower.match(/(?:to\s+cow|mother|dam)\s*([a-z0-9\-]+)/i);
     if (motherMatch) motherTag = motherMatch[1].toUpperCase();
@@ -194,10 +194,10 @@ const parseLocalFallback = (transcript: string): any => {
 
     let tag = 'PENDING';
     const tagMatch = lower.match(/(?:tag|number|is)\s*([a-z0-9\-]+)/i);
-    if (tagMatch) {
+    if (tagMatch && tagMatch[1].toUpperCase() !== motherTag) {
       tag = tagMatch[1].toUpperCase();
     } else if (motherTag) {
-      tag = motherTag + '-C1';
+      tag = `${motherTag}-C1`; // Standard pending tag for calves
     }
     if (tag.match(/^[0-9]+$/)) tag = 'C-' + tag;
 
