@@ -148,6 +148,13 @@ Expected JSON Format:
 Transcript: "${transcript}"`;
 
   try {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    console.log("Attempting Intent Extraction...", { hasKey: !!apiKey, transcript: transcript.substring(0, 20) + "..." });
+    
+    if (!apiKey) {
+      throw new Error('OpenAI API Key is missing! (Check Vercel Env Vars)');
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -195,8 +202,8 @@ const parseLocalFallback = (transcript: string): any => {
   const lower = transcript.toLowerCase();
   
   // 1. ADD ANIMAL Intent
-  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('at a') || lower.includes('porn');
-  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf') || lower.includes('book');
+  const isAdd = lower.includes('add') || lower.includes('new') || lower.includes('born') || lower.includes('at a') || lower.includes('porn') || lower.includes('pawn') || lower.includes('bone');
+  const isAnimal = lower.includes('calf') || lower.includes('cow') || lower.includes('bull') || lower.includes('heifer') || lower.includes('golf') || lower.includes('book') || lower.includes('count') || lower.includes('gown');
   
   if (isAdd && isAnimal) {
     const isBull = lower.includes('bull') || lower.includes('male') || lower.includes('buu') || lower.includes('book');
@@ -224,8 +231,8 @@ const parseLocalFallback = (transcript: string): any => {
     };
   }
 
-  // 2. HEALTH LOG Intent
-  const isHealth = lower.includes('give') || lower.includes('treat') || lower.includes('dose') || lower.includes('medication') || lower.includes('giffgaff');
+  // 2. HEALTH LOG Intent (Using regex for better tense matching)
+  const isHealth = /\b(give|gave|treat|shot|injec|dose|med|giff|gift)\b/i.test(lower);
   if (isHealth) {
     let tag = 'UNKNOWN';
     const tagMatch = lower.match(/(?:cow|calf|bull|to|tag)\s*([a-z0-9\-]+)/i);
