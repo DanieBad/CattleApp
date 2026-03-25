@@ -26,7 +26,13 @@ export class VoiceService {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      this.mediaRecorder = new MediaRecorder(stream);
+      
+      // iOS Safari support: prefer audio/mp4 if webm isn't available
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+      
+      this.mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       this.audioChunks = [];
 
       this.mediaRecorder.ondataavailable = (event) => {
@@ -42,10 +48,13 @@ export class VoiceService {
 
       this.mediaRecorder.onstop = async () => {
         this.isListening = false;
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const actualMimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(this.audioChunks, { type: actualMimeType });
         
         try {
-          const transcript = await transcribeAudioWithWhisper(audioBlob);
+          // Use appropriate extension based on mimeType
+          const extension = actualMimeType.includes('mp4') ? 'm4a' : 'webm';
+          const transcript = await transcribeAudioWithWhisper(audioBlob, extension);
           if (transcript && this.options.onResult) {
             this.options.onResult(transcript);
           }
@@ -84,14 +93,14 @@ export class VoiceService {
 /**
  * Transcribes audio using OpenAI Whisper API.
  */
-export const transcribeAudioWithWhisper = async (audioBlob: Blob): Promise<string> => {
+export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: string = 'webm'): Promise<string> => {
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error('OpenAI API Key is missing! (Check Vercel Env Vars)');
   }
 
   const formData = new FormData();
-  formData.append('file', audioBlob, 'recording.webm');
+  formData.append('file', audioBlob, `recording.${extension}`);
   formData.append('model', 'whisper-1');
   
   // prompt helps with specific terminology
