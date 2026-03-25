@@ -47,21 +47,33 @@ export class VoiceService {
       };
 
       this.mediaRecorder.onstop = async () => {
-        this.isListening = false;
+        this.isListening = true; // Still "working"
+        if (this.audioChunks.length === 0) {
+          if (this.options.onError) this.options.onError("No audio data recorded. Please try again.");
+          this.isListening = false;
+          if (this.options.onEnd) this.options.onEnd();
+          return;
+        }
+
         const actualMimeType = this.mediaRecorder?.mimeType || 'audio/webm';
-        const audioBlob = new Blob(this.audioChunks, { type: actualMimeType });
+        // iOS Safari: some versions prefer no explicit blob type if it's already in the chunks
+        const audioBlob = new Blob(this.audioChunks, actualMimeType ? { type: actualMimeType } : {});
         
         try {
-          // Use appropriate extension based on mimeType
           const extension = actualMimeType.includes('mp4') ? 'm4a' : 'webm';
           const transcript = await transcribeAudioWithWhisper(audioBlob, extension);
           if (transcript && this.options.onResult) {
             this.options.onResult(transcript);
           }
         } catch (err: any) {
-          if (this.options.onError) this.options.onError(err.message);
+          console.error("Transcription Flow Error:", err);
+          const msg = err.message === 'Load failed' 
+            ? "API Connection Failed. Please check your internet or Vercel API settings." 
+            : `Error: ${err.message}`;
+          if (this.options.onError) this.options.onError(msg);
         }
 
+        this.isListening = false;
         if (this.options.onEnd) this.options.onEnd();
         
         // Stop all tracks to release the microphone
