@@ -2,7 +2,7 @@
  * VoiceService handles audio recording and uses OpenAI Whisper for transcription,
  * then GPT-4o-mini for intent extraction.
  * 
- * Includes a fallback to native SpeechRecognition if Whisper API is blocked (e.g., CORS on some iPhones).
+ * Includes a fallback to native SpeechRecognition if Whisper API is blocked.
  */
 
 const SpeechRecognitionFallback = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -53,7 +53,6 @@ export class VoiceService {
     if (this.isListening) return;
 
     try {
-      // 1. Try Professional Recording (Whisper)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
         ? 'audio/webm' 
@@ -83,14 +82,11 @@ export class VoiceService {
           }
         } catch (err: any) {
           console.warn("Whisper failed, falling back to native engine...", err);
-          // If Whisper fails (e.g., Load Failed), we let the user try again with fallback
           if (this.recognitionFallback) {
             this.isListening = false;
-            // Option: either auto-start fallback or just alert once and switch
-            if (this.options.onError) this.options.onError("High-accuracy AI is temporarily blocked by your browser settings. Falling back to native voice.");
             this.startFallback(); 
           } else {
-            if (this.options.onError) this.options.onError("Failed to connect to voice engine. Please check your internet.");
+            if (this.options.onError) this.options.onError("Failed to connect to voice engine.");
           }
         }
 
@@ -137,7 +133,7 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${extension}`);
   formData.append('model', 'whisper-1');
-  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, and treatments like penicillin.');
+  formData.append('prompt', 'A farmer talking about cattle, cows, bulls, calves, vaccinations, and all my cattle.');
 
   const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
@@ -168,21 +164,22 @@ Today's Date: ${today}
 
 ### RULES:
 1. **LITERAL TAGS ONLY**: IDs must only be digits/letters (e.g. "315").
-2. **NO TEMPORAL TAGS**: Do NOT use "MORNING", "TODAY", "YES" as IDs.
-3. **DAM/MOTHER**: "to cow 315" means 315 is motherTag.
-4. **GENERATED TAGS**: If new tag isn't spoken, use [MotherTag]-C1.
+2. **BATCH ACTIONS**: Recognize "all my cattle", "the whole herd", "entire herd", "everything".
+3. **BATCH SCHEMA**: If a batch action is detected, set "isBatch": true.
+4. **DAM/MOTHER**: "to cow 315" means 315 is motherTag.
 5. **PHONETIC CORRECTION**: "bull golf" -> bull calf, "Go 315" -> Cow 315.
 
 Expected JSON Format:
 {
   "action": "add_animal" | "add_health_log",
+  "isBatch": boolean,
   "data": {
     "tagNumber": "[ID]",
     "motherTag": "[DAM_ID]",
     "species": "Cattle",
     "sex": "Male" | "Female" | "Unknown",
     "dateOfBirth": "YYYY-MM-DD",
-    "treatmentType": "Medication",
+    "treatmentType": "Vaccination" | "Deworming" | "Other",
     "medication": "[MED]",
     "dosage": "[DOSE]",
     "dateAdministered": "YYYY-MM-DD"
@@ -197,7 +194,7 @@ Transcript: "${transcript}"`;
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You extract JSON from cattle transcripts. Be strict about IDs.' },
+        { role: 'system', content: 'You extract JSON from cattle transcripts. Handle "all cattle" commands.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0,
@@ -207,5 +204,13 @@ Transcript: "${transcript}"`;
 
   if (!response.ok) throw new Error("AI Intent Extraction Failed");
   const result = await response.json();
-  return JSON.parse(result.choices[0].message.content);
+  const parsed = JSON.parse(result.choices[0].message.content);
+  
+  // Flatten isBatch into the data object for easier modal handling
+  if (parsed.isBatch) {
+    parsed.data.isBatch = true;
+    parsed.data.tagNumber = "ALL ACTIVE HERD";
+  }
+  
+  return parsed;
 };

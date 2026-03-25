@@ -57,28 +57,54 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
           }]);
         }
       } else if (actionType === 'add_health_log') {
-        // Step 1: Look up the animal UUID by tag Number
-        const searchTag = parsedData.tagNumber;
-        const { data: animalData, error: animalError } = await supabase
-          .from('animals')
-          .select('id')
-          .ilike('tag_number', searchTag)
-          .single();
-        
-        if (animalError || !animalData) {
-          throw new Error(`Could not find an animal in the herd with Tag Number ${searchTag} to apply medication to.`);
-        }
+        if (parsedData.isBatch) {
+          // BATCH LOGIC: Fetch all active animals and insert logs for each
+          const { data: activeAnimals, error: fetchError } = await supabase
+            .from('animals')
+            .select('id')
+            .eq('status', 'Active');
+          
+          if (fetchError || !activeAnimals || activeAnimals.length === 0) {
+            throw new Error("No active animals found to apply batch treatment to.");
+          }
 
-        // Step 2: Insert the health log
-        const { error: logError } = await supabase.from('health_logs').insert([{
-          animal_id: animalData.id,
-          treatment_type: parsedData.treatmentType,
-          medication: parsedData.medication,
-          dosage: parsedData.dosage,
-          date_administered: parsedData.dateAdministered || new Date().toISOString().split('T')[0],
-          notes: `Logged via Voice Prompt: "${transcript}"`
-        }]);
-        if (logError) throw logError;
+          const payloads = activeAnimals.map(animal => ({
+            animal_id: animal.id,
+            treatment_type: parsedData.treatmentType || 'Vaccination',
+            medication: parsedData.medication,
+            dosage: parsedData.dosage,
+            date_administered: parsedData.dateAdministered || new Date().toISOString().split('T')[0],
+            notes: `Batch Logged via Voice: "${transcript}"`
+          }));
+
+          const { error: batchError } = await supabase
+            .from('health_logs')
+            .insert(payloads);
+          
+          if (batchError) throw batchError;
+        } else {
+          // SINGLE ANIMAL LOGIC
+          const searchTag = parsedData.tagNumber;
+          const { data: animalData, error: animalError } = await supabase
+            .from('animals')
+            .select('id')
+            .ilike('tag_number', searchTag)
+            .single();
+          
+          if (animalError || !animalData) {
+            throw new Error(`Could not find an animal in the herd with Tag Number ${searchTag} to apply medication to.`);
+          }
+
+          const { error: logError } = await supabase.from('health_logs').insert([{
+            animal_id: animalData.id,
+            treatment_type: parsedData.treatmentType,
+            medication: parsedData.medication,
+            dosage: parsedData.dosage,
+            date_administered: parsedData.dateAdministered || new Date().toISOString().split('T')[0],
+            notes: `Logged via Voice Prompt: "${transcript}"`
+          }]);
+          if (logError) throw logError;
+        }
       }
 
       onConfirm();
@@ -140,7 +166,9 @@ export const VoiceConfirmationModal: React.FC<VoiceConfirmationModalProps> = ({
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Tag Number (Patient)</label>
-                <div style={{ fontWeight: 600, color: 'var(--primary)' }}>{parsedData.tagNumber || 'Not specified'}</div>
+                <div style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                  {parsedData.isBatch ? 'ALL ACTIVE HERD' : (parsedData.tagNumber || 'Not specified')}
+                </div>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>Medication</label>
