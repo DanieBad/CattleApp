@@ -175,10 +175,10 @@ Extract the intended action and data from the transcript.
 
 ### RULES:
 1. **LITERAL TAGS**: IDs must only be digits/letters (e.g. "315").
-2. **BATCH ACTIONS**: Recognize "all my cattle", "whole herd" (English) or "al my beeste", "hele kudde" (Afrikaans).
-3. **BATCH SCHEMA**: If batch action, set "isBatch": true.
-4. **DAM/MOTHER**: "van koei 315" or "to cow 315" means 315 is motherTag.
-5. **AFRIKAANS TERMS**: "inenting" -> Vaccination, "ontwurm" -> Deworming, "beeste" -> Cattle.
+2. **FALLBACK TAGS**: If adding an animal and no tag is spoken, but a mother is mentioned, set "tagNumber" to "[motherTag]-C1".
+3. **BATCH ACTIONS**: Recognize "all my cattle", "whole herd" (English) or "al my beeste", "hele kudde" (Afrikaans).
+4. **BATCH SCHEMA**: If batch action, set "isBatch": true.
+5. **DAM/MOTHER**: "van koei 315" or "to cow 315" means 315 is motherTag.
 
 Expected JSON Format:
 {
@@ -220,6 +220,15 @@ Transcript: "${transcript}"`;
   if (parsed.isBatch) {
     parsed.data.isBatch = true;
     parsed.data.tagNumber = isAfrikaans ? "AL MY BEESTE" : "ALL ACTIVE HERD";
+  }
+
+  // Double-check fallback tag logic if AI missed it
+  if (parsed.action === 'add_animal' && (!parsed.data.tagNumber || parsed.data.tagNumber.toLowerCase() === 'unknown')) {
+    if (parsed.data.motherTag) {
+      parsed.data.tagNumber = `${parsed.data.motherTag}-C1`;
+    } else {
+      parsed.data.tagNumber = "PENDING";
+    }
   }
   
   return parsed;
