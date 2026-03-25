@@ -49,7 +49,7 @@ export const MicrophoneButton: React.FC<MicrophoneButtonProps> = ({ onTranscript
     return () => {
       service.stop();
     };
-  }, [onTranscriptComplete]);
+  }, [onTranscriptComplete, isReady, language]);
 
   if (!voiceService || !voiceService.isSupported()) {
     // Hide button if browser doesn't support Web Speech API
