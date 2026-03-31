@@ -49,7 +49,6 @@ export const AddAnimal = () => {
   
   const [permitFile, setPermitFile] = useState<File | null>(null);
   const [numberOfOffspring, setNumberOfOffspring] = useState(1);
-  const [prevVaccines, setPrevVaccines] = useState<string[]>([]);
 
   useEffect(() => {
     fetchParents();
@@ -146,8 +145,8 @@ export const AddAnimal = () => {
           previousOwnerBrand: formData.previousOwnerBrand || undefined,
           arrivalDate: formData.arrivalDate || undefined,
           purchasePrice: formData.purchasePrice || undefined,
-          quarantineStartDate: formData.isQuarantined ? qStart : null,
-          quarantineEndDate: formData.isQuarantined ? qEnd.toISOString().split('T')[0] : null
+          quarantineStartDate: formData.isQuarantined ? qStart : undefined,
+          quarantineEndDate: formData.isQuarantined ? qEnd.toISOString().split('T')[0] : undefined
         };
 
         // Local SQLite save
@@ -203,7 +202,7 @@ export const AddAnimal = () => {
           permitIssueDate: formData.permitIssueDate || undefined,
           permitExpiryDate: formData.permitExpiryDate || undefined,
           permitPdfUrl: permitPdfUrl || undefined,
-          gpsSource: 'Manual',
+          gpsSource: 'Manual' as const,
           notes: 'Automatic log on arrival / purchase'
         };
         await db.movement_log.add(newMovement);
@@ -245,32 +244,6 @@ export const AddAnimal = () => {
             notes: newBio.notes
           };
           await SyncManager.queueInsert('biosecurity_logs', bioId, supabaseBio);
-        }
-
-        // Log previous vaccines
-        if (prevVaccines.length > 0) {
-          for (const v of prevVaccines) {
-            const hId = uuidv4();
-            const newHealth = {
-                id: hId,
-                animalId: newAnimal.id,
-                treatmentType: 'Vaccination',
-                medication: v,
-                dateAdministered: formData.arrivalDate || new Date().toISOString().split('T')[0],
-                notes: 'Vaccinated by previous owner prior to arrival'
-            };
-            await db.health_logs.add(newHealth);
-            
-            const supabaseHealth = {
-              id: newHealth.id,
-              animal_id: newHealth.animalId,
-              treatment_type: newHealth.treatmentType,
-              medication: newHealth.medication,
-              date_administered: newHealth.dateAdministered,
-              notes: newHealth.notes
-            };
-            await SyncManager.queueInsert('health_logs', hId, supabaseHealth);
-          }
         }
       }
       

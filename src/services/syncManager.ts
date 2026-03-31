@@ -1,4 +1,4 @@
-import { db, SyncOutbox } from '../database/db';
+import { db } from '../database/db';
 import { supabase } from '../supabase';
 
 export class SyncManager {
@@ -107,7 +107,7 @@ export class SyncManager {
     }
 
     try {
-      const { data, error } = await supabase.storage.from('fmd-permits').upload(path, file);
+      const { error } = await supabase.storage.from('fmd-permits').upload(path, file);
       if (error) throw error;
       
       const { data: { publicUrl } } = supabase.storage.from('fmd-permits').getPublicUrl(path);

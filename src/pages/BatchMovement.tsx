@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Truck, MapPin, ShieldAlert, FileText, CheckCircle, Trash2, ShieldCheck } from 'lucide-react';
+import { Truck, MapPin, ShieldAlert, Trash2, ShieldCheck } from 'lucide-react';
 import { db } from '../database/db';
 import { SyncManager } from '../services/syncManager';
 import { v4 as uuidv4 } from 'uuid';
