@@ -373,18 +373,37 @@ export const Dashboard = () => {
                 data={pastureChartData}
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                onClick={(data: any) => {
-                  if (data && data.activePayload && data.activePayload[0]) {
-                     const campId = data.activePayload[0].payload.campId;
-                     navigate(`/herd?campId=${campId}`);
-                  }
-                }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} />
-                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  width={100} 
+                  tick={(props: any) => {
+                    const { x, y, payload } = props;
+                    const item = pastureChartData.find(d => d.name === payload.value);
+                    return (
+                      <g 
+                        transform={`translate(${x},${y})`} 
+                        onClick={() => item && navigate(`/herd?campId=${item.campId}`)} 
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <text x={-10} y={0} dy={4} textAnchor="end" fill="var(--text-muted)" fontSize={12} fontWeight={500}>
+                          {payload.value}
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
                 <RechartsTooltip formatter={(value) => [`${value} Animals`, 'Stock Load']} />
-                <Bar dataKey="count" fill="var(--primary)" radius={[0, 4, 4, 0]} style={{ cursor: 'pointer' }} />
+                <Bar 
+                  dataKey="count" 
+                  fill="var(--primary)" 
+                  radius={[0, 4, 4, 0]} 
+                  style={{ cursor: 'pointer' }} 
+                  onClick={(data: any) => navigate(`/herd?campId=${data.campId}`)}
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
