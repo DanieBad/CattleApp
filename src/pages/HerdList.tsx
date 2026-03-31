@@ -21,6 +21,7 @@ export const HerdList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<'All' | 'Cattle' | 'Sheep'>('All');
   const [campFilter, setCampFilter] = useState<string | null>(campIdParam);
+  const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<{ field: SortField, direction: 'asc' | 'desc' } | null>({
     field: 'dateOfBirth',
     direction: 'desc'
@@ -144,6 +145,20 @@ export const HerdList = () => {
       return 0;
     });
 
+  const toggleSelection = (id: string) => {
+    setSelectedAnimals(prev => 
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
+  
+  const toggleSelectAll = () => {
+    if (selectedAnimals.length === sortedAndFilteredHerd.length) {
+      setSelectedAnimals([]);
+    } else {
+      setSelectedAnimals(sortedAndFilteredHerd.map(a => a.id));
+    }
+  };
+
   const SortableHeader = ({ field, label, icon: Icon }: { field: SortField, label: string, icon?: any }) => (
     <th 
       onClick={() => handleSort(field)} 
@@ -228,6 +243,14 @@ export const HerdList = () => {
           <table className="herd-table">
             <thead>
               <tr>
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={sortedAndFilteredHerd.length > 0 && selectedAnimals.length === sortedAndFilteredHerd.length}
+                    onChange={toggleSelectAll}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                  />
+                </th>
                 <SortableHeader field="tagNumber" label="Ear Tag" icon={User} />
                 <SortableHeader field="dateOfBirth" label="Date of Birth" icon={Calendar} />
                 <SortableHeader field="age" label="Age" icon={Clock} />
@@ -260,8 +283,16 @@ export const HerdList = () => {
                   <tr 
                     key={animal.id} 
                     style={animal.isQuarantined ? { backgroundColor: '#FFF7ED' } : {}}
-                    className="table-row-hover"
+                    className={`table-row-hover ${selectedAnimals.includes(animal.id) ? 'selected-row' : ''}`}
                   >
+                    <td style={{ textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={selectedAnimals.includes(animal.id)}
+                        onChange={() => toggleSelection(animal.id)}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                      />
+                    </td>
                     <td style={{ fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '1.25rem' }}>
@@ -321,6 +352,43 @@ export const HerdList = () => {
           </table>
         </div>
       </div>
+      {selectedAnimals.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#1E293B',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '24px',
+          zIndex: 100
+        }} className="fade-in">
+          <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+            {selectedAnimals.length} Animal{selectedAnimals.length !== 1 ? 's' : ''} Selected
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button 
+              className="btn"
+              style={{ padding: '8px 16px', backgroundColor: '#334155', color: 'white', border: '1px solid #475569' }}
+              onClick={() => setSelectedAnimals([])}
+            >
+              Clear
+            </button>
+            <button 
+              className="btn btn-primary"
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#059669' }}
+              onClick={() => navigate('/herd/batch-move', { state: { selectedIds: selectedAnimals } })}
+            >
+              Batch Move / Sell &rarr;
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react
 import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users, LifeBuoy } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
+import { BatchMovement } from './pages/BatchMovement';
 import { AddAnimal } from './pages/AddAnimal';
 import { AnimalDetail } from './pages/AnimalDetail';
 import { EditAnimal } from './pages/EditAnimal';
@@ -178,6 +179,7 @@ const App = () => {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/herd" element={<HerdList />} />
+                    <Route path="/herd/batch-move" element={<BatchMovement />} />
                     <Route path="/herd/add" element={<AddAnimal />} />
                     <Route path="/herd/:id" element={<AnimalDetail />} />
                     <Route path="/herd/:id/edit" element={<EditAnimal />} />
