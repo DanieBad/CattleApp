@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import type { Camp, Animal } from '../types';
 import { Tent, Plus } from 'lucide-react';
 
 export const CampsList = () => {
+  const navigate = useNavigate();
   const [camps, setCamps] = useState<Camp[]>([]);
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,7 +219,21 @@ export const CampsList = () => {
             return (
               <div key={camp.id} className="card fade-in" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--primary-dark)' }}>{camp.name}</h3>
+                  <h3 
+                    onClick={() => navigate(`/herd?campId=${camp.id}`)}
+                    style={{ 
+                      margin: 0, 
+                      fontSize: '1.25rem', 
+                      color: 'var(--primary-dark)', 
+                      cursor: 'pointer',
+                      textDecoration: 'underline decoration-transparent',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.textDecorationColor = 'var(--primary-dark)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.textDecorationColor = 'transparent')}
+                  >
+                    {camp.name}
+                  </h3>
                   <button 
                     onClick={() => handleDelete(camp.id, camp.name, headCount)}
                     style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 4px' }}

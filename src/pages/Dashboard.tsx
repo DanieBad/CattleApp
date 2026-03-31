@@ -375,7 +375,8 @@ export const Dashboard = () => {
                 margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
                 onClick={(data: any) => {
                   if (data && data.activePayload && data.activePayload[0]) {
-                     navigate('/camps');
+                     const campId = data.activePayload[0].payload.campId;
+                     navigate(`/herd?campId=${campId}`);
                   }
                 }}
               >

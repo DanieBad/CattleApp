@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowUpDown, ChevronUp, ChevronDown, Plus, Search, 
   MapPin, Calendar, Clock, User, Fingerprint 
@@ -12,11 +12,15 @@ type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' 
 
 export const HerdList = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const campIdParam = searchParams.get('campId');
+  
   const [herd, setHerd] = useState<Animal[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<'All' | 'Cattle' | 'Sheep'>('All');
+  const [campFilter, setCampFilter] = useState<string | null>(campIdParam);
   const [sortConfig, setSortConfig] = useState<{ field: SortField, direction: 'asc' | 'desc' } | null>({
     field: 'dateOfBirth',
     direction: 'desc'
@@ -109,8 +113,9 @@ export const HerdList = () => {
         animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
         
       const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
+      const matchesCamp = !campFilter ? true : animal.currentCampId === campFilter;
       
-      return matchesSearch && matchesSpecies;
+      return matchesSearch && matchesSpecies && matchesCamp;
     })
     .sort((a, b) => {
       if (!sortConfig) return 0;
@@ -198,6 +203,24 @@ export const HerdList = () => {
             🐑 Sheep
           </button>
         </div>
+
+        {campFilter && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--primary-light)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--primary)' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
+              Filtering by Camp: {camps.find(c => c.id === campFilter)?.name || 'Loading...'}
+            </span>
+            <button 
+              onClick={() => {
+                setCampFilter(null);
+                setSearchParams({});
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--primary-dark)', cursor: 'pointer', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center' }}
+              title="Clear Filter"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="card">
