@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { db } from '../database/db';
+import { SyncManager } from '../services/syncManager';
+import { v4 as uuidv4 } from 'uuid';
 import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog } from '../types';
 import { calculateAge } from '../utils';
 
@@ -198,7 +201,15 @@ export const AnimalDetail = () => {
 
   const handleStatusChange = async (newStatus: 'Sold' | 'Deceased') => {
     let soldPrice: number | null = null;
+    let saleGps: string | null = null;
+    let gpsSource: 'Auto' | 'Manual' | null = null;
+
     if (newStatus === 'Sold') {
+      if (animal?.isQuarantined) {
+        alert("Cannot sell an animal while it is under FMD Quarantine.");
+        return;
+      }
+      
       const priceStr = window.prompt(`Are you sure you want to mark this animal as Sold?\nEnter the Sold Price (or leave blank if none):`);
       if (priceStr === null) return; // cancelled
       if (priceStr.trim() !== '') {
@@ -208,6 +219,27 @@ export const AnimalDetail = () => {
           return;
         }
       }
+
+      // Automatically capture GPS for Sale
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+             enableHighAccuracy: true,
+             timeout: 5000 
+          });
+        });
+        saleGps = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+        gpsSource = 'Auto';
+      } catch (err) {
+        console.warn("GPS capture failed", err);
+        const manualGps = window.prompt("Could not auto-capture GPS. FMD compliance requires a location for Sale.\nPlease enter Sale Location GPS manually (e.g. -29.112, 26.211):");
+        if (!manualGps) {
+          alert("Sale cancelled. GPS location is required.");
+          return;
+        }
+        saleGps = manualGps;
+        gpsSource = 'Manual';
+      }
     } else {
       if (!window.confirm(`Are you sure you want to mark this animal as ${newStatus}?`)) return;
     }
@@ -216,8 +248,39 @@ export const AnimalDetail = () => {
       const updateData: any = { status: newStatus };
       if (soldPrice !== null) updateData.sold_price = soldPrice;
       
-      const { error } = await supabase.from('animals').update(updateData).eq('id', id);
-      if (error) throw error;
+      // Update local Dexie DB and Sync Queue
+      await db.animals.update(id!, { 
+         status: newStatus, 
+         ...(soldPrice !== null && { soldPrice }) 
+      });
+      await SyncManager.queueUpdate('animals', id!, updateData);
+
+      // If Sold, log the movement out
+      if (newStatus === 'Sold') {
+        const movementId = uuidv4();
+        const departureLog = {
+          id: movementId,
+          animalId: id!,
+          movementDate: new Date().toISOString().split('T')[0],
+          origin: animal?.currentCampId ? `Camp ID: ${animal.currentCampId}` : 'Current Farm',
+          destination: 'Sold / Off-farm',
+          originGps: saleGps!,
+          gpsSource: gpsSource as 'Auto' | 'Manual',
+          notes: 'Marked as Sold.'
+        };
+        await db.movement_log.add(departureLog);
+        
+        await SyncManager.queueInsert('movement_log', movementId, {
+          id: movementId,
+          animal_id: id!,
+          movement_date: departureLog.movementDate,
+          origin: departureLog.origin,
+          destination: departureLog.destination,
+          origin_gps: departureLog.originGps,
+          gps_source: departureLog.gpsSource,
+          notes: departureLog.notes
+        });
+      }
       
       setAnimal(prev => prev ? { ...prev, status: newStatus, soldPrice: soldPrice !== null ? soldPrice : prev.soldPrice } : null);
     } catch (error: any) {

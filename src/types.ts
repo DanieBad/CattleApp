@@ -30,6 +30,8 @@ export interface Animal {
   arrivalDate?: string;
   purchasePrice?: number;
   soldPrice?: number;
+  quarantineStartDate?: string; // ISO string
+  quarantineEndDate?: string; // ISO string
 }
 
 export interface Camp {
@@ -68,9 +70,28 @@ export interface MovementLog {
   origin: string;
   destination: string;
   permitNumber?: string;
+  permitIssueDate?: string;
+  permitExpiryDate?: string;
+  permitPdfUrl?: string;
+  originGps?: string;
+  destinationGps?: string;
+  originGln?: string;
+  destinationGln?: string;
+  gpsSource?: 'Auto' | 'Manual';
   vehicleRegistration?: string;
   notes?: string;
   createdAt?: string;
+}
+
+export interface BiosecurityLog {
+  id: string;
+  movementId: string;
+  healthDeclarationDate?: string;
+  vehicleDisinfectionDate?: string;
+  disinfectionCertificateUrl?: string;
+  notes?: string;
+  createdAt?: string;
+  syncedAt?: string;
 }
 
 export interface JournalLog {

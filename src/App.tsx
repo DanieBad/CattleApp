@@ -23,6 +23,7 @@ import { MicrophoneButton } from './components/VoiceAssistant/MicrophoneButton';
 import { VoiceConfirmationModal } from './components/VoiceAssistant/VoiceConfirmationModal';
 import { extractIntentFromText } from './services/voiceService';
 import { isMobile } from './utils/deviceUtils';
+import { SyncIndicator } from './components/SyncIndicator';
 
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
@@ -158,6 +159,7 @@ const App = () => {
                     <Menu size={24} />
                   </button>
                   <div style={{ flex: 1 }}></div>
+                  <SyncIndicator />
                   <button className="btn btn-outline" style={{ border: 'none', padding: '8px', position: 'relative' }}>
                     <Bell size={20} />
                     <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
