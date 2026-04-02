@@ -19,6 +19,8 @@ import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { UserManagement } from './pages/UserManagement';
 import { Support } from './pages/Support';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { Toaster } from 'react-hot-toast';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -102,6 +104,7 @@ const App = () => {
           <>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             {/* Catch-all for guest users: back to landing */}
@@ -227,6 +230,7 @@ const App = () => {
           </Route>
         )}
       </Routes>
+      <Toaster position="bottom-right" />
     </BrowserRouter>
   );
 };

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from '../supabase';
 import { 
   LifeBuoy, MessageSquare, Bug, Lightbulb, Search, 
-  ChevronDown, ChevronUp, Send, CheckCircle2, AlertCircle, Mail 
+  ChevronDown, ChevronUp, Send, CheckCircle2, AlertCircle, Mail,
+  Rocket
 } from 'lucide-react';
 
 const FAQS = [
@@ -247,6 +248,23 @@ export const Support = () => {
                   Monday - Friday<br />
                   08:00 - 17:00 (SAST)
                 </p>
+              </div>
+
+              <div className="card" style={{ padding: '24px', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD' }}>
+                <h3 style={{ fontSize: '1rem', color: '#0369A1', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Rocket size={18} />
+                  Quick Start Guide
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: '#0369A1', margin: '0 0 16px 0', opacity: 0.9 }}>
+                  Need a refresher? Check out our interactive walkthrough to get your farm properly set up.
+                </p>
+                <button 
+                  onClick={() => alert("Quick start guide opening...")} 
+                  className="btn btn-outline"
+                  style={{ width: '100%', borderColor: '#7DD3FC', color: '#0369A1', backgroundColor: 'white' }}
+                >
+                  Launch Guide
+                </button>
               </div>
             </div>
           </div>

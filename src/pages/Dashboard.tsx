@@ -7,9 +7,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy
+  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -22,6 +23,13 @@ export const Dashboard = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Rapid Field Entry State
+  const [fieldTag, setFieldTag] = useState('');
+  const [fieldNote, setFieldNote] = useState('');
+  const [isSubmittingField, setIsSubmittingField] = useState(false);
+  const [tagConflicts, setTagConflicts] = useState<Animal[]>([]);
+  const [selectedConflictId, setSelectedConflictId] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -117,6 +125,76 @@ export const Dashboard = () => {
       navigate(`/herd/${filteredSearch[0].id}`);
     } else if (filteredSearch.length > 1) {
       navigate(`/herd/${filteredSearch[0].id}`);
+    }
+  };
+
+  const handleFieldEntrySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fieldTag.trim() || !fieldNote.trim()) return;
+    
+    setIsSubmittingField(true);
+    try {
+      let submitAnimalId = '';
+      let submitAnimalTag = '';
+      
+      // If we are currently resolving a conflict
+      if (tagConflicts.length > 0 && selectedConflictId) {
+        submitAnimalId = selectedConflictId;
+        submitAnimalTag = fieldTag;
+      } else {
+        // Query database
+        const { data, error } = await supabase.from('animals')
+          .select('*')
+          .eq('tag_number', fieldTag)
+          .eq('status', 'Active');
+          
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          toast.error("Animal not found. Please check the Tag ID.");
+          setIsSubmittingField(false);
+          return;
+        }
+        
+        if (data.length > 1) {
+          // Conflict: exact same tag found for multiple active animals
+          setTagConflicts(data);
+          setSelectedConflictId(data[0].id);
+          setIsSubmittingField(false);
+          return;
+        }
+        
+        // Exactly one match
+        submitAnimalId = data[0].id;
+        submitAnimalTag = data[0].tag_number;
+      }
+      
+      // Submit Note
+      const today = new Date().toISOString().split('T')[0];
+      const { error: insertError } = await supabase.from('journal_logs').insert([{
+        animal_id: submitAnimalId,
+        date_recorded: today,
+        note_text: fieldNote
+      }]);
+      
+      if (insertError) {
+         if (insertError.code === '42P01') {
+           toast.error("Journal logs table is missing in Supabase.");
+         } else {
+           throw insertError;
+         }
+      } else {
+        toast.success(`Note added to ${submitAnimalTag}`);
+        setFieldTag('');
+        setFieldNote('');
+        setTagConflicts([]);
+        setSelectedConflictId('');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error('An error occurred while saving the note.');
+    } finally {
+      setIsSubmittingField(false);
     }
   };
 
@@ -258,13 +336,7 @@ export const Dashboard = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className="btn btn-outline" 
-            style={{ backgroundColor: '#F0F9FF', borderColor: '#BAE6FD', color: '#0369A1' }}
-            onClick={() => navigate('/support')}
-          >
-            <LifeBuoy size={18} /> Quick Start Guide
-          </button>
+          {/* Quick Start Guide moved to Support page */}
         </div>
         
         <div ref={searchRef} style={{ position: 'relative', width: '300px' }}>
@@ -330,6 +402,66 @@ export const Dashboard = () => {
           </span>
           <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#3b82f6' }}>{recentTreatmentsCount}</span>
           <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total health records logged</span>
+        </div>
+
+        {/* RAPID FIELD ENTRY WIDGET */}
+        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FileEdit size={18} color="var(--primary)" />
+            Rapid Field Entry
+          </h3>
+          <form onSubmit={handleFieldEntrySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Tag ID (e.g. C-101)" 
+                style={{ flex: 1 }}
+                required
+                value={fieldTag}
+                onChange={(e) => {
+                  setFieldTag(e.target.value);
+                  if (tagConflicts.length > 0) setTagConflicts([]);
+                }}
+              />
+              <button 
+                type="submit" 
+                className="btn btn-primary"
+                disabled={isSubmittingField}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                {isSubmittingField ? 'Saving...' : 'Add Note'}
+              </button>
+            </div>
+            
+            {tagConflicts.length > 0 && (
+              <div style={{ backgroundColor: '#FFFBEB', padding: '12px', borderRadius: '8px', border: '1px solid #FEF3C7' }}>
+                <label className="form-label" style={{ color: '#92400E', marginBottom: '8px' }}>
+                  Multiple active animals found with this tag. Please select one:
+                </label>
+                <select 
+                  className="form-input" 
+                  value={selectedConflictId}
+                  onChange={(e) => setSelectedConflictId(e.target.value)}
+                >
+                  {tagConflicts.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.species} - {a.breed} - {a.sex} {a.name ? `(${a.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            <textarea 
+              className="form-input"
+              placeholder="Observation or note..."
+              style={{ flex: 1, minHeight: '80px', resize: 'none' }}
+              required
+              value={fieldNote}
+              onChange={(e) => setFieldNote(e.target.value)}
+            />
+          </form>
         </div>
       </div>
 

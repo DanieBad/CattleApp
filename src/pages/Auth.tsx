@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabase';
 import logo from '../assets/Logo.png';
+import { Link } from 'react-router-dom';
 
 export const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -62,7 +63,14 @@ export const Auth = () => {
           </div>
 
           <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="form-label" htmlFor="password">Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label className="form-label" htmlFor="password" style={{ marginBottom: 0 }}>Password</label>
+              {isLogin && (
+                <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 500, textDecoration: 'none' }}>
+                  Forgot Password?
+                </Link>
+              )}
+            </div>
             <input 
               id="password"
               type="password" 
