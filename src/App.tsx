@@ -20,6 +20,7 @@ import { Reports } from './pages/Reports';
 import { UserManagement } from './pages/UserManagement';
 import { Support } from './pages/Support';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { UpdatePassword } from './pages/UpdatePassword';
 import { Toaster } from 'react-hot-toast';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
@@ -184,6 +185,7 @@ const App = () => {
 
                 <main className="page-container">
                   <Routes>
+                    <Route path="/update-password" element={<UpdatePassword />} />
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/herd" element={<HerdList />} />
                     <Route path="/herd/batch-move" element={<BatchMovement />} />
