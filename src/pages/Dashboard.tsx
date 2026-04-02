@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit
+  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -19,8 +19,19 @@ export const Dashboard = () => {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
+  // Full-Width Search State
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Quick Log Modal State
+  const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
+  const [quickLogAnimal, setQuickLogAnimal] = useState<any | null>(null);
+  const [quickLogNote, setQuickLogNote] = useState('');
+  const [isSavingQuickLog, setIsSavingQuickLog] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -42,6 +53,43 @@ export const Dashboard = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Debounce search query
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Handle dynamic Supabase search
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (!debouncedQuery.trim()) {
+        setSearchResults([]);
+        setIsSearching(false);
+        return;
+      }
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase
+          .from('animals')
+          .select('*')
+          .eq('status', 'Active')
+          .or(`tag_number.ilike.%${debouncedQuery}%,name.ilike.%${debouncedQuery}%`)
+          .limit(10);
+          
+        if (error) throw error;
+        setSearchResults(data || []);
+      } catch (err) {
+        console.error('Error fetching search results:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+    
+    fetchSearchResults();
+  }, [debouncedQuery]);
 
   const fetchDashboardData = async () => {
     try {
@@ -113,18 +161,32 @@ export const Dashboard = () => {
   const quarantinedCount = activeAnimals.filter(a => a.isQuarantined).length;
   const recentTreatmentsCount = healthLogs.length;
 
-  // Search Logic
-  const filteredSearch = searchQuery.trim() === '' ? [] : activeAnimals.filter(a => 
-    a.tagNumber.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    a.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, 5);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  // Handle Quick Log Modal Submit
+  const handleQuickLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (filteredSearch.length === 1) {
-      navigate(`/herd/${filteredSearch[0].id}`);
-    } else if (filteredSearch.length > 1) {
-      navigate(`/herd/${filteredSearch[0].id}`);
+    if (!quickLogAnimal || !quickLogNote.trim()) return;
+    
+    setIsSavingQuickLog(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { error } = await supabase.from('journal_logs').insert([{
+        animal_id: quickLogAnimal.id,
+        date_recorded: today,
+        note_text: quickLogNote
+      }]);
+      
+      if (error) throw error;
+      
+      toast.success(`Note added to ${quickLogAnimal.tag_number}`);
+      setIsQuickLogOpen(false);
+      setQuickLogNote('');
+      setSearchQuery('');
+      setShowDropdown(false);
+    } catch (err: any) {
+      console.error(err);
+      toast.error('An error occurred while saving the note.');
+    } finally {
+      setIsSavingQuickLog(false);
     }
   };
 
@@ -338,41 +400,61 @@ export const Dashboard = () => {
         <div style={{ display: 'flex', gap: '12px' }}>
           {/* Quick Start Guide moved to Support page */}
         </div>
-        
-        <div ref={searchRef} style={{ position: 'relative', width: '300px' }}>
-          <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
-            <Search size={20} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="Quick jump by tag..." 
-              style={{ paddingLeft: '40px' }}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowDropdown(true);
-              }}
-              onFocus={() => setShowDropdown(true)}
-            />
-          </form>
+      </div>
 
-          {showDropdown && filteredSearch.length > 0 && (
-            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', border: '1px solid var(--border)', zIndex: 50, marginTop: '8px', overflow: 'hidden' }}>
-              {filteredSearch.map(a => (
-                <div 
-                  key={a.id} 
-                  style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background-color 0.2s' }} 
-                  onClick={() => navigate(`/herd/${a.id}`)}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <span style={{ fontWeight: 600 }}>{a.tagNumber}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{a.species === 'Cattle' ? '🐄' : '🐑'} {a.name || ''}</span>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* MASSIVE SMART SEARCH */}
+      <div ref={searchRef} style={{ position: 'relative', margin: '16px 0 32px 0', zIndex: 40, width: '100%' }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={28} color="var(--primary)" style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            type="text" 
+            placeholder="Search active herd by tag or name..." 
+            className="form-input"
+            style={{ width: '100%', height: '64px', paddingLeft: '64px', fontSize: '1.125rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowDropdown(true);
+            }}
+            onFocus={() => setShowDropdown(true)}
+          />
         </div>
+
+        {showDropdown && searchQuery.trim() !== '' && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid var(--border)', marginTop: '12px', overflow: 'hidden' }}>
+             {isSearching ? (
+               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Searching herd...</div>
+             ) : searchResults.length > 0 ? (
+               searchResults.map(a => (
+                 <div 
+                   key={a.id} 
+                   style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background-color 0.2s', flexWrap: 'wrap', gap: '12px' }} 
+                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
+                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                 >
+                   <div style={{ cursor: 'pointer', flex: 1, minWidth: '150px' }} onClick={() => navigate(`/herd/${a.id}`)}>
+                     <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{a.tag_number}</span>
+                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '12px' }}>{a.species === 'Cattle' ? '🐄' : '🐑'} {a.name || ''}</span>
+                   </div>
+                   <button 
+                     className="btn btn-primary" 
+                     style={{ padding: '8px 16px', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setQuickLogAnimal(a);
+                       setIsQuickLogOpen(true);
+                       setShowDropdown(false);
+                     }}
+                   >
+                     Quick Log Journal
+                   </button>
+                 </div>
+               ))
+             ) : (
+               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No matches found for "{searchQuery}".</div>
+             )}
+          </div>
+        )}
       </div>
 
       {/* HEALTH METRICS */}
@@ -544,6 +626,43 @@ export const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* QUICK LOG MODAL */}
+      {isQuickLogOpen && quickLogAnimal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '500px', backgroundColor: 'white', padding: '32px', position: 'relative' }}>
+            <button 
+              onClick={() => setIsQuickLogOpen(false)}
+              style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 style={{ margin: '0 0 24px 0', fontSize: '1.5rem', color: 'var(--text-main)', paddingRight: '32px' }}>
+              Log Note for {quickLogAnimal.tag_number}
+            </h2>
+            <form onSubmit={handleQuickLogSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label className="form-label" style={{ marginBottom: '8px' }}>Journal Entry</label>
+                <textarea 
+                  className="form-input"
+                  style={{ minHeight: '120px', resize: 'none', fontSize: '1rem', padding: '16px' }}
+                  placeholder="Enter health observation, movement note, or general log..."
+                  autoFocus
+                  required
+                  value={quickLogNote}
+                  onChange={e => setQuickLogNote(e.target.value)}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setIsQuickLogOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSavingQuickLog}>
+                  {isSavingQuickLog ? 'Saving...' : 'Save Note'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
