@@ -50,7 +50,7 @@ db.version(1).stores({
 
 db.version(2).stores({
   offline_audio_queue: 'id, status, createdAt' // Added for v2
-}).upgrade(tx => {
+}).upgrade(() => {
   // Add audio queue table
 });
 
