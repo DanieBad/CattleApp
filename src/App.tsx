@@ -13,6 +13,8 @@ import { CampsList } from './pages/CampsList';
 import { ImportData } from './pages/ImportData';
 import { Auth } from './pages/Auth';
 import { Landing } from './pages/Landing';
+import { Terms } from './pages/Terms';
+import { Privacy } from './pages/Privacy';
 import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { UserManagement } from './pages/UserManagement';
@@ -100,6 +102,8 @@ const App = () => {
           <>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Auth />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             {/* Catch-all for guest users: back to landing */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
