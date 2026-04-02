@@ -17,11 +17,31 @@ export class SyncManager {
         .equals('pending')
         .toArray();
 
-      if (pendingRecords.length === 0) {
+      const pendingAudio = await db.offline_audio_queue
+        .where('status')
+        .equals('pending')
+        .toArray();
+
+      if (pendingRecords.length === 0 && pendingAudio.length === 0) {
         this.syncing = false;
         return;
       }
+      
+      // 1. Process Audio Uploads first so files exist before potentially linked records sync
+      for (const audio of pendingAudio) {
+        if (!audio.id) continue;
+        await db.offline_audio_queue.update(audio.id, { status: 'syncing' });
+        try {
+          const { error } = await supabase.storage.from('audio_notes').upload(audio.fileName, audio.blob, { upsert: true });
+          if (error) throw error;
+          await db.offline_audio_queue.delete(audio.id);
+        } catch (err: any) {
+          console.error(`Sync error on audio ${audio.id}:`, err);
+          await db.offline_audio_queue.update(audio.id, { status: 'failed', error: err.message || 'Unknown upload error' });
+        }
+      }
 
+      // 2. Process Data Records
       for (const record of pendingRecords) {
         if (!record.id) continue;
         

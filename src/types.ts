@@ -99,6 +99,9 @@ export interface JournalLog {
   animalId: string;
   noteText: string;
   dateRecorded: string;
+  audioUrl?: string; // Stored path in Supabase Storage
+  audioSizeBytes?: number; // In bytes
+  audioDurationSeconds?: number; // In seconds
   createdAt?: string;
 }
 
@@ -113,6 +116,7 @@ export interface FarmSettings {
   glnCertificateUrl?: string | null;
   brandCertificateUrl?: string | null;
   voiceLanguage?: 'en-ZA' | 'af-ZA';
+  audioUsedBytes?: number; // Quota tracking
   createdAt?: string;
   updatedAt?: string;
 }

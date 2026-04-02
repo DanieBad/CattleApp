@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { db } from '../database/db';
@@ -50,6 +50,14 @@ export const AnimalDetail = () => {
   const [newHealthDate, setNewHealthDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [loading, setLoading] = useState(true);
+
+  // Audio Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     if (id) fetchAnimalDetails();
@@ -439,33 +447,145 @@ export const AnimalDetail = () => {
 
   const handleAddJournal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newJournalNote) return;
+    if (!newJournalNote && !audioBlob) return;
     
-    try {
-      const { data, error } = await supabase.from('journal_logs').insert([{
-        animal_id: id,
-        note_text: newJournalNote,
-        date_recorded: newJournalDate
-      }]).select();
-      
-      if (error) throw error;
-      
-      if (data) {
-        const newLog: JournalLog = {
-          id: data[0].id,
-          animalId: data[0].animal_id,
-          noteText: data[0].note_text,
-          dateRecorded: data[0].date_recorded,
-          createdAt: data[0].created_at
-        };
-        setJournalLogs([newLog, ...journalLogs]);
+    // Check Storage Quota locally (Limit: 100MB)
+    if (audioBlob) {
+      const userRes = await supabase.auth.getUser();
+      if (userRes.data.user) {
+        const settings = await db.farm_settings.get(userRes.data.user.id);
+        if (settings && (settings.audioUsedBytes || 0) + audioBlob.size > 104857600) {
+          alert('Audio storage limit of 100MB reached. Please delete old voice notes or upgrade.');
+          return;
+        }
       }
+    }
+
+    try {
+      const journalId = uuidv4();
+      let audioFileName = undefined;
+      
+      if (audioBlob) {
+        const ext = audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+        audioFileName = `${id}/${journalId}.${ext}`;
+        
+        await db.offline_audio_queue.add({
+          id: journalId,
+          blob: audioBlob,
+          fileName: audioFileName,
+          mimeType: audioBlob.type,
+          createdAt: new Date().toISOString(),
+          status: 'pending'
+        });
+        
+        // Optimistically update quota
+        const userRes = await supabase.auth.getUser();
+        if (userRes.data.user) {
+           const settings = await db.farm_settings.get(userRes.data.user.id);
+           if (settings) {
+             const newQuota = (settings.audioUsedBytes || 0) + audioBlob.size;
+             await db.farm_settings.update(userRes.data.user.id, { audioUsedBytes: newQuota });
+             await SyncManager.queueUpdate('farm_settings', userRes.data.user.id, { audio_used_bytes: newQuota });
+           }
+        }
+      }
+
+      const journalPayload = {
+        id: journalId,
+        animal_id: id,
+        note_text: newJournalNote || 'Audio Note',
+        date_recorded: newJournalDate,
+        audio_url: audioFileName,
+        audio_size_bytes: audioBlob?.size,
+        audio_duration_seconds: audioBlob ? recordingTime : undefined,
+      };
+
+      await db.journal_logs.add({
+        id: journalId,
+        animalId: id!,
+        noteText: journalPayload.note_text,
+        dateRecorded: journalPayload.date_recorded,
+        audioUrl: journalPayload.audio_url,
+        audioSizeBytes: journalPayload.audio_size_bytes,
+        audioDurationSeconds: journalPayload.audio_duration_seconds,
+        createdAt: new Date().toISOString(),
+      });
+      
+      await SyncManager.queueInsert('journal_logs', journalId, journalPayload);
+      
+      const newLog: JournalLog = {
+        id: journalId,
+        animalId: id!,
+        noteText: journalPayload.note_text,
+        dateRecorded: journalPayload.date_recorded,
+        audioUrl: journalPayload.audio_url,
+        createdAt: new Date().toISOString()
+      };
+      setJournalLogs([newLog, ...journalLogs]);
       
       setNewJournalNote('');
+      setAudioBlob(null);
+      setRecordingTime(0);
       setShowJournalForm(false);
     } catch (error: any) {
-      alert('Error adding journal note (Ensure journal_logs table is created): ' + error.message);
+      alert('Error adding journal note: ' + error.message);
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') 
+        ? 'audio/webm' 
+        : (MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '');
+        
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      chunksRef.current = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      
+      recorder.onstop = () => {
+        const actualMimeType = recorder.mimeType || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: actualMimeType });
+        setAudioBlob(blob);
+        stream.getTracks().forEach(track => track.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      timerRef.current = window.setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev >= 59) {
+            recorder.stop();
+            setIsRecording(false);
+            return 60;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+      
+    } catch (err) {
+      console.error("Audio recording failed", err);
+      alert("Could not access microphone.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const discardAudio = () => {
+    setAudioBlob(null);
+    setRecordingTime(0);
   };
 
   if (loading) {
@@ -1045,9 +1165,43 @@ export const AnimalDetail = () => {
               </div>
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label">Note Details</label>
-                <textarea className="form-input" required rows={4} placeholder="Record observations, behavior, or general notes..." value={newJournalNote} onChange={e => setNewJournalNote(e.target.value)}></textarea>
+                <textarea className="form-input" rows={4} placeholder="Record observations, behavior, or general notes..." value={newJournalNote} onChange={e => setNewJournalNote(e.target.value)}></textarea>
               </div>
-              <button type="submit" className="btn btn-primary">Save Note</button>
+              
+              <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'var(--bg-off)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <label className="form-label">Voice Recording (Max 60s)</label>
+                
+                {!isRecording && !audioBlob && (
+                  <button type="button" onClick={startRecording} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444', borderColor: '#ef4444' }}>
+                    🎤 Record Audio
+                  </button>
+                )}
+                
+                {isRecording && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ height: '12px', width: '12px', borderRadius: '50%', backgroundColor: '#ef4444', animation: 'pulse 1.5s infinite' }}></div>
+                    <span style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '1.2rem' }}>
+                      00:{recordingTime.toString().padStart(2, '0')}
+                    </span>
+                    <button type="button" onClick={stopRecording} className="btn btn-primary" style={{ backgroundColor: '#ef4444' }}>
+                      Stop Recording
+                    </button>
+                  </div>
+                )}
+                
+                {audioBlob && !isRecording && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <audio src={URL.createObjectURL(audioBlob)} controls style={{ width: '100%', maxWidth: '400px' }}></audio>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button type="button" onClick={discardAudio} className="btn btn-outline" style={{ fontSize: '0.85rem', padding: '6px 12px' }}>
+                        Discard & Rerecord
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" className="btn btn-primary" disabled={!newJournalNote && !audioBlob}>Save Note</button>
             </form>
           )}
 
@@ -1063,6 +1217,12 @@ export const AnimalDetail = () => {
                     {new Date(log.dateRecorded).toLocaleDateString()}
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.noteText}</div>
+                  {log.audioUrl && (
+                    <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--surface)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>🎤 Voice Note Attached</div>
+                      <audio controls src={`https://tbgqjnjgqshbcvvksdjv.supabase.co/storage/v1/object/public/audio_notes/${log.audioUrl}`} style={{ width: '100%', maxWidth: '300px', height: '36px' }} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

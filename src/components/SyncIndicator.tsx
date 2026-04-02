@@ -31,8 +31,17 @@ export const SyncIndicator = () => {
     () => db.sync_outbox.where('status').equals('failed').count()
   ) || 0;
 
-  const totalUnsynced = pendingCount + syncingCount + failedCount;
-  const isSyncing = syncingCount > 0;
+  const pendingAudioCount = useLiveQuery(
+    () => db.offline_audio_queue.where('status').equals('pending').count()
+  ) || 0;
+
+  const syncingAudioCount = useLiveQuery(
+    () => db.offline_audio_queue.where('status').equals('syncing').count()
+  ) || 0;
+
+  const totalUnsynced = pendingCount + syncingCount + failedCount + pendingAudioCount + syncingAudioCount;
+  const isSyncingData = syncingCount > 0;
+  const isSyncingAudio = syncingAudioCount > 0;
 
   if (!isOnline) {
     return (
@@ -43,11 +52,20 @@ export const SyncIndicator = () => {
     );
   }
 
-  if (isSyncing) {
+  if (isSyncingAudio) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#8B5CF6', fontSize: '0.85rem' }}>
+        <RefreshCw size={18} style={{ animation: 'spin 1.5s linear infinite' }} />
+        <span style={{ fontWeight: 500 }}>Syncing audio notes...</span>
+      </div>
+    );
+  }
+
+  if (isSyncingData) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary)', fontSize: '0.85rem' }}>
         <RefreshCw size={18} style={{ animation: 'spin 1.5s linear infinite' }} />
-        <span style={{ fontWeight: 500 }}>Syncing...</span>
+        <span style={{ fontWeight: 500 }}>Syncing data...</span>
       </div>
     );
   }

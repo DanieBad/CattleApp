@@ -166,11 +166,15 @@ Extract the intended action and data from the transcript.
 2. **BATCH FILTERS**: If batch action, set "isBatch": true.
 3. **SPECIES**: If transcript mentions "sheep" or "skape", set "targetSpecies" to "Sheep". If "cattle" or "beeste", set to "Cattle".
 4. **TREATMENTS**: "dewormed" or "ontwurm" -> treatmentType: "Deworming". "vaccinated" or "ingeënt" -> Vaccination. "checkup" -> Checkup.
-5. **FALLBACK TAGS**: If adding animal and no tag spoken, set "tagNumber" to "[motherTag]-C1".
+5. **FALLBACK TAGS**: If adding animal and no tag spoken, set "tagNumber" to "[motherTag]-C1" (or C2, C3 if multiple).
+6. **MULTIPLE ADDITIONS**: If user says "add 3 calves" or "5 lammers", set "quantity" to that number. Extract "sex" (Male/Female) if mentioned.
+7. **DATES**: Parse relative dates ("yesterday", "last week") into exact YYYY-MM-DD format based on Today's Date.
+8. **NOTES**: If user says "add a note to X" or "note for", use action "add_journal" and put the content in "noteText".
+9. **QUERIES**: If user asks "show me animals in camp X" or "where is", use action "query_herd" and set "campFilter" or "tagFilter".
 
 Expected JSON Format:
 {
-  "action": "add_animal" | "add_health_log",
+  "action": "add_animal" | "add_health_log" | "add_journal" | "query_herd",
   "isBatch": boolean,
   "data": {
     "tagNumber": "[ID or Group Name]",
@@ -182,7 +186,10 @@ Expected JSON Format:
     "treatmentType": "Vaccination" | "Deworming" | "Other" | "Checkup",
     "medication": "[MED]",
     "dosage": "[DOSE]",
-    "dateAdministered": "YYYY-MM-DD"
+    "dateAdministered": "YYYY-MM-DD",
+    "quantity": integer,
+    "noteText": "[Text of the note]",
+    "campFilter": "[Camp Name]"
   }
 }
 
