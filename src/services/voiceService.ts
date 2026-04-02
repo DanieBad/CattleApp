@@ -127,29 +127,20 @@ export class VoiceService {
  * Transcribes audio using OpenAI Whisper API.
  */
 export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: string = 'webm', language: string = 'en-ZA'): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OpenAI API Key is missing!');
-
   const isAfrikaans = language.startsWith('af');
-  const whisperPrompt = isAfrikaans 
-    ? ' n Boer wat praat oor beeste, skape, koeie, bulle, kalwers, skaap, inentings, ontwurming, en al my diere.'
-    : 'A farmer talking about cattle, sheep, cows, bulls, calves, vaccinations, deworming, and all my animals.';
 
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${extension}`);
-  formData.append('model', 'whisper-1');
-  formData.append('prompt', whisperPrompt);
   if (isAfrikaans) formData.append('language', 'af');
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const response = await fetch('/api/transcribe', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}` },
     body: formData
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || "API Error");
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "API Error");
   }
 
   const data = await response.json();
@@ -160,9 +151,6 @@ export const transcribeAudioWithWhisper = async (audioBlob: Blob, extension: str
  * Uses OpenAI GPT-4o-mini to parse the voice transcript into a structured JSON intent.
  */
 export const extractIntentFromText = async (transcript: string, language: string = 'en-ZA'): Promise<any> => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OpenAI API Key is missing!');
-
   const today = new Date().toISOString().split('T')[0];
   const isAfrikaans = language.startsWith('af');
 
@@ -200,9 +188,9 @@ Expected JSON Format:
 
 Transcript: "${transcript}"`;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('/api/intent', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
