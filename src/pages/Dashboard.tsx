@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit, X
+  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit, X, ChevronRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -432,9 +432,37 @@ export const Dashboard = () => {
                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                  >
-                   <div style={{ cursor: 'pointer', flex: 1, minWidth: '150px' }} onClick={() => navigate(`/herd/${a.id}`)}>
-                     <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)' }}>{a.tag_number}</span>
-                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '12px' }}>{a.species === 'Cattle' ? '🐄' : '🐑'} {a.name || ''}</span>
+                   <div 
+                     style={{ cursor: 'pointer', flex: 1, minWidth: '150px', display: 'flex', alignItems: 'center', gap: '8px' }} 
+                     onClick={() => navigate(`/herd/${a.id}`)}
+                     onMouseEnter={(e) => {
+                       const textContainer = e.currentTarget.querySelector('.tag-name') as HTMLElement;
+                       const chevron = e.currentTarget.querySelector('.chevron-icon') as HTMLElement;
+                       if (textContainer) {
+                         textContainer.style.color = 'var(--primary)';
+                         textContainer.style.textDecoration = 'underline';
+                       }
+                       if (chevron) {
+                         chevron.style.color = 'var(--primary)';
+                         chevron.style.transform = 'translateX(4px)';
+                       }
+                     }}
+                     onMouseLeave={(e) => {
+                       const textContainer = e.currentTarget.querySelector('.tag-name') as HTMLElement;
+                       const chevron = e.currentTarget.querySelector('.chevron-icon') as HTMLElement;
+                       if (textContainer) {
+                         textContainer.style.color = 'var(--text-main)';
+                         textContainer.style.textDecoration = 'none';
+                       }
+                       if (chevron) {
+                         chevron.style.color = '#94a3b8';
+                         chevron.style.transform = 'translateX(0)';
+                       }
+                     }}
+                   >
+                     <span className="tag-name" style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)', transition: 'all 0.2s' }}>{a.tag_number}</span>
+                     <ChevronRight className="chevron-icon" size={16} color="#94a3b8" style={{ transition: 'all 0.2s', marginTop: '2px' }} />
+                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '4px' }}>{a.species === 'Cattle' ? '🐄' : '🐑'} {a.name || ''}</span>
                    </div>
                    <button 
                      className="btn btn-primary" 
