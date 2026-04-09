@@ -23,6 +23,7 @@ export const AnimalDetail = () => {
   const [movementLogs, setMovementLogs] = useState<MovementLog[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [journalLogs, setJournalLogs] = useState<JournalLog[]>([]);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
   
   const initialTab = (location.state as any)?.tab as Tab || 'overview';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
@@ -803,17 +804,17 @@ export const AnimalDetail = () => {
   };
 
   return (
-    <div>
+    <div style={{ paddingBottom: '80px' }}>
       <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <div>
-            <button className="btn btn-outline" onClick={() => navigate('/herd')} style={{ marginBottom: '16px' }}>
-              &larr; Back to Herd
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button className="btn btn-outline" onClick={() => navigate('/herd')} style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Back to Herd">
+              &larr;
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.5rem' }}>
                 <span>{animal.species === 'Sheep' ? '🐑' : '🐄'}</span>
-                {animal.tagNumber} {animal.name && <span style={{ color: 'var(--text-muted)' }}>"{animal.name}"</span>}
+                {animal.tagNumber}
               </h1>
               {getStatusBadge(animal.status)}
               {animal.isQuarantined && <span className="badge badge-red" style={{ border: '1px solid #991B1B' }}>⚠️ QUARANTINED</span>}
@@ -821,41 +822,50 @@ export const AnimalDetail = () => {
           </div>
           
           {/* ACTION BUTTONS */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={() => navigate(`/herd/${animal.id}/edit`)}>
-              Edit Record
+          <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+            <button className="btn btn-primary" onClick={() => navigate(`/herd/${animal.id}/edit`)} style={{ padding: '8px 16px' }}>
+              <span style={{ marginRight: '6px' }}>✏️</span> Edit
             </button>
             
-            {animal.status === 'Active' && (
-              <>
-                <button 
-                  className="btn btn-outline" 
-                  onClick={() => handleStatusChange('Sold')}
-                  disabled={animal.isQuarantined}
-                  title={animal.isQuarantined ? "Cannot sell quarantined animal" : ""}
-                  style={animal.isQuarantined ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                >
-                  Mark Sold
-                </button>
-                <button className="btn btn-outline" onClick={() => handleStatusChange('Deceased')}>
-                  Mark Deceased
-                </button>
-              </>
-            )}
-
-            <button 
-              className="btn btn-outline" 
-              style={{ borderColor: '#ef4444', color: '#ef4444' }}
-              onClick={handleDelete}
-            >
-              Delete
+            <button className="btn btn-outline" onClick={() => setShowActionsMenu(!showActionsMenu)} style={{ padding: '8px 12px', fontWeight: 900 }}>
+              &hellip;
             </button>
+
+            {showActionsMenu && (
+              <div className="action-menu-dropdown fade-in">
+                {animal.status === 'Active' && (
+                  <>
+                    <button 
+                      className="action-menu-item"
+                      onClick={() => { setShowActionsMenu(false); handleStatusChange('Sold'); }}
+                      disabled={animal.isQuarantined}
+                      style={animal.isQuarantined ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                    >
+                      🏷️ Mark Sold
+                    </button>
+                    <button 
+                      className="action-menu-item"
+                      onClick={() => { setShowActionsMenu(false); handleStatusChange('Deceased'); }}
+                    >
+                      ✝️ Mark Deceased
+                    </button>
+                  </>
+                )}
+                <button 
+                  className="action-menu-item" 
+                  style={{ color: '#ef4444' }}
+                  onClick={() => { setShowActionsMenu(false); handleDelete(); }}
+                >
+                  🗑️ Permanently Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* TABS NAVIGATION */}
-      <div className="tabs-container">
+      <div className="tabs-container sticky-tabs">
         <button 
           onClick={() => setActiveTab('overview')}
           className={`profile-tab ${activeTab === 'overview' ? 'active' : ''}`}
@@ -866,30 +876,30 @@ export const AnimalDetail = () => {
         <button 
           onClick={() => setActiveTab('health')}
           className={`profile-tab ${activeTab === 'health' ? 'active' : ''}`}
-          data-text="Health & Treatments"
+          data-text="Health"
         >
-          Health & Treatments
+          Health
         </button>
         <button 
           onClick={() => setActiveTab('weight')}
           className={`profile-tab ${activeTab === 'weight' ? 'active' : ''}`}
-          data-text="Weight History"
+          data-text="Weight"
         >
-          Weight History
+          Weight
         </button>
         <button 
           onClick={() => setActiveTab('movement')}
           className={`profile-tab ${activeTab === 'movement' ? 'active' : ''}`}
-          data-text="Movement History"
+          data-text="Movements"
         >
-          Movement History
+          Movements
         </button>
         <button 
           onClick={() => setActiveTab('journal')}
           className={`profile-tab ${activeTab === 'journal' ? 'active' : ''}`}
-          data-text="Journal / Notes"
+          data-text="Notes"
         >
-          Journal / Notes
+          Notes
         </button>
       </div>
 
@@ -902,55 +912,53 @@ export const AnimalDetail = () => {
           <div className="card" style={{ padding: '32px' }}>
             <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Animal Profile</h3>
             
-            <div className="responsive-grid-2col">
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>EID Tag</p>
-                <p style={{ fontWeight: 500, fontFamily: 'monospace' }}>{animal.eidNumber || 'Not registered'}</p>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="info-row">
+                <span className="info-label">EID Tag</span>
+                <span className="info-value" style={{ fontFamily: 'monospace' }}>{animal.eidNumber || 'Not registered'}</span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Species</p>
-                <p style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {animal.species === 'Sheep' ? '🐑' : '🐄'} {animal.species}
-                </p>
+              <div className="info-row">
+                <span className="info-label">Species</span>
+                <span className="info-value">{animal.species === 'Sheep' ? '🐑' : '🐄'} {animal.species}</span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Breed</p>
-                <p style={{ fontWeight: 500 }}>{animal.breed}</p>
+              <div className="info-row">
+                <span className="info-label">Breed</span>
+                <span className="info-value">{animal.breed}</span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Sex</p>
-                <p style={{ fontWeight: 500 }}>{animal.sex} {animal.hornStatus ? `(${animal.hornStatus})` : ''}</p>
+              <div className="info-row">
+                <span className="info-label">Sex</span>
+                <span className="info-value">{animal.sex} {animal.hornStatus ? `(${animal.hornStatus})` : ''}</span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Date of Birth</p>
-                <p style={{ fontWeight: 500 }}>
-                  {new Date(animal.dateOfBirth).toLocaleDateString()} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>({calculateAge(animal.dateOfBirth).display} old)</span>
-                </p>
+              <div className="info-row">
+                <span className="info-label">Date of Birth</span>
+                <span className="info-value">
+                  {new Date(animal.dateOfBirth).toLocaleDateString()} <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 400 }}>({calculateAge(animal.dateOfBirth).display} old)</span>
+                </span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Current Camp</p>
-                <p style={{ fontWeight: 500 }}>
+              <div className="info-row">
+                <span className="info-label">Current Camp</span>
+                <span className="info-value">
                   {animal.currentCampId ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: 'var(--surface)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border)' }}>
                       📍 {camps.find(c => c.id === animal.currentCampId)?.name || 'Unknown'}
                     </span>
                   ) : (
-                    <span style={{ color: 'var(--text-muted)' }}>Unassigned</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>Unassigned</span>
                   )}
-                </p>
+                </span>
               </div>
-              <div>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Current Weight</p>
-                <p style={{ fontWeight: 500 }}>{animal.weight ? `${animal.weight} kg` : 'Not recorded'}</p>
+              <div className="info-row">
+                <span className="info-label">Current Weight</span>
+                <span className="info-value">{animal.weight ? `${animal.weight} kg` : 'Not recorded'}</span>
               </div>
               {animal.currentCampId && movementLogs.length > 0 && (
-                <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Days in Current Pasture</p>
-                  <p style={{ fontWeight: 500, color: 'var(--primary-dark)' }}>
+                <div className="info-row">
+                  <span className="info-label">Days in Current Pasture</span>
+                  <span className="info-value" style={{ color: 'var(--primary-dark)' }}>
                     {(() => {
                       const currentCampName = camps.find(c => c.id === animal.currentCampId)?.name;
                       const lastMoveToCurrent = movementLogs.find(m => m.destination === currentCampName);
-                      if (!lastMoveToCurrent) return 'Unknown (No recent log)';
+                      if (!lastMoveToCurrent) return 'Unknown';
                       
                       const moveDate = new Date(lastMoveToCurrent.movementDate);
                       const today = new Date();
@@ -959,19 +967,19 @@ export const AnimalDetail = () => {
                       
                       return `${diffDays} Day${diffDays === 1 ? '' : 's'} (since ${moveDate.toLocaleDateString()})`;
                     })()}
-                  </p>
+                  </span>
                 </div>
               )}
               {animal.brand && (
-                <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Ownership Brand</p>
-                  <p style={{ fontWeight: 500 }}>{animal.brand}</p>
+                <div className="info-row">
+                  <span className="info-label">Ownership Brand</span>
+                  <span className="info-value">{animal.brand}</span>
                 </div>
               )}
               {animal.status === 'Sold' && animal.soldPrice && (
-                <div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>Sold Price</p>
-                  <p style={{ fontWeight: 500, color: '#059669' }}>R {animal.soldPrice.toFixed(2)}</p>
+                <div className="info-row">
+                  <span className="info-label">Sold Price</span>
+                  <span className="info-value" style={{ color: '#059669' }}>R {animal.soldPrice.toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -1002,21 +1010,21 @@ export const AnimalDetail = () => {
         </div>
 
         {/* Right Column - Lineage Tree */}
-        <div className="card" style={{ padding: '24px', backgroundColor: '#F9FAFB' }}>
+        <div className="card" style={{ padding: '24px', backgroundColor: 'var(--bg-off)' }}>
           <h3 style={{ marginBottom: '24px', textAlign: 'center' }}>Lineage Tree</h3>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Parents Layer */}
             <AnimalCard ani={sire} title="Sire (Father)" />
             <AnimalCard ani={dam} title="Dam (Mother)" />
             
             {/* Connector Visual */}
             <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0' }}>
-              <div style={{ height: '30px', width: '2px', backgroundColor: 'var(--border)' }}></div>
+              <div style={{ height: '24px', width: '2px', backgroundColor: 'var(--border)' }}></div>
             </div>
             
             {/* Current Animal */}
-            <div className="card" style={{ padding: '16px', border: '2px solid var(--primary)', position: 'relative', marginTop: '12px' }}>
+            <div className="card" style={{ padding: '16px', border: '1px solid var(--primary)', position: 'relative', marginTop: '8px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)' }}>
               <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
                 <span style={{ backgroundColor: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 600 }}>THIS ANIMAL</span>
               </div>
