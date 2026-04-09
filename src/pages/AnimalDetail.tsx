@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { db } from '../database/db';
 import { SyncManager } from '../services/syncManager';
@@ -12,6 +12,7 @@ type Tab = 'overview' | 'health' | 'weight' | 'movement' | 'journal';
 export const AnimalDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [sire, setSire] = useState<Animal | undefined>(undefined);
@@ -23,11 +24,17 @@ export const AnimalDetail = () => {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [journalLogs, setJournalLogs] = useState<JournalLog[]>([]);
   
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const initialTab = (location.state as any)?.tab as Tab || 'overview';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [showWeightForm, setShowWeightForm] = useState(false);
   const [showHealthForm, setShowHealthForm] = useState(false);
   const [showMovementForm, setShowMovementForm] = useState(false);
   const [showJournalForm, setShowJournalForm] = useState(false);
+
+  const [editingWeightId, setEditingWeightId] = useState<string | null>(null);
+  const [editingHealthId, setEditingHealthId] = useState<string | null>(null);
+  const [editingMovementId, setEditingMovementId] = useState<string | null>(null);
+  const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
 
   const [newJournalNote, setNewJournalNote] = useState('');
   const [newJournalDate, setNewJournalDate] = useState(new Date().toISOString().split('T')[0]);
@@ -188,6 +195,9 @@ export const AnimalDetail = () => {
           animalId: j.animal_id,
           noteText: j.note_text,
           dateRecorded: j.date_recorded,
+          audioUrl: j.audio_url,
+          audioSizeBytes: j.audio_size_bytes,
+          audioDurationSeconds: j.audio_duration_seconds,
           createdAt: j.created_at
         })));
       } else if (jErr && jErr.code !== '42P01') {
@@ -322,16 +332,24 @@ export const AnimalDetail = () => {
     if (!newWeight) return;
     
     try {
-      const { data, error } = await supabase.from('weight_logs').insert([{
+      const payload = {
         animal_id: id,
         weight_kg: parseFloat(newWeight),
         date_recorded: newWeightDate,
         notes: newWeightNotes
-      }]).select();
+      };
+      
+      let data, error;
+      if (editingWeightId) {
+        const res = await supabase.from('weight_logs').update(payload).eq('id', editingWeightId).select();
+        data = res.data; error = res.error;
+      } else {
+        const res = await supabase.from('weight_logs').insert([payload]).select();
+        data = res.data; error = res.error;
+      }
       
       if (error) throw error;
       
-      // Update local state
       if (data) {
         const newLog: WeightLog = {
           id: data[0].id,
@@ -341,9 +359,12 @@ export const AnimalDetail = () => {
           notes: data[0].notes,
           createdAt: data[0].created_at
         };
-        setWeightLogs([newLog, ...weightLogs]);
+        if (editingWeightId) {
+            setWeightLogs(weightLogs.map(l => l.id === editingWeightId ? newLog : l));
+        } else {
+            setWeightLogs([newLog, ...weightLogs]);
+        }
         
-        // Update animal's main weight if this is the newest record
         if (!animal?.weight || new Date(newWeightDate) >= new Date()) {
           const { error: updateErr } = await supabase.from('animals').update({ weight: parseFloat(newWeight) }).eq('id', id);
           if (!updateErr) {
@@ -352,12 +373,32 @@ export const AnimalDetail = () => {
         }
       }
       
-      // Reset form
       setNewWeight('');
       setNewWeightNotes('');
       setShowWeightForm(false);
+      setEditingWeightId(null);
     } catch (error: any) {
-      alert('Error adding weight: ' + error.message);
+      alert('Error saving weight: ' + error.message);
+    }
+  };
+
+  const handleEditWeight = (log: WeightLog) => {
+    setEditingWeightId(log.id);
+    setNewWeight(log.weightKg.toString());
+    setNewWeightDate(log.dateRecorded);
+    setNewWeightNotes(log.notes || '');
+    setShowWeightForm(true);
+    setActiveTab('weight');
+  };
+
+  const handleDeleteWeight = async (logId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this weight record?")) return;
+    try {
+      const { error } = await supabase.from('weight_logs').delete().eq('id', logId);
+      if (error) throw error;
+      setWeightLogs(weightLogs.filter(l => l.id !== logId));
+    } catch (error: any) {
+      alert('Error deleting weight: ' + error.message);
     }
   };
 
@@ -366,15 +407,23 @@ export const AnimalDetail = () => {
     if (!newTreatmentType) return;
     
     try {
-      const { data, error } = await supabase.from('health_logs').insert([{
+      const payload = {
         animal_id: id,
         treatment_type: newTreatmentType,
         medication: newMedication,
         dosage: newDosage,
         date_administered: newHealthDate,
         notes: newHealthNotes
-      }]).select();
+      };
       
+      let data, error;
+      if (editingHealthId) {
+        const res = await supabase.from('health_logs').update(payload).eq('id', editingHealthId).select();
+        data = res.data; error = res.error;
+      } else {
+        const res = await supabase.from('health_logs').insert([payload]).select();
+        data = res.data; error = res.error;
+      }
       if (error) throw error;
       
       if (data) {
@@ -388,17 +437,43 @@ export const AnimalDetail = () => {
           notes: data[0].notes,
           createdAt: data[0].created_at
         };
-        setHealthLogs([newLog, ...healthLogs]);
+        if (editingHealthId) {
+          setHealthLogs(healthLogs.map(l => l.id === editingHealthId ? newLog : l));
+        } else {
+          setHealthLogs([newLog, ...healthLogs]);
+        }
       }
       
-      // Reset form
       setNewTreatmentType('Vaccination');
       setNewMedication('');
       setNewDosage('');
       setNewHealthNotes('');
       setShowHealthForm(false);
+      setEditingHealthId(null);
     } catch (error: any) {
-      alert('Error adding health record: ' + error.message);
+      alert('Error saving health record: ' + error.message);
+    }
+  };
+
+  const handleEditHealth = (log: HealthLog) => {
+    setEditingHealthId(log.id);
+    setNewTreatmentType(log.treatmentType);
+    setNewMedication(log.medication || '');
+    setNewDosage(log.dosage || '');
+    setNewHealthDate(log.dateAdministered);
+    setNewHealthNotes(log.notes || '');
+    setShowHealthForm(true);
+    setActiveTab('health');
+  };
+
+  const handleDeleteHealth = async (logId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this health record?")) return;
+    try {
+      const { error } = await supabase.from('health_logs').delete().eq('id', logId);
+      if (error) throw error;
+      setHealthLogs(healthLogs.filter(l => l.id !== logId));
+    } catch (error: any) {
+      alert('Error deleting health record: ' + error.message);
     }
   };
 
@@ -407,7 +482,7 @@ export const AnimalDetail = () => {
     if (!newOrigin || !newDestination) return;
     
     try {
-      const { data, error } = await supabase.from('movement_log').insert([{
+      const payload = {
         animal_id: id,
         movement_date: newMovementDate,
         origin: newOrigin,
@@ -415,8 +490,16 @@ export const AnimalDetail = () => {
         permit_number: newPermitNumber,
         vehicle_registration: newVehicleReg,
         notes: newMovementNotes
-      }]).select();
+      };
       
+      let data, error;
+      if (editingMovementId) {
+        const res = await supabase.from('movement_log').update(payload).eq('id', editingMovementId).select();
+        data = res.data; error = res.error;
+      } else {
+        const res = await supabase.from('movement_log').insert([payload]).select();
+        data = res.data; error = res.error;
+      }
       if (error) throw error;
       
       if (data) {
@@ -431,7 +514,11 @@ export const AnimalDetail = () => {
           notes: data[0].notes,
           createdAt: data[0].created_at
         };
-        setMovementLogs([newLog, ...movementLogs]);
+        if (editingMovementId) {
+          setMovementLogs(movementLogs.map(l => l.id === editingMovementId ? newLog : l));
+        } else {
+          setMovementLogs([newLog, ...movementLogs]);
+        }
       }
       
       setNewOrigin('');
@@ -440,8 +527,32 @@ export const AnimalDetail = () => {
       setNewVehicleReg('');
       setNewMovementNotes('');
       setShowMovementForm(false);
+      setEditingMovementId(null);
     } catch (error: any) {
-      alert('Error adding movement record: ' + error.message);
+      alert('Error saving movement record: ' + error.message);
+    }
+  };
+
+  const handleEditMovement = (log: MovementLog) => {
+    setEditingMovementId(log.id);
+    setNewMovementDate(log.movementDate);
+    setNewOrigin(log.origin);
+    setNewDestination(log.destination);
+    setNewPermitNumber(log.permitNumber || '');
+    setNewVehicleReg(log.vehicleRegistration || '');
+    setNewMovementNotes(log.notes || '');
+    setShowMovementForm(true);
+    setActiveTab('movement');
+  };
+
+  const handleDeleteMovement = async (logId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this movement record?")) return;
+    try {
+      const { error } = await supabase.from('movement_log').delete().eq('id', logId);
+      if (error) throw error;
+      setMovementLogs(movementLogs.filter(l => l.id !== logId));
+    } catch (error: any) {
+      alert('Error deleting movement record: ' + error.message);
     }
   };
 
@@ -449,7 +560,6 @@ export const AnimalDetail = () => {
     e.preventDefault();
     if (!newJournalNote && !audioBlob) return;
     
-    // Check Storage Quota locally (Limit: 100MB)
     if (audioBlob) {
       const userRes = await supabase.auth.getUser();
       if (userRes.data.user) {
@@ -462,7 +572,7 @@ export const AnimalDetail = () => {
     }
 
     try {
-      const journalId = uuidv4();
+      const journalId = editingJournalId || uuidv4();
       let audioFileName = undefined;
       
       if (audioBlob) {
@@ -478,7 +588,6 @@ export const AnimalDetail = () => {
           status: 'pending'
         });
         
-        // Optimistically update quota
         const userRes = await supabase.auth.getUser();
         if (userRes.data.user) {
            const settings = await db.farm_settings.get(userRes.data.user.id);
@@ -490,45 +599,103 @@ export const AnimalDetail = () => {
         }
       }
 
-      const journalPayload = {
+      const journalPayload: any = {
         id: journalId,
         animal_id: id,
         note_text: newJournalNote || 'Audio Note',
         date_recorded: newJournalDate,
-        audio_url: audioFileName,
-        audio_size_bytes: audioBlob?.size,
-        audio_duration_seconds: audioBlob ? recordingTime : undefined,
       };
 
-      await db.journal_logs.add({
-        id: journalId,
-        animalId: id!,
-        noteText: journalPayload.note_text,
-        dateRecorded: journalPayload.date_recorded,
-        audioUrl: journalPayload.audio_url,
-        audioSizeBytes: journalPayload.audio_size_bytes,
-        audioDurationSeconds: journalPayload.audio_duration_seconds,
-        createdAt: new Date().toISOString(),
-      });
-      
-      await SyncManager.queueInsert('journal_logs', journalId, journalPayload);
-      
-      const newLog: JournalLog = {
-        id: journalId,
-        animalId: id!,
-        noteText: journalPayload.note_text,
-        dateRecorded: journalPayload.date_recorded,
-        audioUrl: journalPayload.audio_url,
-        createdAt: new Date().toISOString()
-      };
-      setJournalLogs([newLog, ...journalLogs]);
+      if (audioBlob) {
+        journalPayload.audio_url = audioFileName;
+        journalPayload.audio_size_bytes = audioBlob.size;
+        journalPayload.audio_duration_seconds = recordingTime;
+      }
+
+      if (editingJournalId) {
+        const existing = journalLogs.find(l => l.id === editingJournalId);
+        if (!audioBlob && existing) {
+           journalPayload.audio_url = existing.audioUrl;
+           journalPayload.audio_size_bytes = existing.audioSizeBytes;
+           journalPayload.audio_duration_seconds = existing.audioDurationSeconds;
+        }
+        
+        await db.journal_logs.update(editingJournalId, {
+           noteText: journalPayload.note_text,
+           dateRecorded: journalPayload.date_recorded,
+           ...(audioBlob && {
+             audioUrl: journalPayload.audio_url,
+             audioSizeBytes: journalPayload.audio_size_bytes,
+             audioDurationSeconds: journalPayload.audio_duration_seconds
+           })
+        });
+        await SyncManager.queueUpdate('journal_logs', editingJournalId, journalPayload);
+        
+        const newLog: JournalLog = {
+          id: journalId,
+          animalId: id!,
+          noteText: journalPayload.note_text,
+          dateRecorded: journalPayload.date_recorded,
+          audioUrl: journalPayload.audio_url,
+          audioSizeBytes: journalPayload.audio_size_bytes,
+          audioDurationSeconds: journalPayload.audio_duration_seconds,
+          createdAt: existing ? existing.createdAt : new Date().toISOString()
+        };
+        setJournalLogs(journalLogs.map(l => l.id === editingJournalId ? newLog : l));
+        
+      } else {
+        await db.journal_logs.add({
+          id: journalId,
+          animalId: id!,
+          noteText: journalPayload.note_text,
+          dateRecorded: journalPayload.date_recorded,
+          audioUrl: journalPayload.audio_url,
+          audioSizeBytes: journalPayload.audio_size_bytes,
+          audioDurationSeconds: journalPayload.audio_duration_seconds,
+          createdAt: new Date().toISOString(),
+        });
+        await SyncManager.queueInsert('journal_logs', journalId, journalPayload);
+        
+        const newLog: JournalLog = {
+          id: journalId,
+          animalId: id!,
+          noteText: journalPayload.note_text,
+          dateRecorded: journalPayload.date_recorded,
+          audioUrl: journalPayload.audio_url,
+          audioSizeBytes: journalPayload.audio_size_bytes,
+          audioDurationSeconds: journalPayload.audio_duration_seconds,
+          createdAt: new Date().toISOString()
+        };
+        setJournalLogs([newLog, ...journalLogs]);
+      }
       
       setNewJournalNote('');
       setAudioBlob(null);
       setRecordingTime(0);
       setShowJournalForm(false);
+      setEditingJournalId(null);
     } catch (error: any) {
-      alert('Error adding journal note: ' + error.message);
+      alert('Error saving journal note: ' + error.message);
+    }
+  };
+
+  const handleEditJournal = (log: JournalLog) => {
+    setEditingJournalId(log.id);
+    setNewJournalDate(log.dateRecorded);
+    setNewJournalNote(log.noteText);
+    setAudioBlob(null); // Keep original audio unless overridden
+    setShowJournalForm(true);
+    setActiveTab('journal');
+  };
+
+  const handleDeleteJournal = async (logId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this journal entry?")) return;
+    try {
+      await db.journal_logs.delete(logId);
+      await SyncManager.queueDelete('journal_logs', logId);
+      setJournalLogs(journalLogs.filter(l => l.id !== logId));
+    } catch (error: any) {
+      alert('Error deleting journal entry: ' + error.message);
     }
   };
 
@@ -643,8 +810,8 @@ export const AnimalDetail = () => {
             <button className="btn btn-outline" onClick={() => navigate('/herd')} style={{ marginBottom: '16px' }}>
               &larr; Back to Herd
             </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span>{animal.species === 'Sheep' ? '🐑' : '🐄'}</span>
                 {animal.tagNumber} {animal.name && <span style={{ color: 'var(--text-muted)' }}>"{animal.name}"</span>}
               </h1>
@@ -654,7 +821,7 @@ export const AnimalDetail = () => {
           </div>
           
           {/* ACTION BUTTONS */}
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={() => navigate(`/herd/${animal.id}/edit`)}>
               Edit Record
             </button>
@@ -688,84 +855,39 @@ export const AnimalDetail = () => {
       </div>
 
       {/* TABS NAVIGATION */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--border)', marginBottom: '32px' }}>
+      <div className="tabs-container">
         <button 
           onClick={() => setActiveTab('overview')}
-          style={{ 
-            padding: '12px 24px', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'overview' ? '3px solid var(--primary)' : '3px solid transparent',
-            fontWeight: activeTab === 'overview' ? 600 : 400,
-            color: activeTab === 'overview' ? 'var(--primary-dark)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            marginBottom: '-2px'
-          }}
+          className={`profile-tab ${activeTab === 'overview' ? 'active' : ''}`}
+          data-text="Overview"
         >
           Overview
         </button>
         <button 
           onClick={() => setActiveTab('health')}
-          style={{ 
-            padding: '12px 24px', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'health' ? '3px solid var(--primary)' : '3px solid transparent',
-            fontWeight: activeTab === 'health' ? 600 : 400,
-            color: activeTab === 'health' ? 'var(--primary-dark)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            marginBottom: '-2px'
-          }}
+          className={`profile-tab ${activeTab === 'health' ? 'active' : ''}`}
+          data-text="Health & Treatments"
         >
           Health & Treatments
         </button>
         <button 
           onClick={() => setActiveTab('weight')}
-          style={{ 
-            padding: '12px 24px', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'weight' ? '3px solid var(--primary)' : '3px solid transparent',
-            fontWeight: activeTab === 'weight' ? 600 : 400,
-            color: activeTab === 'weight' ? 'var(--primary-dark)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            marginBottom: '-2px'
-          }}
+          className={`profile-tab ${activeTab === 'weight' ? 'active' : ''}`}
+          data-text="Weight History"
         >
           Weight History
         </button>
         <button 
           onClick={() => setActiveTab('movement')}
-          style={{ 
-            padding: '12px 24px', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'movement' ? '3px solid var(--primary)' : '3px solid transparent',
-            fontWeight: activeTab === 'movement' ? 600 : 400,
-            color: activeTab === 'movement' ? 'var(--primary-dark)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            marginBottom: '-2px'
-          }}
+          className={`profile-tab ${activeTab === 'movement' ? 'active' : ''}`}
+          data-text="Movement History"
         >
           Movement History
         </button>
         <button 
           onClick={() => setActiveTab('journal')}
-          style={{ 
-            padding: '12px 24px', 
-            background: 'none', 
-            border: 'none', 
-            borderBottom: activeTab === 'journal' ? '3px solid var(--primary)' : '3px solid transparent',
-            fontWeight: activeTab === 'journal' ? 600 : 400,
-            color: activeTab === 'journal' ? 'var(--primary-dark)' : 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            marginBottom: '-2px'
-          }}
+          className={`profile-tab ${activeTab === 'journal' ? 'active' : ''}`}
+          data-text="Journal / Notes"
         >
           Journal / Notes
         </button>
@@ -773,14 +895,14 @@ export const AnimalDetail = () => {
 
       {/* TAB CONTENT: OVERVIEW */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
+        <div className="responsive-grid-sidebar">
           
           {/* Left Column - Details & Offspring */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="card" style={{ padding: '32px' }}>
             <h3 style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Animal Profile</h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div className="responsive-grid-2col">
               <div>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '4px' }}>EID Tag</p>
                 <p style={{ fontWeight: 500, fontFamily: 'monospace' }}>{animal.eidNumber || 'Not registered'}</p>
@@ -856,7 +978,7 @@ export const AnimalDetail = () => {
           </div>
 
           <div className="card" style={{ padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
               <h3 style={{ margin: 0 }}>Registered Offspring ({offspring.length})</h3>
               <button 
                 className="btn btn-outline" 
@@ -870,7 +992,7 @@ export const AnimalDetail = () => {
             {offspring.length === 0 ? (
               <p style={{ color: 'var(--text-muted)' }}>No offspring registered in the system yet.</p>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="responsive-grid-2col" style={{ gap: '16px' }}>
                 {offspring.map(calf => (
                   <AnimalCard key={calf.id} ani={calf} title={animal.species === 'Sheep' ? 'Lamb' : 'Calf'} />
                 ))}
@@ -894,8 +1016,8 @@ export const AnimalDetail = () => {
             </div>
             
             {/* Current Animal */}
-            <div className="card" style={{ padding: '16px', border: '2px solid var(--primary)', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-10px', left: '0', right: '0', textAlign: 'center' }}>
+            <div className="card" style={{ padding: '16px', border: '2px solid var(--primary)', position: 'relative', marginTop: '12px' }}>
+              <div style={{ position: 'absolute', top: '-10px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
                 <span style={{ backgroundColor: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 600 }}>THIS ANIMAL</span>
               </div>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', marginTop: '8px' }}>{animal.tagNumber}</div>
@@ -911,7 +1033,7 @@ export const AnimalDetail = () => {
       {/* TAB CONTENT: HEALTH */}
       {activeTab === 'health' && (
         <div className="card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Health Records</h2>
             <button className="btn btn-primary" onClick={() => setShowHealthForm(!showHealthForm)}>
               {showHealthForm ? 'Cancel' : 'Log Treatment'}
@@ -921,7 +1043,7 @@ export const AnimalDetail = () => {
           {showHealthForm && (
             <form onSubmit={handleAddHealth} style={{ background: 'var(--surface)', padding: '24px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border)' }}>
               <h3 style={{ marginBottom: '16px' }}>New Treatment Record</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div className="responsive-grid-2col" style={{ gap: '16px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Date</label>
                   <input type="date" className="form-input" required value={newHealthDate} onChange={e => setNewHealthDate(e.target.value)} />
@@ -988,28 +1110,35 @@ export const AnimalDetail = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No health records found for this animal.</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Treatment Type</th>
-                  <th>Medication</th>
-                  <th>Dosage</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {healthLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.dateAdministered).toLocaleDateString()}</td>
-                    <td>{log.treatmentType}</td>
-                    <td>{log.medication || '-'}</td>
-                    <td>{log.dosage || '-'}</td>
-                    <td>{log.notes || '-'}</td>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Treatment Type</th>
+                    <th>Medication</th>
+                    <th>Dosage</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {healthLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.dateAdministered).toLocaleDateString()}</td>
+                      <td>{log.treatmentType}</td>
+                      <td>{log.medication || '-'}</td>
+                      <td>{log.dosage || '-'}</td>
+                      <td>{log.notes || '-'}</td>
+                      <td style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleEditHealth(log)}>✏️</button>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fca5a5' }} onClick={() => handleDeleteHealth(log.id)}>🗑️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -1017,7 +1146,7 @@ export const AnimalDetail = () => {
       {/* TAB CONTENT: WEIGHT */}
       {activeTab === 'weight' && (
         <div className="card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Weight History</h2>
             <button className="btn btn-primary" onClick={() => setShowWeightForm(!showWeightForm)}>
               {showWeightForm ? 'Cancel' : 'Log Weight'}
@@ -1027,7 +1156,7 @@ export const AnimalDetail = () => {
           {showWeightForm && (
             <form onSubmit={handleAddWeight} style={{ background: 'var(--surface)', padding: '24px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border)' }}>
               <h3 style={{ marginBottom: '16px' }}>New Weight Record</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div className="responsive-grid-2col" style={{ gap: '16px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Date</label>
                   <input type="date" className="form-input" required value={newWeightDate} onChange={e => setNewWeightDate(e.target.value)} />
@@ -1050,24 +1179,31 @@ export const AnimalDetail = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No weight records found for this animal.</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date Recorded</th>
-                  <th>Weight (kg)</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {weightLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.dateRecorded).toLocaleDateString()}</td>
-                    <td style={{ fontWeight: 600 }}>{log.weightKg} kg</td>
-                    <td>{log.notes || '-'}</td>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date Recorded</th>
+                    <th>Weight (kg)</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {weightLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.dateRecorded).toLocaleDateString()}</td>
+                      <td style={{ fontWeight: 600 }}>{log.weightKg} kg</td>
+                      <td>{log.notes || '-'}</td>
+                      <td style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleEditWeight(log)}>✏️</button>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fca5a5' }} onClick={() => handleDeleteWeight(log.id)}>🗑️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -1075,7 +1211,7 @@ export const AnimalDetail = () => {
       {/* TAB CONTENT: MOVEMENT */}
       {activeTab === 'movement' && (
         <div className="card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Movement History</h2>
             <button className="btn btn-primary" onClick={() => setShowMovementForm(!showMovementForm)}>
               {showMovementForm ? 'Cancel' : 'Log Movement'}
@@ -1085,7 +1221,7 @@ export const AnimalDetail = () => {
           {showMovementForm && (
             <form onSubmit={handleAddMovement} style={{ background: 'var(--surface)', padding: '24px', borderRadius: '8px', marginBottom: '24px', border: '1px solid var(--border)' }}>
               <h3 style={{ marginBottom: '16px' }}>New Movement Record</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div className="responsive-grid-2col" style={{ gap: '16px', marginBottom: '16px' }}>
                 <div className="form-group">
                   <label className="form-label">Date of Movement</label>
                   <input type="date" className="form-input" required value={newMovementDate} onChange={e => setNewMovementDate(e.target.value)} />
@@ -1120,28 +1256,35 @@ export const AnimalDetail = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>No movement records found for this animal.</p>
             </div>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Origin</th>
-                  <th>Destination</th>
-                  <th>Permit No.</th>
-                  <th>Vehicle Reg</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movementLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.movementDate).toLocaleDateString()}</td>
-                    <td>{log.origin}</td>
-                    <td>{log.destination}</td>
-                    <td>{log.permitNumber || '-'}</td>
-                    <td>{log.vehicleRegistration || '-'}</td>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Origin</th>
+                    <th>Destination</th>
+                    <th>Permit No.</th>
+                    <th>Vehicle Reg</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {movementLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{new Date(log.movementDate).toLocaleDateString()}</td>
+                      <td>{log.origin}</td>
+                      <td>{log.destination}</td>
+                      <td>{log.permitNumber || '-'}</td>
+                      <td>{log.vehicleRegistration || '-'}</td>
+                      <td style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleEditMovement(log)}>✏️</button>
+                        <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444', borderColor: '#fca5a5' }} onClick={() => handleDeleteMovement(log.id)}>🗑️</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
@@ -1149,7 +1292,7 @@ export const AnimalDetail = () => {
       {/* TAB CONTENT: JOURNAL */}
       {activeTab === 'journal' && (
         <div className="card" style={{ padding: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Journal & Notes</h2>
             <button className="btn btn-primary" onClick={() => setShowJournalForm(!showJournalForm)}>
               {showJournalForm ? 'Cancel' : 'Add Note'}
@@ -1213,14 +1356,20 @@ export const AnimalDetail = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {journalLogs.map((log) => (
                 <div key={log.id} style={{ padding: '20px', backgroundColor: 'var(--bg-off)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 600, color: 'var(--primary-dark)', marginBottom: '8px', fontSize: '0.875rem' }}>
-                    {new Date(log.dateRecorded).toLocaleDateString()}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--primary-dark)', fontSize: '0.875rem' }}>
+                      {new Date(log.dateRecorded).toLocaleDateString()}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none' }} onClick={() => handleEditJournal(log)}>✏️</button>
+                      <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem', border: 'none', color: '#ef4444' }} onClick={() => handleDeleteJournal(log.id)}>🗑️</button>
+                    </div>
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.noteText}</div>
                   {log.audioUrl && (
                     <div style={{ marginTop: '12px', padding: '12px', backgroundColor: 'var(--surface)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>🎤 Voice Note Attached</div>
-                      <audio controls src={`https://tbgqjnjgqshbcvvksdjv.supabase.co/storage/v1/object/public/audio_notes/${log.audioUrl}`} style={{ width: '100%', maxWidth: '300px', height: '36px' }} />
+                      <audio controls src={supabase.storage.from('audio_notes').getPublicUrl(log.audioUrl).data.publicUrl} style={{ width: '100%', maxWidth: '300px', height: '36px' }} />
                     </div>
                   )}
                 </div>

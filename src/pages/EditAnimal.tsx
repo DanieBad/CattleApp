@@ -181,7 +181,7 @@ export const EditAnimal = () => {
       
       <form onSubmit={handleSubmit}>
         {/* Same form layout as AddAnimal */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+        <div className="responsive-grid-2col" style={{ marginBottom: '32px' }}>
           
           <div className="form-group">
             <label className="form-label" htmlFor="species">Species *</label>
@@ -404,7 +404,7 @@ export const EditAnimal = () => {
         </div>
 
         <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '24px' }}>Lineage (Optional)</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div className="responsive-grid-2col">
           
           <div className="form-group">
             <label className="form-label" htmlFor="sireId">Sire (Father)</label>

@@ -116,6 +116,23 @@ export class SyncManager {
   }
 
   /**
+   * Helper to queue a delete operation for background syncing.
+   */
+  static async queueDelete(tableName: string, recordId: string) {
+    await db.sync_outbox.add({
+      tableName,
+      operation: 'DELETE',
+      recordId,
+      payload: {},
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+    if (navigator.onLine) {
+      this.pushPendingChanges();
+    }
+  }
+
+  /**
    * Helper to queue a generic upload (e.g. Permits PDF)
    */
   static async uploadPermitFile(file: File, path: string): Promise<string | null> {

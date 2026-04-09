@@ -227,7 +227,7 @@ export const BatchMovement = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 350px', gap: '24px', alignItems: 'start' }}>
+      <div className="responsive-grid-sidebar" style={{ alignItems: 'start' }}>
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="card" style={{ padding: '32px' }}>
           
@@ -251,7 +251,7 @@ export const BatchMovement = () => {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '32px' }}>
+          <div className="responsive-grid-2col" style={{ marginBottom: '32px' }}>
             <div className="form-group">
               <label className="form-label">Movement Date *</label>
               <input type="date" className="form-input" required value={movementDate} onChange={e => setMovementDate(e.target.value)} />
@@ -281,7 +281,7 @@ export const BatchMovement = () => {
                 <h3 style={{ margin: 0 }}>FMD Traceability Requirements</h3>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+              <div className="responsive-grid-2col" style={{ marginBottom: '20px' }}>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                    <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                      Origin GPS Coordinates
@@ -326,7 +326,7 @@ export const BatchMovement = () => {
                 <h4 style={{ margin: 0 }}>Biosecurity & Transport</h4>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="responsive-grid-2col">
                 <div className="form-group">
                   <label className="form-label">Vehicle Registration Plate</label>
                   <input type="text" className="form-input" placeholder="e.g. ND 12345" value={vehicleReg} onChange={e => setVehicleReg(e.target.value)} />

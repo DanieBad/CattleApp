@@ -129,6 +129,8 @@ body {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   overflow: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .table-container {
@@ -255,6 +257,25 @@ tr:hover td {
 .responsive-grid-batch {
   display: grid;
   grid-template-columns: 1fr 350px;
+  gap: 24px;
+}
+
+.responsive-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.responsive-grid-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 768px) {
@@ -262,6 +283,25 @@ tr:hover td {
     grid-template-columns: 1fr;
     display: flex;
     flex-direction: column-reverse;
+  }
+  
+  .responsive-grid-2col,
+  .responsive-grid-sidebar {
+    grid-template-columns: 1fr;
+  }
+  
+  .card {
+    padding: 16px !important;
+  }
+  
+  .page-container {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
   }
 }
 
@@ -306,5 +346,52 @@ tr:hover td {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tab Layout Shift Fix */
+.tabs-container {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 32px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Hide scrollbar for cleanlyness */
+}
+.tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.profile-tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-weight: 400;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: -2px;
+  position: relative;
+  transition: color 0.1s ease, border-color 0.1s ease;
+  white-space: nowrap;
+}
+
+.profile-tab::after {
+  content: attr(data-text);
+  display: block;
+  font-weight: 600;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.profile-tab.active {
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+  color: var(--primary-dark);
 }
 

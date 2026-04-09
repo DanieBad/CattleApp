@@ -111,7 +111,7 @@ const WeightReport = ({ animals, weightLogs }: { animals: Animal[]; weightLogs: 
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="responsive-grid-2col" style={{ gap: '24px' }}>
         <div className="card" style={{ padding: '24px' }}>
           <h3 style={{ marginBottom: '20px' }}>Top 15 ADG by Animal</h3>
           <div style={{ height: '360px' }}>

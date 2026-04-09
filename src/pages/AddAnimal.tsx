@@ -268,7 +268,7 @@ export const AddAnimal = () => {
           
           <h3 style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid var(--border)' }}>Basic Information</h3>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="responsive-grid-2col">
             <div className="form-group">
               <label className="form-label">Species *</label>
               <select 
@@ -435,7 +435,7 @@ export const AddAnimal = () => {
 
           <h3 style={{ marginTop: '32px', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid var(--border)' }}>Traceability & Compliance (FMD)</h3>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <div className="responsive-grid-2col">
             <div className="form-group">
               <label className="form-label">Origin Farm GLN</label>
               <input 

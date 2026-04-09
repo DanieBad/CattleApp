@@ -241,7 +241,7 @@ export const ImportData = () => {
         
         {/* STEP 1: UPLOAD / EXPORT OPTIONS */}
         {currentStep === 'upload' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '20px 0' }}>
+          <div className="responsive-grid-2col" style={{ gap: '32px', padding: '20px 0' }}>
             
             {/* Import Column */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px', borderRight: '1px solid var(--border)' }}>

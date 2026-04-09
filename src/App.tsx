@@ -21,6 +21,7 @@ import { UserManagement } from './pages/UserManagement';
 import { Support } from './pages/Support';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
+import { RecentNotes } from './pages/RecentNotes';
 import { Toaster } from 'react-hot-toast';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
@@ -190,6 +191,7 @@ const App = () => {
                   <Routes>
                     <Route path="/update-password" element={<UpdatePassword />} />
                     <Route path="/" element={<Dashboard />} />
+                    <Route path="/recent-notes" element={<RecentNotes />} />
                     <Route path="/herd" element={<HerdList />} />
                     <Route path="/herd/batch-move" element={<BatchMovement />} />
                     <Route path="/herd/add" element={<AddAnimal />} />

@@ -315,7 +315,7 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>
+        <div className="responsive-grid-sidebar">
           <div>
             <h2 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <ClipboardList color="var(--primary)" />
@@ -483,6 +483,48 @@ export const Dashboard = () => {
              )}
           </div>
         )}
+      </div>
+
+      {/* RECENT NOTES ACTION BLOCK */}
+      <div className="card fade-in" style={{ padding: '24px', marginBottom: '32px', backgroundColor: '#059669', color: 'white', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '24px', justifyContent: 'space-between' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ClipboardList size={28} />
+            Recent Journal Notes
+          </h2>
+          <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '1.05rem' }}>
+            Quickly review notes and observations recorded across your entire herd.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button 
+            className="btn" 
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
+            onClick={() => navigate('/recent-notes?days=1')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
+          >
+            Last 24 Hours
+          </button>
+          <button 
+            className="btn" 
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
+            onClick={() => navigate('/recent-notes?days=7')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
+          >
+            Last 7 Days
+          </button>
+          <button 
+            className="btn" 
+            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
+            onClick={() => navigate('/recent-notes?days=30')}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
+          >
+            Last 30 Days
+          </button>
+        </div>
       </div>
 
       {/* HEALTH METRICS */}
