@@ -108,7 +108,7 @@ const App = () => {
         {/* PUBLIC ROUTES */}
         {!session ? (
           <>
-            {import.meta.env.VITE_COMING_SOON_MODE === 'true' ? (
+            {(import.meta.env.VITE_COMING_SOON_MODE ?? '').trim() === 'true' ? (
               <>
                 <Route path="/" element={<ComingSoon />} />
                 <Route path="/login" element={<Auth />} />
