@@ -32,6 +32,7 @@ export interface Animal {
   soldPrice?: number;
   quarantineStartDate?: string; // ISO string
   quarantineEndDate?: string; // ISO string
+  meatSafeDate?: string;      // ISO string for withdrawal period
 }
 
 export interface Camp {
@@ -61,6 +62,35 @@ export interface HealthLog {
   dateAdministered: string;
   notes?: string;
   createdAt?: string;
+  safeDate?: string;
+}
+
+export interface VetProduct {
+  id: string;
+  category: string;
+  productName: string;
+  dosageMlPerKg: number;
+  meatWithdrawalDays: number;
+  milkWithdrawalDays: number;
+  isCustom?: boolean;
+}
+
+export interface BreedStandard {
+  id?: string;
+  breedName: string;
+  birthWeightKg: number;
+  weaningWeightKg: number;
+  matureCowKg: number;
+  matureBullKg: number;
+}
+
+export interface SheepBreedStandard {
+  id?: string;
+  breedName: string;
+  birthWeightKg: number;
+  weaningWeightKg: number;
+  matureEweKg: number;
+  matureRamKg: number;
 }
 
 export interface MovementLog {

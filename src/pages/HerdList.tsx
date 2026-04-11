@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import type { Animal, Camp } from '../types';
-import { calculateAge } from '../utils';
+import { calculateAge, getAnimalIcon } from '../utils';
 
 type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' | 'eidNumber' | 'lastBirthDate';
 
@@ -209,7 +209,7 @@ export const HerdList = () => {
             onClick={() => setSpeciesFilter('Cattle')}
             style={{ padding: '8px 16px', background: speciesFilter === 'Cattle' ? 'white' : 'transparent', color: speciesFilter === 'Cattle' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: speciesFilter === 'Cattle' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
           >
-            🐄 Cattle
+            🐂 Cattle
           </button>
           <button 
             onClick={() => setSpeciesFilter('Sheep')}
@@ -296,7 +296,7 @@ export const HerdList = () => {
                     <td style={{ fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <span style={{ fontSize: '1.25rem' }}>
-                          {animal.species === 'Sheep' ? '🐑' : '🐄'}
+                          {getAnimalIcon(animal.species, animal.breed, animal.sex)}
                         </span>
                         <span 
                           onClick={() => navigate(`/herd/${animal.id}`)}

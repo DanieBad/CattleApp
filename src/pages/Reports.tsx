@@ -656,8 +656,8 @@ export const Reports = () => {
       try {
         const [aRes, wRes, hRes, mRes, cRes] = await Promise.all([
           supabase.from('animals').select('*'),
-          supabase.from('weight_log').select('*'),
-          supabase.from('health_log').select('*'),
+          supabase.from('weight_logs').select('*'),
+          supabase.from('health_logs').select('*'),
           supabase.from('movement_log').select('*'),
           supabase.from('camps').select('*'),
         ]);

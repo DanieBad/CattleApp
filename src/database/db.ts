@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Animal, Camp, WeightLog, HealthLog, MovementLog, BiosecurityLog, JournalLog, FarmSettings } from '../types';
+import type { Animal, Camp, WeightLog, HealthLog, MovementLog, BiosecurityLog, JournalLog, FarmSettings, VetProduct, BreedStandard } from '../types';
 
 export interface OfflineAudio {
   id: string; // Typically the journal_log UUID this belongs to
@@ -33,6 +33,12 @@ const db = new Dexie('HealthyHerdLocal') as Dexie & {
   farm_settings: EntityTable<FarmSettings, 'userId'>;
   sync_outbox: EntityTable<SyncOutbox, 'id'>;
   offline_audio_queue: EntityTable<OfflineAudio, 'id'>;
+  global_vet_products: EntityTable<VetProduct, 'id'>;
+  user_vet_products: EntityTable<VetProduct, 'id'>;
+  global_breed_standards: EntityTable<BreedStandard, 'id'>;
+  global_sheep_vet_products: EntityTable<VetProduct, 'id'>;
+  user_sheep_vet_products: EntityTable<VetProduct, 'id'>;
+  global_sheep_breed_standards: EntityTable<any, 'id'>; // Any used as it's SheepBreedStandard
 };
 
 // Database Schema Declaration
@@ -52,6 +58,22 @@ db.version(2).stores({
   offline_audio_queue: 'id, status, createdAt' // Added for v2
 }).upgrade(() => {
   // Add audio queue table
+});
+
+db.version(3).stores({
+  global_vet_products: 'id, category, productName',
+  user_vet_products: 'id, category, productName',
+  global_breed_standards: 'id, breedName'
+}).upgrade(() => {
+  // Added for Phase 2 Health Records Offline Cache
+});
+
+db.version(4).stores({
+  global_sheep_vet_products: 'id, category, productName',
+  user_sheep_vet_products: 'id, category, productName',
+  global_sheep_breed_standards: 'id, breedName'
+}).upgrade(() => {
+  // Added for Sheep Health Records
 });
 
 export { db };

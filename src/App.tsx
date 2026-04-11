@@ -22,6 +22,7 @@ import { Support } from './pages/Support';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
 import { RecentNotes } from './pages/RecentNotes';
+import { ComingSoon } from './pages/ComingSoon';
 import { Toaster } from 'react-hot-toast';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
@@ -104,16 +105,26 @@ const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC ROUTES (Only accessible when NOT logged in) */}
+        {/* PUBLIC ROUTES */}
         {!session ? (
           <>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Auth />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            {/* Catch-all for guest users: back to landing */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {import.meta.env.VITE_COMING_SOON_MODE === 'true' ? (
+              <>
+                <Route path="/" element={<ComingSoon />} />
+                <Route path="/login" element={<Auth />} />
+                {/* When in coming soon mode, redirect everything else to the landing page, except /login */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<Landing />} />
+                <Route path="/login" element={<Auth />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            )}
           </>
         ) : (
           /* AUTHENTICATED ROUTES (Only accessible when LOGGED IN) */

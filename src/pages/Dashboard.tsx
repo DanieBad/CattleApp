@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../supabase';
 import type { Animal, Camp, HealthLog } from '../types';
-import { calculateAge } from '../utils';
+import { calculateAge, getAnimalIcon } from '../utils';
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
@@ -462,7 +462,7 @@ export const Dashboard = () => {
                    >
                      <span className="tag-name" style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)', transition: 'all 0.2s' }}>{a.tag_number}</span>
                      <ChevronRight className="chevron-icon" size={16} color="#94a3b8" style={{ transition: 'all 0.2s', marginTop: '2px' }} />
-                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '4px' }}>{a.species === 'Cattle' ? '🐄' : '🐑'} {a.name || ''}</span>
+                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '4px' }}>{getAnimalIcon(a.species, a.breed, a.sex)} {a.name || ''}</span>
                    </div>
                    <button 
                      className="btn btn-primary" 

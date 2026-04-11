@@ -4,8 +4,8 @@ import { supabase } from '../supabase';
 import { db } from '../database/db';
 import { SyncManager } from '../services/syncManager';
 import { v4 as uuidv4 } from 'uuid';
-import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog } from '../types';
-import { calculateAge } from '../utils';
+import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog, VetProduct, BreedStandard } from '../types';
+import { calculateAge, getAnimalIcon } from '../utils';
 
 type Tab = 'overview' | 'health' | 'weight' | 'movement' | 'journal';
 
@@ -24,6 +24,14 @@ export const AnimalDetail = () => {
   const [camps, setCamps] = useState<Camp[]>([]);
   const [journalLogs, setJournalLogs] = useState<JournalLog[]>([]);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [products, setProducts] = useState<VetProduct[]>([]);
+  const [breedStandards, setBreedStandards] = useState<BreedStandard[]>([]);
+  
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
+  const [customProduct, setCustomProduct] = useState('');
+  const [customWithdrawal, setCustomWithdrawal] = useState('');
+  const [saveToPermanent, setSaveToPermanent] = useState(false);
   
   const initialTab = (location.state as any)?.tab as Tab || 'overview';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
@@ -52,7 +60,7 @@ export const AnimalDetail = () => {
   const [newWeightDate, setNewWeightDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [newTreatmentType, setNewTreatmentType] = useState('Vaccination');
-  const [newMedication, setNewMedication] = useState('');
+  const [, setNewMedication] = useState('');
   const [newDosage, setNewDosage] = useState('');
   const [newHealthNotes, setNewHealthNotes] = useState('');
   const [newHealthDate, setNewHealthDate] = useState(new Date().toISOString().split('T')[0]);
@@ -86,7 +94,8 @@ export const AnimalDetail = () => {
     damId: dbAnimal.dam_id,
     weight: dbAnimal.weight,
     currentCampId: dbAnimal.current_camp_id,
-    hornStatus: dbAnimal.horn_status
+    hornStatus: dbAnimal.horn_status,
+    meatSafeDate: dbAnimal.meat_safe_date
   });
 
   const fetchAnimalDetails = async () => {
@@ -159,7 +168,8 @@ export const AnimalDetail = () => {
           dosage: h.dosage,
           dateAdministered: h.date_administered,
           notes: h.notes,
-          createdAt: h.created_at
+          createdAt: h.created_at,
+          safeDate: h.safe_date
         })));
       }
 
@@ -209,6 +219,35 @@ export const AnimalDetail = () => {
       const { data: cData } = await supabase.from('camps').select('*');
       if (cData) {
         setCamps(cData.map(c => ({ id: c.id, name: c.name }) as Camp));
+      }
+
+      // 10. Fetch Vet Products & Standards
+      const gvpTable = mainAnimal.species === 'Sheep' ? 'global_sheep_vet_products' : 'global_vet_products';
+      const uvpTable = mainAnimal.species === 'Sheep' ? 'user_sheep_vet_products' : 'user_vet_products';
+      const gbsTable = mainAnimal.species === 'Sheep' ? 'global_sheep_breed_standards' : 'global_breed_standards';
+
+      const { data: gvp } = await supabase.from(gvpTable).select('*');
+      const userRes = await supabase.auth.getUser();
+      let uvp: any[] = [];
+      if (userRes.data.user) {
+        const { data: uData } = await supabase.from(uvpTable).select('*').eq('user_id', userRes.data.user.id);
+        if (uData) uvp = uData;
+      }
+      if (gvp) {
+        const mappedGvp = gvp.map((p: any) => ({
+          id: p.id, category: p.category, productName: p.product_name, dosageMlPerKg: p.dosage_ml_per_kg, meatWithdrawalDays: p.meat_withdrawal_days, milkWithdrawalDays: p.milk_withdrawal_days
+        }));
+        const mappedUvp = uvp.map((p: any) => ({
+          id: p.id, category: p.category, productName: p.product_name, dosageMlPerKg: p.dosage_ml_per_kg, meatWithdrawalDays: p.meat_withdrawal_days, milkWithdrawalDays: p.milk_withdrawal_days, isCustom: true
+        }));
+        setProducts([...mappedGvp, ...mappedUvp]);
+      }
+
+      const { data: gbs } = await supabase.from(gbsTable).select('*');
+      if (gbs) {
+        setBreedStandards(gbs.map((b: any) => ({
+          id: b.id, breedName: b.breed_name, birthWeightKg: b.birth_weight_kg, weaningWeightKg: b.weaning_weight_kg, matureCowKg: b.mature_cow_kg || b.mature_ewe_kg, matureBullKg: b.mature_bull_kg || b.mature_ram_kg
+        })));
       }
 
     } catch (error) {
@@ -403,19 +442,90 @@ export const AnimalDetail = () => {
     }
   };
 
+  const calculateEstimatedWeight = () => {
+    if (weightLogs.length > 0) {
+      const latestWeight = weightLogs[0];
+      const daysSinceRecord = (new Date().getTime() - new Date(latestWeight.dateRecorded).getTime()) / (1000 * 3600 * 24);
+      if (daysSinceRecord <= 30) {
+        return latestWeight.weightKg;
+      }
+    }
+    
+    const std = breedStandards.find(b => b.breedName === animal?.breed);
+    if (!std) return animal?.species === 'Sheep' ? 40 : 300; 
+    
+    const isSheep = animal?.species === 'Sheep';
+    const weaningMonths = isSheep ? 4 : 7;
+    const maturityMonths = isSheep ? 12 : 36;
+    
+    const ageResult = calculateAge(animal!.dateOfBirth);
+    const totalMonths = ageResult ? ageResult.totalMonths || 0 : 0;
+    if (totalMonths <= weaningMonths) {
+      return std.birthWeightKg + (totalMonths * ((std.weaningWeightKg - std.birthWeightKg) / weaningMonths));
+    } else {
+      const matureWeight = animal?.sex === 'Male' ? std.matureBullKg : std.matureCowKg;
+      if (totalMonths >= maturityMonths) return matureWeight;
+      const monthsPostWeaning = totalMonths - weaningMonths;
+      return std.weaningWeightKg + (monthsPostWeaning * ((matureWeight - std.weaningWeightKg) / (maturityMonths - weaningMonths)));
+    }
+  };
+
   const handleAddHealth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTreatmentType) return;
     
+    const productDef = products.find(p => p.productName === selectedProduct);
+    const weightToUse = calculateEstimatedWeight();
+    const requiredDose = productDef ? weightToUse * productDef.dosageMlPerKg : null;
+
+    if (requiredDose && !isOtherSelected && newDosage) {
+       const enteredDosage = parseFloat(newDosage);
+       if (!isNaN(enteredDosage)) {
+         const variance = Math.abs((enteredDosage - requiredDose) / requiredDose);
+         if (variance > 0.15) {
+             if(!window.confirm(`ℹ️ Estimated weight used: ${weightToUse.toFixed(1)}kg. Standard dose is approx. ${requiredDose.toFixed(1)}ml. Please confirm your entry.`)) {
+                 return; // Halt Save
+             }
+         }
+       }
+    }
+
+    const finalMedication = isOtherSelected ? customProduct : selectedProduct;
+    const withdrawalDays = isOtherSelected && customWithdrawal ? parseInt(customWithdrawal) : productDef?.meatWithdrawalDays;
+      
+    let safeDateStr: string | undefined = undefined;
+    if (withdrawalDays && withdrawalDays !== 999) { 
+        const d = new Date(newHealthDate);
+        d.setDate(d.getDate() + withdrawalDays);
+        safeDateStr = d.toISOString().split('T')[0];
+    }
+    
     try {
-      const payload = {
+      if (isOtherSelected && saveToPermanent && customProduct && customWithdrawal) {
+          const userRes = await supabase.auth.getUser();
+          if (userRes.data.user) {
+              const newProd = {
+                  user_id: userRes.data.user.id,
+                  category: newTreatmentType,
+                  product_name: customProduct,
+                  dosage_ml_per_kg: 0, 
+                  meat_withdrawal_days: parseInt(customWithdrawal) || 0,
+                  milk_withdrawal_days: 0
+              };
+              const targetTable = animal?.species === 'Sheep' ? 'user_sheep_vet_products' : 'user_vet_products';
+              await supabase.from(targetTable).insert([newProd]);
+          }
+      }
+
+      const payload: any = {
         animal_id: id,
         treatment_type: newTreatmentType,
-        medication: newMedication,
+        medication: finalMedication,
         dosage: newDosage,
         date_administered: newHealthDate,
         notes: newHealthNotes
       };
+      if (safeDateStr) payload.safe_date = safeDateStr;
       
       let data, error;
       if (editingHealthId) {
@@ -436,21 +546,35 @@ export const AnimalDetail = () => {
           dosage: data[0].dosage,
           dateAdministered: data[0].date_administered,
           notes: data[0].notes,
-          createdAt: data[0].created_at
+          createdAt: data[0].created_at,
+          safeDate: data[0].safe_date
         };
         if (editingHealthId) {
           setHealthLogs(healthLogs.map(l => l.id === editingHealthId ? newLog : l));
         } else {
           setHealthLogs([newLog, ...healthLogs]);
         }
+        
+        if (safeDateStr) {
+           const curSafe = animal?.meatSafeDate ? new Date(animal.meatSafeDate) : new Date(0);
+           const newSafe = new Date(safeDateStr);
+           if (newSafe > curSafe) {
+              await supabase.from('animals').update({ meat_safe_date: safeDateStr }).eq('id', id);
+              setAnimal(prev => prev ? { ...prev, meatSafeDate: safeDateStr } : null);
+           }
+        }
       }
       
       setNewTreatmentType('Vaccination');
-      setNewMedication('');
+      setSelectedProduct('');
+      setCustomProduct('');
+      setCustomWithdrawal('');
+      setIsOtherSelected(false);
       setNewDosage('');
       setNewHealthNotes('');
       setShowHealthForm(false);
       setEditingHealthId(null);
+      setSaveToPermanent(false);
     } catch (error: any) {
       alert('Error saving health record: ' + error.message);
     }
@@ -805,19 +929,18 @@ export const AnimalDetail = () => {
 
   return (
     <div style={{ paddingBottom: '80px' }}>
-      <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', width: '100%' }}>
+      <div className="page-header" style={{ paddingBottom: '0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (animal.isQuarantined || (animal.meatSafeDate && new Date(animal.meatSafeDate) > new Date())) ? '20px' : '32px', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button className="btn btn-outline" onClick={() => navigate('/herd')} style={{ padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Back to Herd">
               &larr;
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <h1 className="page-title" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.5rem' }}>
-                <span>{animal.species === 'Sheep' ? '🐑' : '🐄'}</span>
+                <span>{getAnimalIcon(animal.species, animal.breed, animal.sex)}</span>
                 {animal.tagNumber}
               </h1>
               {getStatusBadge(animal.status)}
-              {animal.isQuarantined && <span className="badge badge-red" style={{ border: '1px solid #991B1B' }}>⚠️ QUARANTINED</span>}
             </div>
           </div>
           
@@ -862,6 +985,24 @@ export const AnimalDetail = () => {
             )}
           </div>
         </div>
+
+        {/* ALERTS SECTION */}
+        {(animal.isQuarantined || (animal.meatSafeDate && new Date(animal.meatSafeDate) > new Date())) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px', width: '100%' }}>
+            {animal.isQuarantined && (
+              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #F87171', color: '#991B1B', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 500, fontSize: '0.95rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: '1.2rem' }}>🛑</span> 
+                <span><strong>Quarantined:</strong> This animal is under strict movement isolation.</span>
+              </div>
+            )}
+            {animal.meatSafeDate && new Date(animal.meatSafeDate) > new Date() && (
+              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', color: '#B45309', padding: '12px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 500, fontSize: '0.95rem', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: '1.2rem' }}>⚠️</span> 
+                <span><strong>Withdrawal Active:</strong> Meat is not safe for consumption until <strong>{new Date(animal.meatSafeDate).toLocaleDateString()}</strong>.</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* TABS NAVIGATION */}
@@ -919,7 +1060,7 @@ export const AnimalDetail = () => {
               </div>
               <div className="info-row">
                 <span className="info-label">Species</span>
-                <span className="info-value">{animal.species === 'Sheep' ? '🐑' : '🐄'} {animal.species}</span>
+                <span className="info-value">{getAnimalIcon(animal.species, animal.breed, animal.sex)} {animal.species}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">Breed</span>
@@ -1043,7 +1184,12 @@ export const AnimalDetail = () => {
         <div className="card" style={{ padding: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Health Records</h2>
-            <button className="btn btn-primary" onClick={() => setShowHealthForm(!showHealthForm)}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowHealthForm(!showHealthForm)}
+              disabled={animal?.status === 'Sold' || animal?.status === 'Deceased'}
+              title={animal?.status === 'Sold' || animal?.status === 'Deceased' ? 'Cannot add records to inactive animals' : ''}
+            >
               {showHealthForm ? 'Cancel' : 'Log Treatment'}
             </button>
           </div>
@@ -1058,51 +1204,77 @@ export const AnimalDetail = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Treatment Type</label>
-                  <select className="form-input" value={newTreatmentType} onChange={e => setNewTreatmentType(e.target.value)}>
+                  <select className="form-input" value={newTreatmentType} onChange={e => { setNewTreatmentType(e.target.value); setIsOtherSelected(false); setSelectedProduct(''); }}>
                     <option value="Vaccination">Vaccination</option>
                     <option value="Deworming">Deworming</option>
-                    <option value="Illness">Illness / Injury</option>
+                    <option value="Illness / Injury">Illness / Injury</option>
                     <option value="General Checkup">General Checkup</option>
                     <option value="Other">Other</option>
                   </select>
                 </div>
+
                 <div className="form-group">
-                  <label className="form-label">Medication (Optional)</label>
-                  {newTreatmentType === 'Vaccination' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <select 
-                        className="form-select" 
-                        value={['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever'].includes(newMedication) ? newMedication : (newMedication ? 'Other' : '')}
-                        onChange={e => {
-                          if (e.target.value !== 'Other') {
-                            setNewMedication(e.target.value);
-                          } else {
-                            // Leave it as current so input shows up
-                            if (['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever', ''].includes(newMedication)) {
-                                setNewMedication('Other Vaccine Name');
+                  <label className="form-label">Medication / Product</label>
+                  <select 
+                    className="form-input" 
+                    value={isOtherSelected ? 'Other' : selectedProduct} 
+                    onChange={e => {
+                        const val = e.target.value;
+                        if (val === 'Other') {
+                            setIsOtherSelected(true);
+                            setSelectedProduct('');
+                        } else {
+                            setIsOtherSelected(false);
+                            setSelectedProduct(val);
+                            
+                            const pDef = products.find(p => p.productName === val);
+                            if (pDef) {
+                                const weightToUse = calculateEstimatedWeight();
+                                const estimatedDose = weightToUse * pDef.dosageMlPerKg;
+                                setNewDosage(estimatedDose.toFixed(1));
                             }
-                          }
-                        }}
-                      >
-                        <option value="">-- Select SA Top 5 --</option>
-                        <option value="FMD (Foot & Mouth Disease)">FMD (Foot & Mouth Disease)</option>
-                        <option value="Covexin 10 / Multivax">Covexin 10 / Multivax</option>
-                        <option value="Anthrax">Anthrax</option>
-                        <option value="Botulism">Botulism</option>
-                        <option value="Rift Valley Fever">Rift Valley Fever</option>
-                        <option value="Other">Other (Type manually)</option>
-                      </select>
-                      {(!['FMD (Foot & Mouth Disease)', 'Covexin 10 / Multivax', 'Anthrax', 'Botulism', 'Rift Valley Fever', ''].includes(newMedication)) && (
-                        <input type="text" className="form-input" placeholder="Enter other vaccine..." value={newMedication} onChange={e => setNewMedication(e.target.value)} />
-                      )}
-                    </div>
-                  ) : (
-                    <input type="text" className="form-input" placeholder="e.g. Ivermectin" value={newMedication} onChange={e => setNewMedication(e.target.value)} />
-                  )}
+                        }
+                    }}
+                  >
+                    <option value="">-- Select Product --</option>
+                    {products.filter(p => p.category === newTreatmentType).map(p => (
+                        <option key={p.id} value={p.productName}>{p.productName} {p.isCustom ? '(Custom)' : ''}</option>
+                    ))}
+                    <option value="Other">Other (Manual Entry)</option>
+                  </select>
                 </div>
+                
+                {isOtherSelected && (
+                    <>
+                        <div className="form-group">
+                          <label className="form-label">Custom Product Name</label>
+                          <input type="text" className="form-input" required value={customProduct} onChange={e => setCustomProduct(e.target.value)} />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Withdrawal Period (Days)</label>
+                          <input type="number" className="form-input" required value={customWithdrawal} onChange={e => setCustomWithdrawal(e.target.value)} placeholder="0 for none" />
+                        </div>
+                        <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input type="checkbox" checked={saveToPermanent} onChange={e => setSaveToPermanent(e.target.checked)} />
+                            <span>Save this product to my permanent custom list</span>
+                          </label>
+                        </div>
+                    </>
+                )}
+
                 <div className="form-group">
-                  <label className="form-label">Dosage (Optional)</label>
-                  <input type="text" className="form-input" placeholder="e.g. 10ml" value={newDosage} onChange={e => setNewDosage(e.target.value)} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Dosage (ml)</label>
+                    <span 
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'var(--text-muted)', color: 'white', fontSize: '11px', fontWeight: 'bold' }} 
+                      onClick={() => alert("Dosage is automatically calculated based on the selected medicine's dosage guidelines and the animal's estimated weight, which is derived from either a recent recorded weight (last 30 days) or an algorithmic projection based on age and breed standards.")}
+                      title="How is this calculated?"
+                    >
+                      i
+                    </span>
+                  </div>
+                  <input type="number" step="0.01" className="form-input" placeholder="e.g. 10.5" value={newDosage} onChange={e => setNewDosage(e.target.value)} />
                 </div>
               </div>
               <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -1156,7 +1328,12 @@ export const AnimalDetail = () => {
         <div className="card" style={{ padding: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Weight History</h2>
-            <button className="btn btn-primary" onClick={() => setShowWeightForm(!showWeightForm)}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowWeightForm(!showWeightForm)}
+              disabled={animal?.status === 'Sold' || animal?.status === 'Deceased'}
+              title={animal?.status === 'Sold' || animal?.status === 'Deceased' ? 'Cannot add records to inactive animals' : ''}
+            >
               {showWeightForm ? 'Cancel' : 'Log Weight'}
             </button>
           </div>
@@ -1221,7 +1398,12 @@ export const AnimalDetail = () => {
         <div className="card" style={{ padding: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Movement History</h2>
-            <button className="btn btn-primary" onClick={() => setShowMovementForm(!showMovementForm)}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowMovementForm(!showMovementForm)}
+              disabled={animal?.status === 'Sold' || animal?.status === 'Deceased'}
+              title={animal?.status === 'Sold' || animal?.status === 'Deceased' ? 'Cannot add records to inactive animals' : ''}
+            >
               {showMovementForm ? 'Cancel' : 'Log Movement'}
             </button>
           </div>
@@ -1302,7 +1484,12 @@ export const AnimalDetail = () => {
         <div className="card" style={{ padding: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '24px' }}>
             <h2>Journal & Notes</h2>
-            <button className="btn btn-primary" onClick={() => setShowJournalForm(!showJournalForm)}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowJournalForm(!showJournalForm)}
+              disabled={animal?.status === 'Sold' || animal?.status === 'Deceased'}
+              title={animal?.status === 'Sold' || animal?.status === 'Deceased' ? 'Cannot add records to inactive animals' : ''}
+            >
               {showJournalForm ? 'Cancel' : 'Add Note'}
             </button>
           </div>

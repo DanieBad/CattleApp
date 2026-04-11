@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { ClipboardList, ChevronLeft, Calendar } from 'lucide-react';
+import { getAnimalIcon } from '../utils';
 
 export const RecentNotes = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export const RecentNotes = () => {
           note_text,
           date_recorded,
           animal_id,
-          animals ( id, tag_number, name, species )
+          animals ( id, tag_number, name, species, breed, sex )
         `)
         .gte('date_recorded', isoDate)
         .order('date_recorded', { ascending: false });
@@ -113,7 +114,7 @@ export const RecentNotes = () => {
                           style={{ cursor: 'pointer', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}
                           className="hover-underline"
                         >
-                          {log.animals.species === 'Sheep' ? '🐑' : '🐄'} {log.animals.tag_number}
+                          {getAnimalIcon(log.animals.species, log.animals.breed, log.animals.sex)} {log.animals.tag_number}
                         </span>
                       ) : (
                         <span style={{ color: 'var(--text-muted)' }}>Unknown Animal</span>

@@ -41,3 +41,23 @@ export const calculateAge = (dateOfBirth: string) => {
     display
   };
 };
+
+/**
+ * Returns a fitting emoji icon based on species and breed.
+ * Removes the generic dairy cow unless the breed is actually dairy.
+ */
+export const getAnimalIcon = (species?: string | null, breed?: string | null, sex?: string | null) => {
+  if (species === 'Sheep') {
+    if (sex === 'Male') return '🐏';
+    return '🐑';
+  }
+  if (!breed) return '🐂';
+  
+  const dairyBreeds = ['Holstein Friesian', 'Jersey', 'Brown Swiss'];
+  const zebuBreeds = ['Brahman', 'Boran', 'Zebu / Indicus', 'Afrikaner'];
+  const blackBreeds = ['Drakensberger', 'Angus'];
+  
+  if (dairyBreeds.includes(breed)) return '🐄';
+  if (zebuBreeds.includes(breed) || blackBreeds.includes(breed)) return '🐃'; // Zebu/Brahman or Black breeds
+  return '🐂'; // Standard beef cattle (Tuli, Bonsmara, etc.)
+};

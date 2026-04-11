@@ -336,19 +336,29 @@ export const AddAnimal = () => {
                 value={formData.breed}
                 onChange={e => setFormData({...formData, breed: e.target.value as Breed})}
               >
-                {formData.species === 'Cattle' ? (
-                  <>
-                    <option value="Bonsmara">Bonsmara</option>
-                    <option value="Brahman">Brahman</option>
-                    <option value="Nguni">Nguni</option>
-                    <option value="Simmentaler">Simmentaler</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="Dorper">Dorper</option>
-                    <option value="Merino">Merino</option>
-                  </>
-                )}
+                {(() => {
+                  const defaultBreed = formData.species === 'Cattle' 
+                    ? (farmSettings?.defaultCattleBreed || 'Bonsmara')
+                    : (farmSettings?.defaultSheepBreed || 'Dorper');
+                    
+                  const topCattleBreeds = ['Bonsmara', 'Brahman', 'Nguni', 'Simmentaler', 'Afrikaner', 'Drakensberger', 'Boran', 'Tuli', 'Sussex', 'Angus', 'Wagyu', 'Hereford'];
+                  const topSheepBreeds = ['Dorper', 'Merino', 'Dohne Merino', 'Meatmaster', 'Damara', 'Letelle', 'Afrino', 'Ile de France'];
+                  
+                  let breeds = formData.species === 'Cattle' ? topCattleBreeds : topSheepBreeds;
+                  
+                  if (!breeds.includes(defaultBreed)) {
+                    breeds.push(defaultBreed);
+                  }
+                  
+                  breeds = [
+                    defaultBreed,
+                    ...breeds.filter(b => b !== defaultBreed)
+                  ];
+
+                  return breeds.map(breed => (
+                    <option key={breed} value={breed}>{breed}</option>
+                  ));
+                })()}
                 <option value="Crossbreed">Crossbreed</option>
                 <option value="Other">Other</option>
               </select>
