@@ -18,10 +18,10 @@ export const Landing = () => {
   const [error, setError] = useState('');
 
   const herdSizeOptions = [
-    { id: 'under-50',     label: 'Under 50',     desc: 'Basic' },
-    { id: '50-250',       label: '50 - 250',     desc: 'Intermediate' },
-    { id: '250-500',      label: '250 - 500',    desc: 'Large' },
-    { id: '500+',         label: '500+',         desc: 'Commercial' }
+    { id: 'under-100',    label: 'Under 100',    desc: 'Basic' },
+    { id: '100-500',      label: '100 - 500',    desc: 'Intermediate' },
+    { id: '500-1000',     label: '500 - 1000',   desc: 'Large' },
+    { id: '1000-plus',     label: '1000+',        desc: 'Commercial' }
   ];
 
   useEffect(() => {
