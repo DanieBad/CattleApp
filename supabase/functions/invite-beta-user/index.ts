@@ -48,29 +48,82 @@ Deno.serve(async (req) => {
 
     console.log(`Inviting user: ${email}`)
 
-    // 4. Invite user via Supabase Admin API
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    // 4. Generate the invite link programmatically (Bypasses Supabase SMTP rate limits)
+    let linkDataRes, linkErrorRes;
+    
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'invite',
+        email: email,
         data: { invited_from_waitlist: true }
-    })
+    });
 
-    if (inviteError) {
-        // If the user already exists, we can just send them a password reset link instead
-        if (inviteError.message.includes('already exists')) {
-             console.log('User already exists, sending password recovery instead.')
-             const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-                type: 'recovery',
-                email: email
-             })
-             // Send recovery link via Resend API (we'd have to intercept the link)
-             // Instead, let's just let it fail or use resetPasswordForEmail
-             const { error: resetEmailError } = await supabaseAdmin.auth.resetPasswordForEmail(email)
-             if (resetEmailError) throw resetEmailError;
-        } else {
-             throw inviteError
-        }
+    if (inviteError && inviteError.message.includes('already')) {
+        console.log('User already exists, generating magic link instead.');
+        const fallback = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email: email
+        });
+        linkDataRes = fallback.data;
+        linkErrorRes = fallback.error;
+    } else {
+        linkDataRes = inviteData;
+        linkErrorRes = inviteError;
     }
 
-    // 5. Update Waitlist Status
+    if (linkErrorRes) {
+        throw linkErrorRes;
+    }
+
+    const inviteLink = linkDataRes?.properties?.action_link;
+    if (!inviteLink) {
+        throw new Error('Failed to generate invite link from Supabase Auth');
+    }
+
+    // 5. Send the email using Resend
+    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+    if (!RESEND_API_KEY) {
+        throw new Error('RESEND_API_KEY is not set')
+    }
+
+    const emailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <h1 style="color: #059669;">Welcome to the HealthyHerd Beta!</h1>
+        <p>You have been officially approved to join the HealthyHerd platform.</p>
+        <p>Click the secure link below to set up your account and get started. This link can only be used once.</p>
+        <div style="margin: 30px 0;">
+          <a href="${inviteLink}" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Activate Your Account
+          </a>
+        </div>
+        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666; font-size: 0.9em;">
+          <a href="${inviteLink}">${inviteLink}</a>
+        </p>
+        <p>Looking forward to having you on board!</p>
+        <p>— The HealthyHerd Team</p>
+      </div>
+    `;
+
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'HealthyHerd Beta <onboarding@resend.dev>',
+        to: email,
+        subject: 'You have been invited to the HealthyHerd Beta!',
+        html: emailHtml
+      })
+    });
+
+    if (!resendRes.ok) {
+        const errorText = await resendRes.text();
+        throw new Error(`Resend API Error: ${errorText}`);
+    }
+
+    // 6. Update Waitlist Status
     const { error: updateError } = await supabaseAdmin
       .from('waitlist')
       .update({ status: 'invited' })
