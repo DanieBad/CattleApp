@@ -166,7 +166,7 @@ export const AdminDashboard = () => {
         const result = await response.json();
         
         if (!response.ok) {
-            throw new Error((result.error ? result.error + ' | ' + JSON.stringify(result.full_error) : false) || 'Failed to send invite');
+            throw new Error(JSON.stringify(result));
         }
 
         alert(`Invite successfully sent to ${email}!`);
