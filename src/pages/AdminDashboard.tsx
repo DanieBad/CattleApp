@@ -169,7 +169,12 @@ export const AdminDashboard = () => {
             throw new Error(JSON.stringify(result));
         }
 
-        alert(`Invite successfully sent to ${email}!`);
+        const mailtoLink = `mailto:${email}?subject=Welcome to the HealthyHerd Beta!&body=Hi there,%0D%0A%0D%0AYou have been officially approved to join the HealthyHerd platform!%0D%0A%0D%0AClick the secure link below to set up your account and get started:%0D%0A${encodeURIComponent(result.inviteLink)}%0D%0A%0D%0AWelcome aboard,%0D%0AThe HealthyHerd Team`;
+        
+        if (confirm(`Invite generated securely!\n\nClick OK to automatically open your email program and send the secret link to ${email}.`)) {
+            window.location.href = mailtoLink;
+        }
+
         await fetchAll();
     } catch (err: any) {
         console.error("Invite error:", err);

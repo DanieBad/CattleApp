@@ -20,20 +20,26 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } }
     )
 
-    // 2. Validate the requester is an Admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'Missing auth header' }), { status: 401 })
+        return new Response(JSON.stringify({ error: 'Missing auth header' }), { status: 401, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
     }
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''))
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } }, auth: { persistSession: false } }
+    )
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser(token)
     
     if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+        return new Response(JSON.stringify({ error: 'Unauthorized', details: authError }), { status: 401, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
     }
 
     if (user.email !== 'djb.rsa@gmail.com') {
-         return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), { status: 403 })
+         return new Response(JSON.stringify({ error: 'Forbidden: Admins only' }), { status: 403, headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' } })
     }
 
     // 3. Parse Request
@@ -79,50 +85,6 @@ Deno.serve(async (req) => {
         throw new Error('Failed to generate invite link from Supabase Auth');
     }
 
-    // 5. Send the email using Resend
-    const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-    if (!RESEND_API_KEY) {
-        throw new Error('RESEND_API_KEY is not set')
-    }
-
-    const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-        <h1 style="color: #059669;">Welcome to the HealthyHerd Beta!</h1>
-        <p>You have been officially approved to join the HealthyHerd platform.</p>
-        <p>Click the secure link below to set up your account and get started. This link can only be used once.</p>
-        <div style="margin: 30px 0;">
-          <a href="${inviteLink}" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Activate Your Account
-          </a>
-        </div>
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #666; font-size: 0.9em;">
-          <a href="${inviteLink}">${inviteLink}</a>
-        </p>
-        <p>Looking forward to having you on board!</p>
-        <p>— The HealthyHerd Team</p>
-      </div>
-    `;
-
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'HealthyHerd Beta <onboarding@resend.dev>',
-        to: email,
-        subject: 'You have been invited to the HealthyHerd Beta!',
-        html: emailHtml
-      })
-    });
-
-    if (!resendRes.ok) {
-        const errorText = await resendRes.text();
-        throw new Error(`Resend API Error: ${errorText}`);
-    }
-
     // 6. Update Waitlist Status
     const { error: updateError } = await supabaseAdmin
       .from('waitlist')
@@ -135,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: `Invite sent to ${email}` }),
+      JSON.stringify({ success: true, message: `Invite link generated successfully`, inviteLink: inviteLink }),
       { 
         headers: { 
             "Content-Type": "application/json",
