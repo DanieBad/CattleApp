@@ -147,7 +147,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("Error inviting user:", error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : JSON.stringify(error),
+        full_error: Object.getOwnPropertyNames(error).reduce((acc, key) => { acc[key] = error[key]; return acc; }, {})
+      }),
       { 
           status: 500, 
           headers: { 
