@@ -1,6 +1,6 @@
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, MapPin, Scale, ArrowRight, ClipboardList, WifiOff, HeartHandshake, Mail, CheckCircle, Loader2, Zap, ShieldCheck, Move, Upload } from 'lucide-react';
+import { Scale, ArrowRight, ClipboardList, WifiOff, Mail, CheckCircle, Loader2, Zap, ShieldCheck, Move, Upload } from 'lucide-react';
 import { supabase } from '../supabase';
 import logo from '../assets/Logo.png';
 

@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import {
   Users, ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2,
   Clock, XCircle, Search, RefreshCw, Edit3, X, Save,
-  Loader2, ArrowUpDown, Mail, ListChecks, BarChart3
+  Loader2, Mail, ListChecks, BarChart3
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -53,7 +52,6 @@ const fmt = (date: string | null) =>
 
 // ── Component ──────────────────────────────────────────────────────────────
 export const AdminDashboard = () => {
-  const navigate = useNavigate();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [loading, setLoading] = useState(true);
