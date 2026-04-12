@@ -12,9 +12,17 @@ export const Landing = () => {
   const isBetaMode = (import.meta.env.VITE_BETA_MODE ?? '').trim() === 'true';
   const [email, setEmail] = useState('');
   const [focus, setFocus] = useState('');
+  const [herdSize, setHerdSize] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  const herdSizeOptions = [
+    { id: 'under-50',     label: 'Under 50',     desc: 'Basic' },
+    { id: '50-250',       label: '50 - 250',     desc: 'Intermediate' },
+    { id: '250-500',      label: '250 - 500',    desc: 'Large' },
+    { id: '500+',         label: '500+',         desc: 'Commercial' }
+  ];
 
   useEffect(() => {
     setIsSouthAfrica(Intl.DateTimeFormat().resolvedOptions().timeZone === 'Africa/Johannesburg');
@@ -28,7 +36,11 @@ export const Landing = () => {
     try {
       const { error: supabaseError } = await supabase
         .from('waitlist')
-        .insert([{ email, primary_focus: focus || null }]);
+        .insert([{ 
+          email, 
+          primary_focus: focus || null,
+          herd_size: herdSize || null
+        }]);
 
       if (supabaseError) {
         if (supabaseError.code === '23505') {
@@ -292,10 +304,35 @@ export const Landing = () => {
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'left' }}>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
-                      Primary Focus (Optional)
-                    </label>
+                    <div style={{ textAlign: 'left' }}>
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                        Approximate Herd Size
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
+                        {herdSizeOptions.map((opt) => (
+                          <div 
+                            key={opt.id}
+                            onClick={() => setHerdSize(opt.id)}
+                            style={{
+                              padding: '12px',
+                              borderRadius: '12px',
+                              border: `2px solid ${herdSize === opt.id ? 'var(--primary)' : 'var(--border)'}`,
+                              backgroundColor: herdSize === opt.id ? 'rgba(34, 197, 94, 0.05)' : 'white',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>{opt.label}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>{opt.desc}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                        Primary Focus (Optional)
+                      </label>
+                    </div>
                     <select 
                       value={focus}
                       onChange={(e) => setFocus(e.target.value)}
@@ -319,7 +356,6 @@ export const Landing = () => {
                       <option value="Sheep">Sheep</option>
                       <option value="Mixed">Mixed / Other</option>
                     </select>
-                  </div>
 
                   {error && (
                     <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'left' }}>

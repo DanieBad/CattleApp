@@ -25,6 +25,7 @@ interface WaitlistRow {
   id: string;
   email: string;
   primary_focus: string | null;
+  herd_size: string | null;
   created_at: string;
 }
 
@@ -399,13 +400,24 @@ export const AdminDashboard = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ backgroundColor: '#F1F5F9' }}>
                   <tr>
-                    {['Email', 'Focus / Note', 'Signed Up'].map(h => <th key={h} style={th}>{h}</th>)}
+                    {['Email', 'Herd Size', 'Focus', 'Signed Up'].map(h => <th key={h} style={th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {waitlist.map(w => (
                     <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ ...td, fontWeight: 600 }}>{w.email}</td>
+                      <td style={td}>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 700, 
+                          backgroundColor: '#F3F4F6', 
+                          padding: '2px 8px', 
+                          borderRadius: '10px' 
+                        }}>
+                          {w.herd_size || '—'}
+                        </span>
+                      </td>
                       <td style={{ ...td, color: 'var(--text-muted)' }}>{w.primary_focus || '—'}</td>
                       <td style={{ ...td, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{fmt(w.created_at)}</td>
                     </tr>
