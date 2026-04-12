@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import {
   Users, ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2,
   Clock, XCircle, Search, RefreshCw, Edit3, X, Save,
-  Loader2, Mail, ListChecks, BarChart3
+  Loader2, Mail, ListChecks, BarChart3, Send
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -26,6 +26,7 @@ interface WaitlistRow {
   email: string;
   primary_focus: string | null;
   herd_size: string | null;
+  status: string | null;
   created_at: string;
 }
 
@@ -62,6 +63,7 @@ export const AdminDashboard = () => {
   const [editRow, setEditRow] = useState<OverrideForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [invitingId, setInvitingId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -141,6 +143,39 @@ export const AdminDashboard = () => {
       setSaveMsg(err.message ?? 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleInvite = async (waitlistId: string, email: string) => {
+    if (!confirm(`Are you sure you want to send a beta invite to ${email}?`)) return;
+    
+    setInvitingId(waitlistId);
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Not authenticated");
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hpddjhajklbgxcqgbvzc.supabase.co'}/functions/v1/invite-beta-user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ email, waitlistId })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to send invite');
+        }
+
+        alert(`Invite successfully sent to ${email}!`);
+        await fetchAll();
+    } catch (err: any) {
+        console.error("Invite error:", err);
+        alert(`Failed to send invite: ${err.message}`);
+    } finally {
+        setInvitingId(null);
     }
   };
 
@@ -400,7 +435,7 @@ export const AdminDashboard = () => {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead style={{ backgroundColor: '#F1F5F9' }}>
                   <tr>
-                    {['Email', 'Herd Size', 'Focus', 'Signed Up'].map(h => <th key={h} style={th}>{h}</th>)}
+                    {['Email', 'Herd Size', 'Focus', 'Status', 'Signed Up', 'Actions'].map(h => <th key={h} style={th}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -419,7 +454,26 @@ export const AdminDashboard = () => {
                         </span>
                       </td>
                       <td style={{ ...td, color: 'var(--text-muted)' }}>{w.primary_focus || '—'}</td>
+                      <td style={td}>
+                         {w.status === 'invited' ? (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: '10px' }}>Invited</span>
+                         ) : (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, backgroundColor: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: '10px' }}>Pending</span>
+                         )}
+                      </td>
                       <td style={{ ...td, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{fmt(w.created_at)}</td>
+                      <td style={td}>
+                        {w.status !== 'invited' && (
+                            <button
+                              onClick={() => handleInvite(w.id, w.email)}
+                              disabled={invitingId === w.id}
+                              className="btn btn-outline"
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', opacity: invitingId === w.id ? 0.5 : 1 }}
+                            >
+                                {invitingId === w.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Approve
+                            </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
