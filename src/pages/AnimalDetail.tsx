@@ -6,6 +6,7 @@ import { SyncManager } from '../services/syncManager';
 import { v4 as uuidv4 } from 'uuid';
 import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog, VetProduct, BreedStandard } from '../types';
 import { calculateAge, getAnimalIcon } from '../utils';
+import { BirthWorkflowModal } from '../components/BirthWorkflowModal';
 
 type Tab = 'overview' | 'health' | 'weight' | 'movement' | 'journal';
 
@@ -26,6 +27,7 @@ export const AnimalDetail = () => {
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [products, setProducts] = useState<VetProduct[]>([]);
   const [breedStandards, setBreedStandards] = useState<BreedStandard[]>([]);
+  const [isBirthModalOpen, setIsBirthModalOpen] = useState(false);
   
   const [selectedProduct, setSelectedProduct] = useState<string>('');
   const [isOtherSelected, setIsOtherSelected] = useState(false);
@@ -95,7 +97,8 @@ export const AnimalDetail = () => {
     weight: dbAnimal.weight,
     currentCampId: dbAnimal.current_camp_id,
     hornStatus: dbAnimal.horn_status,
-    meatSafeDate: dbAnimal.meat_safe_date
+    meatSafeDate: dbAnimal.meat_safe_date,
+    quarantineEndDate: dbAnimal.quarantine_end_date,
   });
 
   const fetchAnimalDetails = async () => {
@@ -928,6 +931,7 @@ export const AnimalDetail = () => {
   };
 
   return (
+    <>
     <div style={{ paddingBottom: '80px' }}>
       <div className="page-header" style={{ paddingBottom: '0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: (animal.isQuarantined || (animal.meatSafeDate && new Date(animal.meatSafeDate) > new Date())) ? '20px' : '32px', width: '100%' }}>
@@ -1131,7 +1135,7 @@ export const AnimalDetail = () => {
               <h3 style={{ margin: 0 }}>Registered Offspring ({offspring.length})</h3>
               <button 
                 className="btn btn-outline" 
-                onClick={() => navigate(`/herd/add?${animal.sex === 'Female' ? 'damId' : 'sireId'}=${animal.id}`)}
+                onClick={() => setIsBirthModalOpen(true)}
                 style={{ padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>+</span> {animal.species === 'Sheep' ? 'Add Lamb' : 'Add Calf'}
@@ -1575,5 +1579,24 @@ export const AnimalDetail = () => {
       )}
 
     </div>
+
+    {isBirthModalOpen && animal && (
+      <BirthWorkflowModal
+        onClose={() => { setIsBirthModalOpen(false); fetchAnimalDetails(); }}
+        initialMother={{
+          id: animal.id,
+          tag_number: animal.tagNumber,
+          name: animal.name,
+          breed: animal.breed,
+          species: animal.species,
+          sex: animal.sex,
+          current_camp_id: animal.currentCampId,
+          is_quarantined: animal.isQuarantined,
+          quarantine_end_date: (animal as any).quarantineEndDate,
+        }}
+      />
+    )}
+    </>
   );
 };
+

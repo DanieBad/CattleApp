@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowUpDown, ChevronUp, ChevronDown, Plus, Search, 
-  MapPin, Calendar, Clock, User, Fingerprint 
+  MapPin, Calendar, Clock, User, Fingerprint, ShieldAlert
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import type { Animal, Camp } from '../types';
@@ -14,13 +14,16 @@ export const HerdList = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const campIdParam = searchParams.get('campId');
+  const quarantinedParam = searchParams.get('quarantined') === 'true';
   
   const [herd, setHerd] = useState<Animal[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState<'All' | 'Cattle' | 'Sheep'>('All');
+  const [statusFilter, setStatusFilter] = useState<'Active' | 'All'>('Active');
   const [campFilter, setCampFilter] = useState<string | null>(campIdParam);
+  const [quarantineFilter, setQuarantineFilter] = useState<boolean>(quarantinedParam);
   const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<{ field: SortField, direction: 'asc' | 'desc' } | null>({
     field: 'dateOfBirth',
@@ -115,8 +118,10 @@ export const HerdList = () => {
         
       const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
       const matchesCamp = !campFilter ? true : animal.currentCampId === campFilter;
-      
-      return matchesSearch && matchesSpecies && matchesCamp;
+      const matchesQuarantine = !quarantineFilter ? true : animal.isQuarantined === true;
+      const matchesStatus = statusFilter === 'All' ? true : animal.status === 'Active';
+
+      return matchesSearch && matchesSpecies && matchesCamp && matchesQuarantine && matchesStatus;
     })
     .sort((a, b) => {
       if (!sortConfig) return 0;
@@ -219,6 +224,22 @@ export const HerdList = () => {
           </button>
         </div>
 
+        {/* Status filter: Active (default) | All */}
+        <div style={{ display: 'flex', backgroundColor: '#F1F5F9', padding: '4px', borderRadius: '8px' }}>
+          <button
+            onClick={() => setStatusFilter('Active')}
+            style={{ padding: '8px 16px', background: statusFilter === 'Active' ? 'white' : 'transparent', color: statusFilter === 'Active' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: statusFilter === 'Active' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            ✅ Active
+          </button>
+          <button
+            onClick={() => setStatusFilter('All')}
+            style={{ padding: '8px 16px', background: statusFilter === 'All' ? 'white' : 'transparent', color: statusFilter === 'All' ? 'var(--primary)' : 'var(--text-muted)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, boxShadow: statusFilter === 'All' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+          >
+            All
+          </button>
+        </div>
+
         {campFilter && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--primary-light)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--primary)' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-dark)' }}>
@@ -230,6 +251,24 @@ export const HerdList = () => {
                 setSearchParams({});
               }}
               style={{ background: 'none', border: 'none', color: 'var(--primary-dark)', cursor: 'pointer', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center' }}
+              title="Clear Filter"
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {quarantineFilter && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#FEF2F2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #FECACA' }}>
+            <ShieldAlert size={15} color="#ef4444" />
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#991B1B' }}>
+              Showing Quarantined Animals Only
+            </span>
+            <button 
+              onClick={() => {
+                setQuarantineFilter(false);
+                setSearchParams({});
+              }}
+              style={{ background: 'none', border: 'none', color: '#991B1B', cursor: 'pointer', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center' }}
               title="Clear Filter"
             >
               ×

@@ -1,95 +1,58 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import type { Animal, Camp, HealthLog } from '../types';
+import type { Animal, Camp } from '../types';
 import { calculateAge, getAnimalIcon } from '../utils';
 import { 
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, Search, HeartPulse, ShieldAlert, LifeBuoy, FileEdit, X, ChevronRight
+  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, ShieldAlert,
+  LifeBuoy, NotebookPen, Baby, ChevronRight, Search, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { BirthWorkflowModal } from '../components/BirthWorkflowModal';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
 
 export const Dashboard = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
-  const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [loading, setLoading] = useState(true);
-  // Full-Width Search State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  
-  // Quick Log Modal State
-  const [isQuickLogOpen, setIsQuickLogOpen] = useState(false);
-  const [quickLogAnimal, setQuickLogAnimal] = useState<any | null>(null);
-  const [quickLogNote, setQuickLogNote] = useState('');
-  const [isSavingQuickLog, setIsSavingQuickLog] = useState(false);
 
-  const searchRef = useRef<HTMLDivElement>(null);
+  // Notes modal (animal picker → navigate to journal tab)
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [notesSearch, setNotesSearch] = useState('');
+  const [notesResults, setNotesResults] = useState<any[]>([]);
+  const [isSearchingNotes, setIsSearchingNotes] = useState(false);
+
+  // Birth workflow modal
+  const [isBirthOpen, setIsBirthOpen] = useState(false);
+
   const navigate = useNavigate();
-
-  // Rapid Field Entry State
-  const [fieldTag, setFieldTag] = useState('');
-  const [fieldNote, setFieldNote] = useState('');
-  const [isSubmittingField, setIsSubmittingField] = useState(false);
-  const [tagConflicts, setTagConflicts] = useState<Animal[]>([]);
-  const [selectedConflictId, setSelectedConflictId] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
-    
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounce search query
+  // Debounced notes search
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  // Handle dynamic Supabase search
-  useEffect(() => {
-    const fetchSearchResults = async () => {
-      if (!debouncedQuery.trim()) {
-        setSearchResults([]);
-        setIsSearching(false);
-        return;
-      }
-      setIsSearching(true);
+    if (!notesSearch.trim()) { setNotesResults([]); return; }
+    const timer = setTimeout(async () => {
+      setIsSearchingNotes(true);
       try {
-        const { data, error } = await supabase
-          .from('animals')
-          .select('*')
+        const { data } = await supabase.from('animals')
+          .select('id, tag_number, name, species, breed, sex')
           .eq('status', 'Active')
-          .or(`tag_number.ilike.%${debouncedQuery}%,name.ilike.%${debouncedQuery}%`)
-          .limit(10);
-          
-        if (error) throw error;
-        setSearchResults(data || []);
-      } catch (err) {
-        console.error('Error fetching search results:', err);
+          .or(`tag_number.ilike.${notesSearch}%,name.ilike.${notesSearch}%`)
+          .limit(8);
+        setNotesResults(data || []);
       } finally {
-        setIsSearching(false);
+        setIsSearchingNotes(false);
       }
-    };
-    
-    fetchSearchResults();
-  }, [debouncedQuery]);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [notesSearch]);
 
   const fetchDashboardData = async () => {
     try {
@@ -98,14 +61,6 @@ export const Dashboard = () => {
       
       const { data: campsData, error: campsError } = await supabase.from('camps').select('*');
       if (campsError) throw campsError;
-      
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: healthData, error: healthError } = await supabase
-        .from('health_logs')
-        .select('*')
-        .gte('date_administered', thirtyDaysAgo.toISOString().split('T')[0]);
-      if (healthError && healthError.code !== '42P01') console.warn(healthError);
 
       if (animalsData) {
         setAnimals(animalsData.map(a => ({
@@ -121,7 +76,7 @@ export const Dashboard = () => {
           damId: a.dam_id,
           weight: a.weight,
           currentCampId: a.current_camp_id,
-          isQuarantined: a.is_quarantined
+          isQuarantined: a.is_quarantined,
         })));
       }
       
@@ -133,15 +88,6 @@ export const Dashboard = () => {
           sizeHectares: c.size_hectares,
           notes: c.notes,
           createdAt: c.created_at
-        })));
-      }
-      
-      if (healthData) {
-        setHealthLogs(healthData.map((h: any) => ({
-          id: h.id,
-          animalId: h.animal_id,
-          treatmentType: h.treatment_type,
-          dateAdministered: h.date_administered
         })));
       }
     } catch (error) {
@@ -156,152 +102,9 @@ export const Dashboard = () => {
   }
 
   const activeAnimals = animals.filter(a => a.status === 'Active');
-  
-  // Health Metrics
   const quarantinedCount = activeAnimals.filter(a => a.isQuarantined).length;
-  const recentTreatmentsCount = healthLogs.length;
 
-  // Handle Quick Log Modal Submit
-  const handleQuickLogSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickLogAnimal || !quickLogNote.trim()) return;
-    
-    setIsSavingQuickLog(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const { error } = await supabase.from('journal_logs').insert([{
-        animal_id: quickLogAnimal.id,
-        date_recorded: today,
-        note_text: quickLogNote
-      }]);
-      
-      if (error) throw error;
-      
-      toast.success(`Note added to ${quickLogAnimal.tag_number}`);
-      setIsQuickLogOpen(false);
-      setQuickLogNote('');
-      setSearchQuery('');
-      setShowDropdown(false);
-    } catch (err: any) {
-      console.error(err);
-      toast.error('An error occurred while saving the note.');
-    } finally {
-      setIsSavingQuickLog(false);
-    }
-  };
-
-  const handleFieldEntrySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fieldTag.trim() || !fieldNote.trim()) return;
-    
-    setIsSubmittingField(true);
-    try {
-      let submitAnimalId = '';
-      let submitAnimalTag = '';
-      
-      // If we are currently resolving a conflict
-      if (tagConflicts.length > 0 && selectedConflictId) {
-        submitAnimalId = selectedConflictId;
-        submitAnimalTag = fieldTag;
-      } else {
-        // Query database
-        const { data, error } = await supabase.from('animals')
-          .select('*')
-          .eq('tag_number', fieldTag)
-          .eq('status', 'Active');
-          
-        if (error) throw error;
-        
-        if (!data || data.length === 0) {
-          toast.error("Animal not found. Please check the Tag ID.");
-          setIsSubmittingField(false);
-          return;
-        }
-        
-        if (data.length > 1) {
-          // Conflict: exact same tag found for multiple active animals
-          setTagConflicts(data);
-          setSelectedConflictId(data[0].id);
-          setIsSubmittingField(false);
-          return;
-        }
-        
-        // Exactly one match
-        submitAnimalId = data[0].id;
-        submitAnimalTag = data[0].tag_number;
-      }
-      
-      // Submit Note
-      const today = new Date().toISOString().split('T')[0];
-      const { error: insertError } = await supabase.from('journal_logs').insert([{
-        animal_id: submitAnimalId,
-        date_recorded: today,
-        note_text: fieldNote
-      }]);
-      
-      if (insertError) {
-         if (insertError.code === '42P01') {
-           toast.error("Journal logs table is missing in Supabase.");
-         } else {
-           throw insertError;
-         }
-      } else {
-        toast.success(`Note added to ${submitAnimalTag}`);
-        setFieldTag('');
-        setFieldNote('');
-        setTagConflicts([]);
-        setSelectedConflictId('');
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error('An error occurred while saving the note.');
-    } finally {
-      setIsSubmittingField(false);
-    }
-  };
-
-  // Animal Types Calculation
-  const animalTypesCounts = activeAnimals.reduce((acc, a) => {
-    let type = 'Other';
-    const age = calculateAge(a.dateOfBirth);
-    const months = age.totalMonths ?? 0;
-    
-    if (a.species === 'Cattle') {
-      if (months < 9) type = 'Calf';
-      else if (a.sex === 'Female') type = 'Cow';
-      else type = 'Bull';
-    } else if (a.species === 'Sheep') {
-      if (months < 9) type = 'Lamb';
-      else if (a.sex === 'Female') type = 'Ewe';
-      else type = 'Ram';
-    }
-    
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const animalTypesChartData = Object.keys(animalTypesCounts).map(type => ({
-    name: type,
-    value: animalTypesCounts[type]
-  })).sort((a, b) => b.value - a.value);
-
-  // Pasture Usage
-  const campCounts = activeAnimals.reduce((acc, a) => {
-    if (a.currentCampId) {
-      acc[a.currentCampId] = (acc[a.currentCampId] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pastureChartData = Object.keys(campCounts).map(campId => {
-    const camp = camps.find(c => c.id === campId);
-    return {
-      name: camp ? camp.name : 'Unknown',
-      count: campCounts[campId],
-      campId
-    };
-  }).sort((a, b) => b.count - a.count);
-
+  // ── Empty state ────────────────────────────────────────────────────────────
   if (animals.length === 0) {
     return (
       <div className="fade-in">
@@ -323,11 +126,7 @@ export const Dashboard = () => {
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div 
-                className="card" 
-                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }}
-                onClick={() => navigate('/settings')}
-              >
+              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }} onClick={() => navigate('/settings')}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>1</div>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0 }}>Configure Farm Details</h3>
@@ -336,24 +135,16 @@ export const Dashboard = () => {
                 <ArrowRight size={20} color="#94A3B8" />
               </div>
 
-              <div 
-                className="card" 
-                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }}
-                onClick={() => navigate('/camps')}
-              >
+              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }} onClick={() => navigate('/camps')}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>2</div>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0 }}>Register Your Pastures & Camps</h3>
+                  <h3 style={{ margin: 0 }}>Register Your Pastures &amp; Camps</h3>
                   <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Define your camps and grazing areas to enable stocking rate tracking.</p>
                 </div>
                 <ArrowRight size={20} color="#94A3B8" />
               </div>
 
-              <div 
-                className="card" 
-                style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px', border: '2px solid var(--primary-light)' }}
-                onClick={() => navigate('/add-animal')}
-              >
+              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px', border: '2px solid var(--primary-light)' }} onClick={() => navigate('/herd/add')}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700 }}>3</div>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0 }}>Add Your First Animal</h3>
@@ -369,15 +160,12 @@ export const Dashboard = () => {
                 Quick Tip
               </h3>
               <p style={{ margin: '12px 0 0', color: '#64748B', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                You can also use the **Import/Export** tool in the sidebar if you have your animal data in a CSV file or Excel sheet. This will populate your entire herd in seconds.
+                You can also use the **Import/Export** tool in the sidebar if you have your animal data in a CSV file or Excel sheet.
               </p>
             </div>
 
             <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
-              <button 
-                onClick={() => navigate('/support')} 
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
+              <button onClick={() => navigate('/support')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <LifeBuoy size={18} /> Need more help? Visit our Help Center
               </button>
             </div>
@@ -387,254 +175,108 @@ export const Dashboard = () => {
     );
   }
 
+  // ── Computed chart data ───────────────────────────────────────────────────
+  const animalTypesCounts = activeAnimals.reduce((acc, a) => {
+    let type = 'Other';
+    const age = calculateAge(a.dateOfBirth);
+    const months = age.totalMonths ?? 0;
+    if (a.species === 'Cattle') {
+      if (months < 9) type = 'Calf';
+      else if (a.sex === 'Female') type = 'Cow';
+      else type = 'Bull';
+    } else if (a.species === 'Sheep') {
+      if (months < 9) type = 'Lamb';
+      else if (a.sex === 'Female') type = 'Ewe';
+      else type = 'Ram';
+    }
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const animalTypesChartData = Object.keys(animalTypesCounts).map(type => ({
+    name: type,
+    value: animalTypesCounts[type]
+  })).sort((a, b) => b.value - a.value);
+
+  const campCounts = activeAnimals.reduce((acc, a) => {
+    if (a.currentCampId) acc[a.currentCampId] = (acc[a.currentCampId] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const pastureChartData = Object.keys(campCounts).map(campId => {
+    const camp = camps.find(c => c.id === campId);
+    return { name: camp ? camp.name : 'Unknown', count: campCounts[campId], campId };
+  }).sort((a, b) => b.count - a.count);
+
   return (
     <div>
       <div className="page-header" style={{ alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 className="page-title">Herd Analytics Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)' }}>
-            High-level overview of your active farming operations.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
-          {/* Quick Start Guide moved to Support page */}
+          <p style={{ color: 'var(--text-muted)' }}>High-level overview of your active farming operations.</p>
         </div>
       </div>
 
-      {/* MASSIVE SMART SEARCH */}
-      <div ref={searchRef} style={{ position: 'relative', margin: '16px 0 32px 0', zIndex: 40, width: '100%' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={28} color="var(--primary)" style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)' }} />
-          <input 
-            type="text" 
-            placeholder="Search active herd by tag or name..." 
-            className="form-input"
-            style={{ width: '100%', height: '64px', paddingLeft: '64px', fontSize: '1.125rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setShowDropdown(true);
-            }}
-            onFocus={() => setShowDropdown(true)}
-          />
-        </div>
-
-        {showDropdown && searchQuery.trim() !== '' && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', border: '1px solid var(--border)', marginTop: '12px', overflow: 'hidden' }}>
-             {isSearching ? (
-               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Searching herd...</div>
-             ) : searchResults.length > 0 ? (
-               searchResults.map(a => (
-                 <div 
-                   key={a.id} 
-                   style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background-color 0.2s', flexWrap: 'wrap', gap: '12px' }} 
-                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
-                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                 >
-                   <div 
-                     style={{ cursor: 'pointer', flex: 1, minWidth: '150px', display: 'flex', alignItems: 'center', gap: '8px' }} 
-                     onClick={() => navigate(`/herd/${a.id}`)}
-                     onMouseEnter={(e) => {
-                       const textContainer = e.currentTarget.querySelector('.tag-name') as HTMLElement;
-                       const chevron = e.currentTarget.querySelector('.chevron-icon') as HTMLElement;
-                       if (textContainer) {
-                         textContainer.style.color = 'var(--primary)';
-                         textContainer.style.textDecoration = 'underline';
-                       }
-                       if (chevron) {
-                         chevron.style.color = 'var(--primary)';
-                         chevron.style.transform = 'translateX(4px)';
-                       }
-                     }}
-                     onMouseLeave={(e) => {
-                       const textContainer = e.currentTarget.querySelector('.tag-name') as HTMLElement;
-                       const chevron = e.currentTarget.querySelector('.chevron-icon') as HTMLElement;
-                       if (textContainer) {
-                         textContainer.style.color = 'var(--text-main)';
-                         textContainer.style.textDecoration = 'none';
-                       }
-                       if (chevron) {
-                         chevron.style.color = '#94a3b8';
-                         chevron.style.transform = 'translateX(0)';
-                       }
-                     }}
-                   >
-                     <span className="tag-name" style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-main)', transition: 'all 0.2s' }}>{a.tag_number}</span>
-                     <ChevronRight className="chevron-icon" size={16} color="#94a3b8" style={{ transition: 'all 0.2s', marginTop: '2px' }} />
-                     <span style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginLeft: '4px' }}>{getAnimalIcon(a.species, a.breed, a.sex)} {a.name || ''}</span>
-                   </div>
-                   <button 
-                     className="btn btn-primary" 
-                     style={{ padding: '8px 16px', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setQuickLogAnimal(a);
-                       setIsQuickLogOpen(true);
-                       setShowDropdown(false);
-                     }}
-                   >
-                     Quick Log Journal
-                   </button>
-                 </div>
-               ))
-             ) : (
-               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No matches found for "{searchQuery}".</div>
-             )}
+      {/* ── ACTION TILES ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        {/* Notes tile */}
+        <button
+          id="dashboard-notes-btn"
+          onClick={() => { setIsNotesOpen(true); setNotesSearch(''); setNotesResults([]); }}
+          className="card"
+          style={{ padding: '28px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.2s', background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', textAlign: 'left', width: '100%' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(16,185,129,0.18)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = ''; }}
+        >
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+            <NotebookPen size={24} />
           </div>
-        )}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#065F46', marginBottom: '4px' }}>Notes</div>
+            <div style={{ color: '#047857', fontSize: '0.875rem' }}>Add a journal note to any animal</div>
+          </div>
+          <ChevronRight size={20} color="#059669" />
+        </button>
+
+        {/* Births tile */}
+        <button
+          id="dashboard-births-btn"
+          onClick={() => setIsBirthOpen(true)}
+          className="card"
+          style={{ padding: '28px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.2s', background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', textAlign: 'left', width: '100%' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 24px rgba(245,158,11,0.18)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = ''; }}
+        >
+          <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg, #d97706, #f59e0b)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+            <Baby size={24} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem', color: '#78350f', marginBottom: '4px' }}>Births</div>
+            <div style={{ color: '#92400e', fontSize: '0.875rem' }}>Register a new calf or lamb</div>
+          </div>
+          <ChevronRight size={20} color="#d97706" />
+        </button>
       </div>
 
-      {/* RECENT NOTES ACTION BLOCK */}
-      <div className="card fade-in" style={{ padding: '24px', marginBottom: '32px', backgroundColor: '#059669', color: 'white', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '24px', justifyContent: 'space-between' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ClipboardList size={28} />
-            Recent Journal Notes
-          </h2>
-          <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '1.05rem' }}>
-            Quickly review notes and observations recorded across your entire herd.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button 
-            className="btn" 
-            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
-            onClick={() => navigate('/recent-notes?days=1')}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
-          >
-            Last 24 Hours
-          </button>
-          <button 
-            className="btn" 
-            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
-            onClick={() => navigate('/recent-notes?days=7')}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
-          >
-            Last 7 Days
-          </button>
-          <button 
-            className="btn" 
-            style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600 }}
-            onClick={() => navigate('/recent-notes?days=30')}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
-          >
-            Last 30 Days
-          </button>
-        </div>
-      </div>
+      {/* ── VIEW / INFO TILES ──────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '24px' }}>
 
-      {/* HEALTH METRICS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #ef4444' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldAlert size={16} color="#ef4444" />
-            Currently Quarantined
-          </span>
-          <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ef4444' }}>{quarantinedCount}</span>
-          {quarantinedCount > 0 ? (
-            <button 
-              onClick={() => navigate('/herd')} 
-              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', textAlign: 'left', padding: 0, textDecoration: 'underline', fontSize: '0.875rem' }}
-            >
-              View Quarantined Animals
-            </button>
-          ) : (
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No active quarantines</span>
-          )}
-        </div>
-
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '4px solid #3b82f6' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <HeartPulse size={16} color="#3b82f6" />
-            Treatments (Last 30 Days)
-          </span>
-          <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#3b82f6' }}>{recentTreatmentsCount}</span>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Total health records logged</span>
-        </div>
-
-        {/* RAPID FIELD ENTRY WIDGET */}
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileEdit size={18} color="var(--primary)" />
-            Rapid Field Entry
-          </h3>
-          <form onSubmit={handleFieldEntrySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Tag ID (e.g. C-101)" 
-                style={{ flex: 1 }}
-                required
-                value={fieldTag}
-                onChange={(e) => {
-                  setFieldTag(e.target.value);
-                  if (tagConflicts.length > 0) setTagConflicts([]);
-                }}
-              />
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={isSubmittingField}
-                style={{ whiteSpace: 'nowrap' }}
-              >
-                {isSubmittingField ? 'Saving...' : 'Add Note'}
-              </button>
-            </div>
-            
-            {tagConflicts.length > 0 && (
-              <div style={{ backgroundColor: '#FFFBEB', padding: '12px', borderRadius: '8px', border: '1px solid #FEF3C7' }}>
-                <label className="form-label" style={{ color: '#92400E', marginBottom: '8px' }}>
-                  Multiple active animals found with this tag. Please select one:
-                </label>
-                <select 
-                  className="form-input" 
-                  value={selectedConflictId}
-                  onChange={(e) => setSelectedConflictId(e.target.value)}
-                >
-                  {tagConflicts.map(a => (
-                    <option key={a.id} value={a.id}>
-                      {a.species} - {a.breed} - {a.sex} {a.name ? `(${a.name})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            
-            <textarea 
-              className="form-input"
-              placeholder="Observation or note..."
-              style={{ flex: 1, minHeight: '80px', resize: 'none' }}
-              required
-              value={fieldNote}
-              onChange={(e) => setFieldNote(e.target.value)}
-            />
-          </form>
-        </div>
-      </div>
-
-      {/* CHARTS GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-        
-        {/* Animal Types Chart */}
-        <div className="card" style={{ padding: '24px', height: '400px', cursor: 'pointer', transition: 'box-shadow 0.2s' }} onClick={() => navigate('/herd')} onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }} onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
-          <h3 style={{ marginBottom: '24px' }}>Herd Composition (Active)</h3>
+        {/* Herd Composition Chart */}
+        <div className="card" style={{ padding: '24px', height: '400px', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+          onClick={() => navigate('/herd')}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}>
+          <h3 style={{ marginBottom: '4px' }}>Herd Composition</h3>
+          <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>{activeAnimals.length} active animals</p>
           {animalTypesChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="85%">
               <PieChart>
                 <Pie
                   data={animalTypesChartData}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  cx="50%" cy="45%"
+                  innerRadius={60} outerRadius={100}
+                  paddingAngle={5} dataKey="value"
+                  label={({ name, value }) => `${name} ${value}`}
                 >
                   {animalTypesChartData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -650,44 +292,26 @@ export const Dashboard = () => {
 
         {/* Pasture Usage Chart */}
         <div className="card" style={{ padding: '24px', height: '400px' }}>
-          <h3 style={{ marginBottom: '24px' }}>Pasture Usage</h3>
+          <h3 style={{ marginBottom: '4px' }}>Pasture Usage</h3>
+          <p style={{ margin: '0 0 20px', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Animals per camp</p>
           {pastureChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={pastureChartData}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-              >
+            <ResponsiveContainer width="100%" height="85%">
+              <BarChart data={pastureChartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" allowDecimals={false} />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  width={100} 
+                <YAxis dataKey="name" type="category" width={100}
                   tick={(props: any) => {
                     const { x, y, payload } = props;
                     const item = pastureChartData.find(d => d.name === payload.value);
                     return (
-                      <g 
-                        transform={`translate(${x},${y})`} 
-                        onClick={() => item && navigate(`/herd?campId=${item.campId}`)} 
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <text x={-10} y={0} dy={4} textAnchor="end" fill="var(--text-muted)" fontSize={12} fontWeight={500}>
-                          {payload.value}
-                        </text>
+                      <g transform={`translate(${x},${y})`} onClick={() => item && navigate(`/herd?campId=${item.campId}`)} style={{ cursor: 'pointer' }}>
+                        <text x={-10} y={0} dy={4} textAnchor="end" fill="var(--text-muted)" fontSize={12} fontWeight={500}>{payload.value}</text>
                       </g>
                     );
                   }}
                 />
                 <RechartsTooltip formatter={(value) => [`${value} Animals`, 'Stock Load']} />
-                <Bar 
-                  dataKey="count" 
-                  fill="var(--primary)" 
-                  radius={[0, 4, 4, 0]} 
-                  style={{ cursor: 'pointer' }} 
-                  onClick={(data: any) => navigate(`/herd?campId=${data.campId}`)}
-                />
+                <Bar dataKey="count" fill="var(--primary)" radius={[0, 4, 4, 0]} style={{ cursor: 'pointer' }} onClick={(data: any) => navigate(`/herd?campId=${data.campId}`)} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -695,44 +319,116 @@ export const Dashboard = () => {
           )}
         </div>
 
+        {/* View Journal */}
+        <div className="card fade-in" style={{ padding: '24px', backgroundColor: '#059669', color: 'white', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '24px', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <ClipboardList size={26} />
+              View Journal
+            </h2>
+            <p style={{ margin: '8px 0 0 0', opacity: 0.9, fontSize: '0.95rem' }}>
+              Review notes and observations recorded across your herd.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            {[['1', 'Last 24 Hours'], ['7', 'Last 7 Days'], ['30', 'Last 30 Days']].map(([days, label]) => (
+              <button key={days} className="btn"
+                style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.875rem' }}
+                onClick={() => navigate(`/recent-notes?days=${days}`)}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Currently Quarantined */}
+        <div className="card"
+          style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '4px solid #ef4444', cursor: quarantinedCount > 0 ? 'pointer' : 'default', transition: 'box-shadow 0.2s' }}
+          onClick={() => quarantinedCount > 0 && navigate('/herd?quarantined=true')}
+          onMouseEnter={e => { if (quarantinedCount > 0) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(239,68,68,0.12)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = ''; }}
+        >
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ShieldAlert size={16} color="#ef4444" />
+            Currently Quarantined
+          </span>
+          <span style={{ fontSize: '3rem', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{quarantinedCount}</span>
+          {quarantinedCount > 0 ? (
+            <span style={{ fontSize: '0.875rem', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              View quarantined animals <ChevronRight size={14} />
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No active quarantines</span>
+          )}
+        </div>
       </div>
 
-      {/* QUICK LOG MODAL */}
-      {isQuickLogOpen && quickLogAnimal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="card fade-in" style={{ width: '100%', maxWidth: '500px', backgroundColor: 'white', padding: '32px', position: 'relative' }}>
-            <button 
-              onClick={() => setIsQuickLogOpen(false)}
-              style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              <X size={24} />
+      {/* ── NOTES MODAL (animal picker) ────────────────────────────────────── */}
+      {isNotesOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '520px', backgroundColor: 'white', padding: '28px', position: 'relative' }}>
+            <button onClick={() => setIsNotesOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <X size={22} />
             </button>
-            <h2 style={{ margin: '0 0 24px 0', fontSize: '1.5rem', color: 'var(--text-main)', paddingRight: '32px' }}>
-              Log Note for {quickLogAnimal.tag_number}
-            </h2>
-            <form onSubmit={handleQuickLogSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+                <NotebookPen size={20} />
+              </div>
               <div>
-                <label className="form-label" style={{ marginBottom: '8px' }}>Journal Entry</label>
-                <textarea 
-                  className="form-input"
-                  style={{ minHeight: '120px', resize: 'none', fontSize: '1rem', padding: '16px' }}
-                  placeholder="Enter health observation, movement note, or general log..."
-                  autoFocus
-                  required
-                  value={quickLogNote}
-                  onChange={e => setQuickLogNote(e.target.value)}
-                />
+                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Add Journal Note</h2>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.875rem' }}>Search for an animal to open its journal</p>
               </div>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsQuickLogOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={isSavingQuickLog}>
-                  {isSavingQuickLog ? 'Saving...' : 'Save Note'}
-                </button>
-              </div>
-            </form>
+            </div>
+
+            <div style={{ position: 'relative' }}>
+              <Search size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Type tag number or name..."
+                style={{ paddingLeft: '44px', fontSize: '1rem' }}
+                value={notesSearch}
+                onChange={e => setNotesSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ marginTop: '12px', minHeight: '60px' }}>
+              {isSearchingNotes && <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Searching...</div>}
+              {!isSearchingNotes && notesSearch.trim() && notesResults.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No active animals found for "{notesSearch}"</div>
+              )}
+              {notesResults.map(a => (
+                <div key={a.id}
+                  onClick={() => { setIsNotesOpen(false); navigate(`/herd/${a.id}`, { state: { tab: 'journal' } }); }}
+                  style={{ padding: '14px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: '4px', transition: 'background-color 0.15s', border: '1px solid var(--border)' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F0FDF4')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>{getAnimalIcon(a.species, a.breed, a.sex)}</span>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{a.tag_number}</div>
+                      {a.name && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.name}</div>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{a.breed}</span>
+                    <ChevronRight size={16} color="#94a3b8" />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── BIRTH WORKFLOW MODAL ───────────────────────────────────────────── */}
+      {isBirthOpen && <BirthWorkflowModal onClose={() => { setIsBirthOpen(false); fetchDashboardData(); }} />}
     </div>
   );
 };

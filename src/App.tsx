@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { Home, List, PlusCircle, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, Upload, BarChart2, Users, LifeBuoy } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { Home, List, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, BarChart2, Users, LifeBuoy, Tag } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { BatchMovement } from './pages/BatchMovement';
@@ -22,7 +22,17 @@ import { Support } from './pages/Support';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
 import { RecentNotes } from './pages/RecentNotes';
-import { ComingSoon } from './pages/ComingSoon';
+import { Plans } from './pages/Plans';
+import { Signup } from './pages/Signup';
+import { Billing } from './pages/Billing';
+import { Profile } from './pages/Profile';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { HealthWorkflow } from './pages/HealthWorkflow';
+import { BuySell } from './pages/BuySell';
+import { BuyingWizard } from './pages/BuyingWizard';
+import { SellingWizard } from './pages/SellingWizard';
+import { AccountMenu } from './components/AccountMenu';
+import { SubscriptionProvider, useSubscription } from './context/SubscriptionContext';
 import { Toaster } from 'react-hot-toast';
 import logo from './assets/Logo.png';
 import { supabase } from './supabase';
@@ -46,7 +56,54 @@ const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, la
   );
 };
 
-// Main App Layout Structure
+// Trial/Grace Period Banner — renders inside SubscriptionProvider
+const TrialBanner = () => {
+  const { status, trialDaysRemaining } = useSubscription();
+  const navigate = useNavigate();
+
+  if (status === 'grace_period' || status === 'cancelled') {
+    return (
+      <div style={{
+        backgroundColor: '#FEE2E2', borderBottom: '1px solid #FECACA',
+        padding: '10px 32px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: '12px', fontSize: '0.875rem'
+      }}>
+        <span style={{ color: '#991B1B' }}>
+          🔒 <strong>Your free trial has ended.</strong> You are in read-only mode — you cannot add new animals.
+        </span>
+        <button
+          onClick={() => navigate('/billing')}
+          style={{ background: 'none', border: '1px solid #EF4444', color: '#EF4444', padding: '4px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+        >
+          Select a Plan →
+        </button>
+      </div>
+    );
+  }
+
+  if (status === 'trialing' && trialDaysRemaining !== null && trialDaysRemaining <= 7) {
+    return (
+      <div style={{
+        backgroundColor: '#FFFBEB', borderBottom: '1px solid #FDE68A',
+        padding: '10px 32px', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', gap: '12px', fontSize: '0.875rem'
+      }}>
+        <span style={{ color: '#92400E' }}>
+          ⚠️ <strong>Trial ending:</strong> {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining.
+        </span>
+        <button
+          onClick={() => navigate('/billing')}
+          style={{ background: 'none', border: '1px solid #D97706', color: '#D97706', padding: '4px 14px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', fontSize: '0.8rem' }}
+        >
+          Choose a Plan →
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const App = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -108,17 +165,25 @@ const App = () => {
         {/* PUBLIC ROUTES */}
         {!session ? (
           <>
-            {(import.meta.env.VITE_COMING_SOON_MODE ?? '').trim() === 'true' ? (
+            {(import.meta.env.VITE_BETA_MODE ?? '').trim() === 'true' ? (
               <>
-                <Route path="/" element={<ComingSoon />} />
+                <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Auth />} />
-                {/* When in coming soon mode, redirect everything else to the landing page, except /login */}
+                {/* Public utility pages */}
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                {/* Redirect signup/plans to landing in beta mode */}
+                <Route path="/plans" element={<Navigate to="/" replace />} />
+                <Route path="/signup" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (
               <>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Auth />} />
+                <Route path="/plans" element={<Plans />} />
+                <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
@@ -129,6 +194,7 @@ const App = () => {
         ) : (
           /* AUTHENTICATED ROUTES (Only accessible when LOGGED IN) */
           <Route element={
+            <SubscriptionProvider session={session}>
             <div className="app-container">
               {/* Left Sidebar */}
               {isSidebarOpen && (
@@ -144,26 +210,28 @@ const App = () => {
                 <nav className="sidebar-nav">
                   <NavItem to="/" icon={Home} label="Dashboard" onClick={() => setIsSidebarOpen(false)} />
                   <NavItem to="/herd" icon={List} label="My Herd" onClick={() => setIsSidebarOpen(false)} />
-                  <NavItem to="/camps" icon={Tent} label="Pastures & Camps" onClick={() => setIsSidebarOpen(false)} />
-                  <NavItem to="/herd/add" icon={PlusCircle} label="Add Animal" onClick={() => setIsSidebarOpen(false)} />
-                  <NavItem to="/herd/import" icon={Upload} label="Import/Export" onClick={() => setIsSidebarOpen(false)} />
-                  <NavItem to="/batch-health" icon={Activity} label="Batch Health" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/camps" icon={Tent} label="Pastures Movement" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/health" icon={Activity} label="Health" onClick={() => setIsSidebarOpen(false)} />
+                  <NavItem to="/buy-sell" icon={Tag} label="Buy / Sell" onClick={() => setIsSidebarOpen(false)} />
                   <NavItem to="/reports" icon={BarChart2} label="Reports" onClick={() => setIsSidebarOpen(false)} />
-                  
+
+                  {/* Spacer pushes bottom items down */}
+                  <div style={{ flex: 1 }}></div>
+
                   {/* Admin Section */}
                   {session.user.email === 'djb.rsa@gmail.com' && (
-                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: '4px' }}>
                       <div style={{ padding: '0 16px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</div>
+                      <NavItem to="/admin" icon={Users} label="Admin Console" onClick={() => setIsSidebarOpen(false)} />
                       <NavItem to="/admin/users" icon={Users} label="User Management" onClick={() => setIsSidebarOpen(false)} />
                     </div>
                   )}
 
-                  <div style={{ flex: 1 }}></div>
                   <NavItem to="/support" icon={LifeBuoy} label="Help & Support" onClick={() => setIsSidebarOpen(false)} />
                   <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
-                  <button 
+                  <button
                     onClick={handleSignOut}
-                    className="nav-item" 
+                    className="nav-item"
                     style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', color: 'var(--danger)', marginTop: '8px' }}
                   >
                     <LogOut size={20} />
@@ -174,6 +242,7 @@ const App = () => {
 
               {/* Main Content Area */}
               <div className="main-content">
+                <TrialBanner />
                 <header className="header">
                   <button 
                     className="btn btn-outline" 
@@ -188,14 +257,7 @@ const App = () => {
                     <Bell size={20} />
                     <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
                   </button>
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '50%', 
-                    backgroundColor: 'var(--primary)', color: 'white',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 600, marginLeft: '16px'
-                  }}>
-                    {session.user.email?.substring(0, 2).toUpperCase() || 'DB'}
-                  </div>
+                  <AccountMenu session={session} onSignOut={handleSignOut} />
                 </header>
 
                 <main className="page-container">
@@ -210,12 +272,21 @@ const App = () => {
                     <Route path="/herd/:id/edit" element={<EditAnimal />} />
                     <Route path="/herd/import" element={<ImportData />} />
                     <Route path="/camps" element={<CampsList />} />
+                    <Route path="/health" element={<HealthWorkflow />} />
                     <Route path="/batch-health" element={<BatchHealth />} />
+                    <Route path="/buy-sell" element={<BuySell />} />
+                    <Route path="/buy-sell/buy" element={<BuyingWizard />} />
+                    <Route path="/buy-sell/sell" element={<SellingWizard />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/support" element={<Support />} />
+                    <Route path="/billing" element={<Billing />} />
+                    <Route path="/profile" element={<Profile />} />
                     {session.user.email === 'djb.rsa@gmail.com' && (
-                      <Route path="/admin/users" element={<UserManagement />} />
+                      <>
+                        <Route path="/admin" element={<AdminDashboard />} />
+                        <Route path="/admin/users" element={<UserManagement />} />
+                      </>
                     )}
                     {/* Catch-all for authenticated users: back to dashboard */}
                     <Route path="*" element={<Navigate to="/" replace />} />
@@ -243,6 +314,7 @@ const App = () => {
                 />
               </div>
             </div>
+            </SubscriptionProvider>
           }>
             <Route path="*" element={<span />} />
           </Route>

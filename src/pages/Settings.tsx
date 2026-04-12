@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Papa from 'papaparse';
 import { supabase } from '../supabase';
 import type { FarmSettings, CattleBreed, SheepBreed } from '../types';
-import { Save, Building2, MapPin, Hash, Globe, CheckCircle2, Activity } from 'lucide-react';
+import { Save, Building2, MapPin, Hash, Globe, CheckCircle2, Activity, Download, Upload, FolderSync } from 'lucide-react';
 
 export const Settings = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -96,6 +99,53 @@ export const Settings = () => {
       setMessage({ type: 'error', text: error.message || 'Failed to save settings' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Export handler (mirrors ImportData.tsx) ──────────────────────────────
+  const handleExport = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('animals')
+        .select('*')
+        .order('tag_number');
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        alert('No animal data found to export.');
+        return;
+      }
+
+      // Map DB snake_case columns back to friendly CSV headers
+      const exportData = data.map(animal => ({
+        'Tag Number':    animal.tag_number,
+        'EID Number':    animal.eid_number   || '',
+        'Species':       animal.species,
+        'Breed':         animal.breed,
+        'Sex':           animal.sex,
+        'Date of Birth': animal.date_of_birth,
+        'Status':        animal.status,
+        'Weight (kg)':   animal.weight       || '',
+        'Horn Status':   animal.horn_status   || '',
+        'Is Quarantined': animal.is_quarantined ? 'Yes' : 'No',
+        'Name':          animal.name          || '',
+        'Notes':         animal.notes         || ''
+      }));
+
+      const csv  = Papa.unparse(exportData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url  = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href',     url);
+      link.setAttribute('download', `HealthyHerd_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      alert('Failed to export data. Please try again.');
     }
   };
 
@@ -323,6 +373,85 @@ export const Settings = () => {
               </select>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>Determines how the app listens for your voice commands.</p>
             </div>
+          </div>
+        </div>
+
+        {/* ── Import & Export Data ─────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: '24px', gridColumn: '1 / -1' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FolderSync size={20} color="var(--primary)" />
+            Import &amp; Export Data
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '24px' }}>
+            Backup your full database or upload new records via CSV.
+          </p>
+
+          {/* Two-column action layout */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '24px'
+          }}>
+
+            {/* Export column */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              padding: '20px',
+              borderRadius: '10px',
+              background: 'var(--background)',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Download size={22} color="var(--primary)" />
+                <span style={{ fontWeight: 600, fontSize: '1rem' }}>Export Database</span>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                Download all your animal records as a single CSV spreadsheet for backup or external use.
+              </p>
+              {/* Export is handled inline — no navigation needed */}
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={handleExport}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start', marginTop: 'auto' }}
+              >
+                <Download size={16} />
+                Export CSV
+              </button>
+            </div>
+
+            {/* Import column */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              padding: '20px',
+              borderRadius: '10px',
+              background: 'var(--background)',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Upload size={22} color="var(--primary)" />
+                <span style={{ fontWeight: 600, fontSize: '1rem' }}>Import Animals</span>
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                Upload a CSV file to bulk-add animals to your account. The wizard guides you through
+                column mapping and validation before saving.
+              </p>
+              {/* Import is a multi-step wizard — navigate to its dedicated page */}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate('/herd/import')}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', alignSelf: 'flex-start', marginTop: 'auto' }}
+              >
+                <Upload size={16} />
+                Go to Import Wizard
+              </button>
+            </div>
+
           </div>
         </div>
 

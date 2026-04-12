@@ -1,15 +1,51 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, MapPin, Scale, ArrowRight, ClipboardList, WifiOff, HeartHandshake } from 'lucide-react';
+import { Activity, MapPin, Scale, ArrowRight, ClipboardList, WifiOff, HeartHandshake, Mail, CheckCircle, Loader2, Zap, ShieldCheck, Move, Upload } from 'lucide-react';
+import { supabase } from '../supabase';
 import logo from '../assets/Logo.png';
 
 export const Landing = () => {
   const navigate = useNavigate();
   const [isSouthAfrica, setIsSouthAfrica] = useState<boolean>(true);
+  
+  // Beta Mode State
+  const isBetaMode = (import.meta.env.VITE_BETA_MODE ?? '').trim() === 'true';
+  const [email, setEmail] = useState('');
+  const [focus, setFocus] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setIsSouthAfrica(Intl.DateTimeFormat().resolvedOptions().timeZone === 'Africa/Johannesburg');
   }, []);
+
+  const handleWaitlistSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error: supabaseError } = await supabase
+        .from('waitlist')
+        .insert([{ email, primary_focus: focus || null }]);
+
+      if (supabaseError) {
+        if (supabaseError.code === '23505') {
+          setError('You are already on the waitlist! We will be in touch soon.');
+        } else {
+          throw supabaseError;
+        }
+      } else {
+        setSubmitted(true);
+      }
+    } catch (err: any) {
+      console.error('Waitlist error:', err);
+      setError('Something went wrong. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)', display: 'flex', flexDirection: 'column' }}>
@@ -44,12 +80,14 @@ export const Landing = () => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <button 
             className="btn btn-primary fade-in" 
-            onClick={() => navigate('/login')}
+            onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=basic')}
             style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both' }}
           >
-            Start Your Free Trial <ArrowRight size={24} />
+            {isBetaMode ? 'Join the Beta Phase' : 'Start Your Free Trial'} <ArrowRight size={24} />
           </button>
-          <span className="fade-in" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', animationDelay: '0.3s', animationFillMode: 'both' }}>No credit card required</span>
+          <span className="fade-in" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', animationDelay: '0.3s', animationFillMode: 'both' }}>
+            {isBetaMode ? 'Priority access for early adopters' : 'No credit card required'}
+          </span>
         </div>
       </section>
 
@@ -62,19 +100,19 @@ export const Landing = () => {
             {/* Feature 1 */}
             <div className="card fade-in" style={{ padding: '40px 32px', textAlign: 'center', transition: 'transform 0.3s', animationDelay: '0.3s', animationFillMode: 'both' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
               <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)' }}>
-                <Activity size={32} />
+                <ShieldCheck size={32} />
               </div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Batch Health Tracking</h3>
-              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Vaccinate and treat your entire herd in one click with ultra-fast batch logging. Maintain impeccable veterinary records instantly.</p>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Smart Medication</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Precise dosage verification calculated instantly from each animal's weight and metrics. Minimise waste and ensure superior care.</p>
             </div>
 
             {/* Feature 2 */}
             <div className="card fade-in" style={{ padding: '40px 32px', textAlign: 'center', transition: 'transform 0.3s', animationDelay: '0.4s', animationFillMode: 'both' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
               <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)' }}>
-                <MapPin size={32} />
+                <Move size={32} />
               </div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Movement Traceability</h3>
-              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>State-vet compliant movement ledgers. Instantly track origin, destination, and establish hard safeguards on quarantined cattle.</p>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Pasture Management</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Optimise grazing cycles with detailed pasture movement logs. State-vet compliant ledgers with established safeguards for quarantined cattle.</p>
             </div>
 
             {/* Feature 3 */}
@@ -107,10 +145,10 @@ export const Landing = () => {
             {/* Feature 6 */}
             <div className="card fade-in" style={{ padding: '40px 32px', textAlign: 'center', transition: 'transform 0.3s', animationDelay: '0.8s', animationFillMode: 'both' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-10px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
               <div style={{ width: '64px', height: '64px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: 'var(--primary)' }}>
-                <HeartHandshake size={32} />
+                <Upload size={32} />
               </div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Built for the Farmer</h3>
-              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>An intuitive, frustration-free interface designed to be used in the sun, dirt, and dust. No steep learning curve—just open and go.</p>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-main)' }}>Seamless Data Import</h3>
+              <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>Bring your existing operation with you. Bulk import your historical Excel or CSV data in seconds and never lose a day of records.</p>
             </div>
           </div>
         </div>
@@ -128,7 +166,14 @@ export const Landing = () => {
               <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)', marginTop: '24px' }}>Basic</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 100 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R75' : '$5'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
-              <button style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>Start Trial</button>
+              <button 
+                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=basic')} 
+                style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
+              >
+                {isBetaMode ? 'Join Beta' : 'Start Free Trial'}
+              </button>
             </div>
 
             {/* Intermediate Plan */}
@@ -137,7 +182,14 @@ export const Landing = () => {
               <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)', marginTop: '16px' }}>Intermediate</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 500 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R150' : '$10'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
-              <button style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>Choose Plan</button>
+              <button 
+                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=intermediate')} 
+                style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
+              >
+                {isBetaMode ? 'Join Beta' : 'Get Started'}
+              </button>
             </div>
 
             {/* Large Plan */}
@@ -145,7 +197,14 @@ export const Landing = () => {
               <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)', marginTop: '24px' }}>Large</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 1000 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R300' : '$20'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
-              <button style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}>Choose Plan</button>
+              <button 
+                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=large')} 
+                style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
+              >
+                {isBetaMode ? 'Join Beta' : 'Get Started'}
+              </button>
             </div>
 
             {/* Commercial Plan */}
@@ -153,13 +212,163 @@ export const Landing = () => {
               <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)', marginTop: '24px' }}>Commercial</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>More than 1000 animals</p>
               <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px', paddingTop: '6px' }}>Contact Us</div>
-              <button style={{ marginTop: 'auto', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}>Contact Sales</button>
+              <button 
+                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/plans')} 
+                style={{ marginTop: 'auto', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} 
+                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }} 
+                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}
+              >
+                {isBetaMode ? 'Join Beta' : 'Contact Sales'}
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* BETA SIGNUP SECTION */}
+      {isBetaMode && (
+        <section id="beta-signup" style={{ padding: '100px 20px', backgroundColor: 'var(--bg-main)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
+          <div className="fade-in" style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+              padding: '8px 16px', 
+              borderRadius: '20px', 
+              color: 'var(--primary)', 
+              fontSize: '0.875rem', 
+              fontWeight: 600,
+              marginBottom: '32px',
+              border: '1px solid rgba(16, 185, 129, 0.2)'
+            }}>
+              <Zap size={16} /> Beta Testing registration open
+            </div>
+            
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '24px', color: 'var(--primary-dark)' }}>
+              Join the Beta Today
+            </h2>
+            
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '48px', lineHeight: 1.6 }}>
+              Be among the first to digitise your herd with HealthyHerd. Secure your spot on the priority waitlist for early access.
+            </p>
+
+            {!submitted ? (
+              <div style={{
+                backgroundColor: 'var(--surface)',
+                padding: '40px',
+                borderRadius: '24px',
+                border: '1px solid var(--border)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
+                margin: '0 auto'
+              }}>
+                <form onSubmit={handleWaitlistSignup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                      Email Address
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Mail style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={20} />
+                      <input 
+                        type="email" 
+                        required
+                        placeholder="farmer@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '14px 16px 14px 48px',
+                          backgroundColor: 'var(--bg-main)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '12px',
+                          color: 'var(--text-main)',
+                          fontSize: '1rem',
+                          outline: 'none',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'left' }}>
+                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                      Primary Focus (Optional)
+                    </label>
+                    <select 
+                      value={focus}
+                      onChange={(e) => setFocus(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px',
+                        backgroundColor: 'var(--bg-main)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '12px',
+                        color: 'var(--text-main)',
+                        fontSize: '1rem',
+                        outline: 'none',
+                        appearance: 'none',
+                        cursor: 'pointer'
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+                    >
+                      <option value="">Select focus...</option>
+                      <option value="Cattle">Cattle</option>
+                      <option value="Sheep">Sheep</option>
+                      <option value="Mixed">Mixed / Other</option>
+                    </select>
+                  </div>
+
+                  {error && (
+                    <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'left' }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="btn btn-primary"
+                    style={{
+                      padding: '16px',
+                      borderRadius: '12px',
+                      fontSize: '1.125rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '12px',
+                      marginTop: '8px'
+                    }}
+                  >
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={24} />
+                    ) : (
+                      <>Join Priority Waitlist <ArrowRight size={20} /></>
+                    )}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="fade-in" style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                padding: '60px 40px',
+                borderRadius: '24px',
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+                margin: '0 auto'
+              }}>
+                <CheckCircle size={64} color="var(--primary)" style={{ marginBottom: '24px' }} />
+                <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '16px', color: 'var(--primary-dark)' }}>You're on the list!</h2>
+                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  Thank you for your interest in HealthyHerd. We'll notify you {email} as soon as the beta is ready for your farm.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
       <footer style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 40px 40px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px', marginBottom: '60px' }}>

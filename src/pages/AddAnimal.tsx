@@ -5,10 +5,12 @@ import { supabase } from '../supabase';
 import { db } from '../database/db';
 import { SyncManager } from '../services/syncManager';
 import { v4 as uuidv4 } from 'uuid';
+import { useSubscription } from '../context/SubscriptionContext';
 
 export const AddAnimal = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isBlocked, isAtLimit, planName, animalLimit, activeAnimalCount } = useSubscription();
   
   const [camps, setCamps] = useState<Camp[]>([]);
   const [saving, setSaving] = useState(false);
@@ -101,6 +103,24 @@ export const AddAnimal = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ── Subscription guard ──────────────────────────────────────────────────
+    if (isBlocked) {
+      alert('Your free trial has ended. Please select a plan on the Billing page to continue adding animals.');
+      navigate('/billing');
+      return;
+    }
+    if (isAtLimit) {
+      alert(`You've reached your ${planName} plan limit of ${animalLimit} active animals. Upgrade your plan to add more.`);
+      navigate('/billing');
+      return;
+    }
+    // Check that multi-offspring add won't push over the limit
+    if (activeAnimalCount + numberOfOffspring > animalLimit) {
+      alert(`Adding ${numberOfOffspring} animals would exceed your ${planName} plan limit (${animalLimit} animals). You have ${animalLimit - activeAnimalCount} slot(s) remaining.`);
+      return;
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     // Visual Validation for Cloven-hoofed strict fields
     if (formData.species === 'Cattle' || formData.species === 'Sheep') {
