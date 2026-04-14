@@ -144,12 +144,6 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
       setActiveAnimalCount(count ?? 0);
     }
   };
-    } catch (err) {
-      console.error('SubscriptionContext: unexpected error', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [session.user.id]);
 
   useEffect(() => {
     fetchSubscription();
