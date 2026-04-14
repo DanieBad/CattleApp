@@ -169,13 +169,12 @@ const App = () => {
               <>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Auth />} />
+                <Route path="/plans" element={<Plans />} />
+                <Route path="/signup" element={<Signup />} />
                 {/* Public utility pages */}
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
-                {/* Redirect signup/plans to landing in beta mode */}
-                <Route path="/plans" element={<Navigate to="/" replace />} />
-                <Route path="/signup" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </>
             ) : (
