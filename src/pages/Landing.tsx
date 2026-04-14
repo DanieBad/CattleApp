@@ -32,15 +32,22 @@ export const Landing = () => {
             Beta Phase
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <a href="#pricing" style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Pricing</a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <a href="#pricing" style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s', marginRight: '8px' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Pricing</a>
           <button 
             onClick={() => navigate('/login')}
-            style={{ background: 'none', border: '1px solid var(--primary)', color: 'var(--primary)', padding: '10px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }}
-            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}
+            style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--text-main)', padding: '10px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-main)'; }}
           >
             Sign In
+          </button>
+          <button 
+            onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', borderRadius: '8px', fontWeight: 600 }}
+          >
+            Get Started
           </button>
         </div>
       </header>
@@ -57,10 +64,10 @@ export const Landing = () => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <button 
             className="btn btn-primary fade-in" 
-            onClick={() => navigate('/signup?plan=basic')}
+            onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}
             style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both' }}
           >
-            Start Your Free Beta Account <ArrowRight size={24} />
+            Start Your Free Trial <ArrowRight size={24} />
           </button>
           <span className="fade-in" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', animationDelay: '0.3s', animationFillMode: 'both' }}>
             No charge for early adopters during Beta
@@ -168,7 +175,7 @@ export const Landing = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                Get Started
+                Start Free Trial
               </button>
             </div>
 
@@ -183,7 +190,7 @@ export const Landing = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                Get Started
+                Start Free Trial
               </button>
             </div>
 
@@ -193,7 +200,7 @@ export const Landing = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>More than 1000 animals</p>
               <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px', paddingTop: '6px' }}>Contact Us</div>
               <button 
-                onClick={() => navigate('/plans')} 
+                onClick={() => navigate('/support')} 
                 style={{ marginTop: 'auto', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} 
                 onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }} 
                 onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}

@@ -17,6 +17,7 @@ const PLAN_META: Record<string, PlanMeta> = {
   basic:        { id: 'basic',        name: 'Basic',        animalLimit: 100,    priceZar: 75,   priceUsd: 5   },
   intermediate: { id: 'intermediate', name: 'Intermediate', animalLimit: 500,    priceZar: 150,  priceUsd: 10  },
   large:        { id: 'large',        name: 'Large',        animalLimit: 1000,   priceZar: 300,  priceUsd: 20  },
+  commercial:   { id: 'commercial',   name: 'Commercial',   animalLimit: 99999,  priceZar: null, priceUsd: null },
 };
 
 export const Signup = () => {
@@ -101,7 +102,7 @@ export const Signup = () => {
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <img src={logo} alt="HealthyHerd" style={{ height: isMobile ? '36px' : '44px' }} />
-        <Link to="/plans" style={{
+        <Link to="/" style={{
           display: 'flex', alignItems: 'center', gap: '8px',
           color: 'var(--text-muted)', textDecoration: 'none',
           fontSize: '0.875rem', fontWeight: 500,
@@ -119,7 +120,7 @@ export const Signup = () => {
               Beta
             </span>
             <ArrowLeft size={16} />
-            {isMobile ? 'Plans' : 'View all plans'}
+            {isMobile ? 'Back' : 'Back to home'}
         </Link>
       </header>
 
@@ -182,18 +183,16 @@ export const Signup = () => {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '1.4rem', fontWeight: 900 }}>
-                    {isSouthAfrica ? `R${plan.priceZar}` : `$${plan.priceUsd}`}
-                    <span style={{ fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mo</span>
+                    {plan.priceZar !== null ? (isSouthAfrica ? `R${plan.priceZar}` : `$${plan.priceUsd}`) : 'Contact Us'}
+                    {plan.priceZar !== null && <span style={{ fontSize: '0.8rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mo</span>}
                   </div>
-                  {planId === 'basic' && (
-                    <div style={{
-                      display: 'inline-block', backgroundColor: 'rgba(16,185,129,0.08)',
-                      color: 'var(--primary)', borderRadius: '20px', padding: '2px 10px',
-                      fontSize: '0.7rem', fontWeight: 600,
-                    }}>
-                      30-day free trial
-                    </div>
-                  )}
+                  <div style={{
+                    display: 'inline-block', backgroundColor: 'rgba(16,185,129,0.08)',
+                    color: 'var(--primary)', borderRadius: '20px', padding: '2px 10px',
+                    fontSize: '0.7rem', fontWeight: 600,
+                  }}>
+                    30-day free trial
+                  </div>
                 </div>
               </div>
             ) : (
@@ -204,18 +203,16 @@ export const Signup = () => {
                   Up to {plan.animalLimit.toLocaleString()} animals
                 </div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '4px' }}>
-                  {isSouthAfrica ? `R${plan.priceZar}` : `$${plan.priceUsd}`}
-                  <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}>/month</span>
+                  {plan.priceZar !== null ? (isSouthAfrica ? `R${plan.priceZar}` : `$${plan.priceUsd}`) : 'Contact Us'}
+                  {plan.priceZar !== null && <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-muted)' }}>/month</span>}
                 </div>
-                {planId === 'basic' && (
-                  <div style={{
-                    display: 'inline-block', backgroundColor: 'rgba(16,185,129,0.08)',
-                    color: 'var(--primary)', borderRadius: '20px', padding: '4px 12px',
-                    fontSize: '0.75rem', fontWeight: 600, marginBottom: '24px',
-                  }}>
-                    30-day free trial included
-                  </div>
-                )}
+                <div style={{
+                  display: 'inline-block', backgroundColor: 'rgba(16,185,129,0.08)',
+                  color: 'var(--primary)', borderRadius: '20px', padding: '4px 12px',
+                  fontSize: '0.75rem', fontWeight: 600, marginBottom: '24px',
+                }}>
+                  30-day free trial included
+                </div>
               </>
             )}
 
@@ -237,7 +234,7 @@ export const Signup = () => {
             </ul>
 
             {!isMobile && (
-              <Link to="/plans" style={{ marginTop: '32px', fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Link to="/" style={{ marginTop: '32px', fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <ArrowLeft size={12} /> Change plan
               </Link>
             )}
@@ -380,7 +377,7 @@ export const Signup = () => {
 
             {isMobile && (
               <div style={{ textAlign: 'center', marginTop: '16px' }}>
-                <Link to="/plans" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Link to="/" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <ArrowLeft size={12} /> Change plan
                 </Link>
               </div>
