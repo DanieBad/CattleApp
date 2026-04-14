@@ -79,12 +79,15 @@ serve(async (req) => {
       }),
     });
 
+    const resData = await res.json();
+    console.log(`[BetaWelcome] Resend response status: ${res.status}`);
+    console.log(`[BetaWelcome] Resend response body:`, JSON.stringify(resData));
+
     if (!res.ok) {
-      const errorData = await res.json()
-      throw new Error(`Resend API error: ${JSON.stringify(errorData)}`)
+      throw new Error(`Resend API error (${res.status}): ${JSON.stringify(resData)}`)
     }
 
-    return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } })
+    return new Response(JSON.stringify({ success: true, res: resData }), { headers: { "Content-Type": "application/json" } })
 
   } catch (error) {
     console.error("Error sending Beta Welcome email:", error)

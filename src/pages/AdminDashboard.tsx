@@ -53,6 +53,32 @@ export const AdminDashboard = () => {
   const [editRow, setEditRow] = useState<OverrideForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [testLoading, setTestLoading] = useState(false);
+
+  const handleTestEmail = async () => {
+    const email = window.prompt('Enter email to send test beta welcome to:', 'beta-test@healthyherd.app');
+    if (!email) return;
+
+    setTestLoading(true);
+    console.log(`[Admin] Manually triggering welcome email for: ${email}`);
+    
+    try {
+      // Direct call to Edge Function (verify_jwt=false ensures this works if public/unauth allowed)
+      const { data, error } = await supabase.functions.invoke('send-beta-welcome-email', {
+        body: { record: { email } }
+      });
+
+      if (error) throw error;
+      
+      console.log('[Admin] Test email result:', data);
+      alert('Success! Check the browser console for Resend API response details.');
+    } catch (err: any) {
+      console.error('[Admin] Test email failure:', err);
+      alert(`Failed: ${err.message}. Check browser console for full details.`);
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -156,13 +182,25 @@ export const AdminDashboard = () => {
           </h1>
           <p style={{ color: 'var(--text-muted)' }}>Subscriptions and activity overview.</p>
         </div>
-        <button
-          onClick={fetchAll}
-          className="btn btn-outline"
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem' }}
-        >
-          <RefreshCw size={15} /> Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button 
+            onClick={handleTestEmail}
+            disabled={testLoading}
+            className="btn btn-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem' }}
+          >
+            {testLoading ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+            Send Test Beta Email
+          </button>
+          <button 
+            onClick={fetchAll}
+            className="btn btn-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ── KPI Cards ───────────────────────────────────────────────────── */}
