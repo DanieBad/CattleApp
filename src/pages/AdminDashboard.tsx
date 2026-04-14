@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import {
   Users, ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2,
   Clock, XCircle, Search, RefreshCw, Edit3, X, Save,
-  Loader2, Mail, ListChecks, BarChart3, Send
+  Loader2, BarChart3
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -19,15 +19,6 @@ interface UserRow {
   trial_ends_at: string | null;
   activated_at: string | null;
   animal_count: number;
-}
-
-interface WaitlistRow {
-  id: string;
-  email: string;
-  primary_focus: string | null;
-  herd_size: string | null;
-  status: string | null;
-  created_at: string;
 }
 
 interface OverrideForm {
@@ -55,25 +46,19 @@ const fmt = (date: string | null) =>
 // ── Component ──────────────────────────────────────────────────────────────
 export const AdminDashboard = () => {
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'subscriptions' | 'waitlist'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'subscriptions'>('overview');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [editRow, setEditRow] = useState<OverrideForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
-  const [invitingId, setInvitingId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [{ data: userData }, { data: wlData }] = await Promise.all([
-        supabase.rpc('get_admin_user_overview'),
-        supabase.rpc('get_admin_waitlist'),
-      ]);
+      const { data: userData } = await supabase.rpc('get_admin_user_overview');
       setUsers((userData as UserRow[]) ?? []);
-      setWaitlist((wlData as WaitlistRow[]) ?? []);
     } catch (err) {
       console.error('Admin fetch error:', err);
     } finally {
@@ -90,7 +75,6 @@ export const AdminDashboard = () => {
     active:      users.filter(u => u.sub_status === 'active').length,
     expired:     users.filter(u => ['grace_period', 'cancelled'].includes(u.sub_status)).length,
     totalAnimals: users.reduce((s, u) => s + (u.animal_count ?? 0), 0),
-    waitlistCount: waitlist.length,
   };
 
   const recentSignups = [...users]
@@ -137,50 +121,12 @@ export const AdminDashboard = () => {
       });
       if (error) throw error;
       setSaveMsg('Saved!');
-      setEditRow(null);
+      setTimeout(() => setEditRow(null), 1000);
       await fetchAll();
     } catch (err: any) {
       setSaveMsg(err.message ?? 'Save failed');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleInvite = async (waitlistId: string, email: string) => {
-    if (!confirm(`Are you sure you want to send a beta invite to ${email}?`)) return;
-    
-    setInvitingId(waitlistId);
-    try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error("Not authenticated");
-
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hpddjhajklbgxcqgbvzc.supabase.co'}/functions/v1/invite-beta-user`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({ email, waitlistId })
-        });
-
-        const result = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(JSON.stringify(result));
-        }
-
-        const mailtoLink = `mailto:${email}?subject=Welcome to the HealthyHerd Beta!&body=Hi there,%0D%0A%0D%0AYou have been officially approved to join the HealthyHerd platform!%0D%0A%0D%0AClick the secure link below to set up your account and get started:%0D%0A${encodeURIComponent(result.inviteLink)}%0D%0A%0D%0AWelcome aboard,%0D%0AThe HealthyHerd Team`;
-        
-        if (confirm(`Invite generated securely!\n\nClick OK to automatically open your email program and send the secret link to ${email}.`)) {
-            window.location.href = mailtoLink;
-        }
-
-        await fetchAll();
-    } catch (err: any) {
-        console.error("Invite error:", err);
-        alert(`Failed to send invite: ${err.message}`);
-    } finally {
-        setInvitingId(null);
     }
   };
 
@@ -208,7 +154,7 @@ export const AdminDashboard = () => {
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ShieldCheck color="var(--primary)" size={26} /> Admin Console
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>Subscriptions, signups and waitlist overview.</p>
+          <p style={{ color: 'var(--text-muted)' }}>Subscriptions and activity overview.</p>
         </div>
         <button
           onClick={fetchAll}
@@ -227,7 +173,6 @@ export const AdminDashboard = () => {
           { label: 'Paid Active',    value: kpis.active,       icon: CheckCircle2, color: '#059669', bg: '#D1FAE5' },
           { label: 'Expired/Lapsed', value: kpis.expired,      icon: AlertTriangle,color: '#DC2626', bg: '#FEE2E2' },
           { label: 'Total Animals',  value: kpis.totalAnimals, icon: BarChart3,    color: '#D97706', bg: '#FEF3C7' },
-          { label: 'Waitlist',       value: kpis.waitlistCount,icon: ListChecks,   color: '#7C3AED', bg: '#EDE9FE' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ background: bg, padding: '10px', borderRadius: '10px', flexShrink: 0 }}>
@@ -243,7 +188,7 @@ export const AdminDashboard = () => {
 
       {/* ── Tabs ────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '0' }}>
-        {(['overview', 'subscriptions', 'waitlist'] as const).map(tab => (
+        {(['overview', 'subscriptions'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -255,7 +200,7 @@ export const AdminDashboard = () => {
               marginBottom: '-1px', transition: 'all 0.15s', textTransform: 'capitalize',
             }}
           >
-            {tab}{tab === 'waitlist' ? ` (${kpis.waitlistCount})` : ''}
+            {tab}
           </button>
         ))}
       </div>
@@ -421,70 +366,6 @@ export const AdminDashboard = () => {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
-
-      {/* ──────────────────── TAB: WAITLIST ─────────────────────────────── */}
-      {activeTab === 'waitlist' && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Mail size={16} color="var(--primary)" /> Waitlist Signups
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{waitlist.length} entries</span>
-          </div>
-          {waitlist.length === 0 ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>No waitlist entries yet.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ backgroundColor: '#F1F5F9' }}>
-                  <tr>
-                    {['Email', 'Herd Size', 'Focus', 'Status', 'Signed Up', 'Actions'].map(h => <th key={h} style={th}>{h}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {waitlist.map(w => (
-                    <tr key={w.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ ...td, fontWeight: 600 }}>{w.email}</td>
-                      <td style={td}>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          fontWeight: 700, 
-                          backgroundColor: '#F3F4F6', 
-                          padding: '2px 8px', 
-                          borderRadius: '10px' 
-                        }}>
-                          {w.herd_size || '—'}
-                        </span>
-                      </td>
-                      <td style={{ ...td, color: 'var(--text-muted)' }}>{w.primary_focus || '—'}</td>
-                      <td style={td}>
-                         {w.status === 'invited' ? (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: '#D1FAE5', color: '#065F46', padding: '2px 8px', borderRadius: '10px' }}>Invited</span>
-                         ) : (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 600, backgroundColor: '#FEF3C7', color: '#92400E', padding: '2px 8px', borderRadius: '10px' }}>Pending</span>
-                         )}
-                      </td>
-                      <td style={{ ...td, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{fmt(w.created_at)}</td>
-                      <td style={td}>
-                        {w.status !== 'invited' && (
-                            <button
-                              onClick={() => handleInvite(w.id, w.email)}
-                              disabled={invitingId === w.id}
-                              className="btn btn-outline"
-                              style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', opacity: invitingId === w.id ? 0.5 : 1 }}
-                            >
-                                {invitingId === w.id ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Approve
-                            </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
       )}
 
