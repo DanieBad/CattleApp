@@ -59,18 +59,24 @@ serve(async (req) => {
             <h3 style="color: #111827; margin-top: 25px;">Getting Started with HealthyHerd:</h3>
             <ul style="padding-left: 20px;">
               <li style="margin-bottom: 12px;">
-                <strong>Log Your First Animal:</strong> Head to the "Add Animal" section to start building your digital herd.
+                <strong>Easy Import:</strong> Got existing records? Use our CSV import function to easily move your data into HealthyHerd.
               </li>
               <li style="margin-bottom: 12px;">
-                <strong>Track Health & Weights:</strong> Use our smart analytics to monitor growth and manage vaccinations with ease.
+                <strong>Traceability & FMD Compliance:</strong> Maintain full visibility of your herd's history and accurate, state-vet compliant ledgers effortlessly.
               </li>
               <li style="margin-bottom: 12px;">
-                <strong>Work Anywhere:</strong> Don't forget, HealthyHerd works offline! Your data syncs automatically once you're back in range.
+                <strong>Smart Health Tracking:</strong> Automatic dose calculations for vaccinations and medicines based on your animal's weight.
               </li>
               <li style="margin-bottom: 12px;">
-                <strong>FMD Compliance:</strong> Maintain accurate, state-vet compliant ledgers effortlessly.
+                <strong>Field Notes & Offline Ready:</strong> Record observations directly in the app. HealthyHerd works completely offline and syncs your journal and data automatically when you're back in range!
               </li>
             </ul>
+
+            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 30px; margin-top: 20px;">
+              <p style="margin: 0; color: #1e3a8a; font-size: 0.9rem;">
+                <strong>✨ Sneak Peek:</strong> Our brand new AI Voice Assistant is currently in development! As a Beta tester, you can give it a try and see how easy hands-free recording can be.
+              </p>
+            </div>
 
             <div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 8px; text-align: center;">
               <p style="margin-bottom: 20px; font-weight: 500;">Ready to start your first record?</p>

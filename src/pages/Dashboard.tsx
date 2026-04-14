@@ -19,6 +19,7 @@ export const Dashboard = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasConfiguredSettings, setHasConfiguredSettings] = useState(false);
 
   // Notes modal (animal picker → navigate to journal tab)
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -56,6 +57,15 @@ export const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: settingsData } = await supabase.from('farm_settings').select('farm_name').eq('user_id', user.id).single();
+        if (settingsData && settingsData.farm_name) {
+          setHasConfiguredSettings(true);
+        }
+      }
+
       const { data: animalsData, error: animalsError } = await supabase.from('animals').select('*');
       if (animalsError) throw animalsError;
       
@@ -104,8 +114,8 @@ export const Dashboard = () => {
   const activeAnimals = animals.filter(a => a.status === 'Active');
   const quarantinedCount = activeAnimals.filter(a => a.isQuarantined).length;
 
-  // ── Empty state ────────────────────────────────────────────────────────────
-  if (animals.length === 0) {
+  // ── Empty state (Checklist) ──────────────────────────────────────────────
+  if (animals.length === 0 && !hasConfiguredSettings) {
     return (
       <div className="fade-in">
         <div style={{ backgroundColor: '#ECFDF5', border: '1px solid #D1FAE5', borderRadius: '12px', padding: '32px', marginBottom: '40px', display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -113,8 +123,8 @@ export const Dashboard = () => {
             <LayoutDashboard size={32} />
           </div>
           <div style={{ flex: 1 }}>
-            <h1 style={{ margin: 0, color: '#065F46', fontSize: '1.75rem' }}>Welcome to your Farm Dashboard!</h1>
-            <p style={{ margin: '8px 0 0', color: '#064E3B', fontSize: '1.1rem' }}>Let's get your digital farm setup in 3 easy steps to unlock your herd analytics.</p>
+            <h1 style={{ margin: 0, color: '#065F46', fontSize: '1.75rem' }}>Welcome to HealthyHerd!</h1>
+            <p style={{ margin: '8px 0 0', color: '#064E3B', fontSize: '1.1rem' }}>Let's get your digital farm setup to unlock your herd analytics.</p>
           </div>
         </div>
 
@@ -122,52 +132,66 @@ export const Dashboard = () => {
           <div>
             <h2 style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <ClipboardList color="var(--primary)" />
-              Getting Started Checklist
+              Getting Started
             </h2>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }} onClick={() => navigate('/settings')}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>1</div>
+              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px', border: '2px solid var(--primary-light)' }} onClick={() => navigate('/settings')}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700 }}>1</div>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0 }}>Configure Farm Details</h3>
-                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Set your farm name, default breeds, and GS1 prefix for documents.</p>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>The best place to start! Head to Settings to set your farm name, and choose your default animal breeds so they're auto-selected later.</p>
                 </div>
-                <ArrowRight size={20} color="#94A3B8" />
-              </div>
-
-              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px' }} onClick={() => navigate('/camps')}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', fontWeight: 700 }}>2</div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0 }}>Register Your Pastures &amp; Camps</h3>
-                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Define your camps and grazing areas to enable stocking rate tracking.</p>
-                </div>
-                <ArrowRight size={20} color="#94A3B8" />
-              </div>
-
-              <div className="card" style={{ padding: '24px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '20px', border: '2px solid var(--primary-light)' }} onClick={() => navigate('/herd/add')}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700 }}>3</div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: 0 }}>Add Your First Animal</h3>
-                  <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>Register your cattle or sheep to see them appear in your analytics.</p>
-                </div>
-                <PlusCircle size={20} color="var(--primary)" />
+                <ArrowRight size={20} color="var(--primary)" />
               </div>
             </div>
 
-            <div style={{ marginTop: '40px', padding: '24px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem' }}>
-                <Info size={18} color="#64748B" />
-                Quick Tip
-              </h3>
-              <p style={{ margin: '12px 0 0', color: '#64748B', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                You can also use the **Import/Export** tool in the sidebar if you have your animal data in a CSV file or Excel sheet.
-              </p>
+            <h2 style={{ margin: '32px 0 24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Info color="var(--primary)" />
+              Getting to know the menu
+            </h2>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div className="card" style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#3b82f6' }}>
+                        <LayoutDashboard size={18} />
+                        <h4 style={{ margin: 0, color: 'var(--text)' }}>Dashboard</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>High-level overview, charts, and quick-access journal notes.</p>
+              </div>
+              <div className="card" style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#10b981' }}>
+                        <ClipboardList size={18} />
+                        <h4 style={{ margin: 0, color: 'var(--text)' }}>My Herd</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Your full animal ledger. Import, export, or add individual animals.</p>
+              </div>
+              <div className="card" style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#f59e0b' }}>
+                        <Info size={18} />
+                        <h4 style={{ margin: 0, color: 'var(--text)' }}>Pastures</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Track where your animals are grazing to prevent overstocking.</p>
+              </div>
+              <div className="card" style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#ef4444' }}>
+                        <ShieldAlert size={18} />
+                        <h4 style={{ margin: 0, color: 'var(--text)' }}>Health</h4>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>Record vaccinations, dipping, and track quarantines.</p>
+              </div>
             </div>
 
-            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
-              <button onClick={() => navigate('/support')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <LifeBuoy size={18} /> Need more help? Visit our Help Center
-              </button>
+            <div style={{ marginTop: '32px', padding: '24px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                <LifeBuoy size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Need more help?</h3>
+                <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: '0.9rem' }}>
+                  You can always access our detailed <strong onClick={() => navigate('/support')} style={{ cursor: 'pointer', textDecoration: 'underline', color: 'var(--primary)' }}>Quick Start Guide</strong> from the Help & Support menu anytime.
+                </p>
+              </div>
             </div>
           </div>
         </div>

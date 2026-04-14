@@ -377,7 +377,16 @@ export const Settings = () => {
         </div>
 
         {/* ── Import & Export Data ─────────────────────────────────────────────── */}
-        <div className="card" style={{ padding: '24px', gridColumn: '1 / -1' }}>
+        <div className="card" style={{ padding: '24px', gridColumn: '1 / -1', border: '2px solid var(--primary-light)' }}>
+          <div style={{ backgroundColor: '#F0FDF4', padding: '16px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid var(--primary)' }}>
+            <h3 style={{ margin: '0 0 8px 0', color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+               <Upload size={18} /> Got existing records?
+            </h3>
+            <p style={{ margin: 0, color: '#047857', fontSize: '0.95rem' }}>
+              You don't have to start from scratch! Use our <strong onClick={() => navigate('/herd/import')} style={{ cursor: 'pointer', textDecoration: 'underline' }}>CSV Import tool</strong> below to easily move your existing animals into HealthyHerd in one go.
+            </p>
+          </div>
+
           <h2 style={{ fontSize: '1.2rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FolderSync size={20} color="var(--primary)" />
             Import &amp; Export Data
