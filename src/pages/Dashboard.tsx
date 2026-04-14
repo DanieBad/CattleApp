@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid 
 } from 'recharts';
 import { 
-  LayoutDashboard, PlusCircle, ArrowRight, ClipboardList, Info, ShieldAlert,
+  LayoutDashboard, ArrowRight, ClipboardList, Info, ShieldAlert,
   LifeBuoy, NotebookPen, Baby, ChevronRight, Search, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
