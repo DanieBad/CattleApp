@@ -69,14 +69,7 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
     try {
       const userId = session.user.id;
 
-      // Try to provision a trial subscription if none exists yet
-      // (safe to call multiple times — ON CONFLICT DO NOTHING)
-      await supabase.rpc('provision_subscription', {
-        p_user_id: userId,
-        p_plan_id: 'basic',
-      });
-
-      // Fetch subscription joined with plan definition
+      // 1. Fetch current subscription joined with plan definition
       const { data: sub, error: subErr } = await supabase
         .from('subscriptions')
         .select(`
@@ -91,42 +84,66 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
         .eq('user_id', userId)
         .single();
 
+      // 2. If no subscription found, provision a basic one
       if (subErr || !sub) {
-        console.error('SubscriptionContext: could not load subscription', subErr?.message);
-        return;
+        console.log('SubscriptionContext: No subscription found, provisioning default...');
+        await supabase.rpc('provision_subscription', {
+          p_user_id: userId,
+          p_plan_id: 'basic',
+        });
+        
+        // Re-fetch now that it exists
+        const { data: newSub } = await supabase
+          .from('subscriptions')
+          .select(`plan_id, status, trial_ends_at, plan_definitions(name, animal_limit)`)
+          .eq('user_id', userId)
+          .single();
+        
+        if (!newSub) return;
+        
+        updateStateFromSub(newSub, userId);
+      } else {
+        updateStateFromSub(sub, userId);
       }
+    } catch (err) {
+      console.error('SubscriptionContext: unexpected error', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [session.user.id]);
 
-      // Check if trial has expired and update status to grace_period if needed
-      let resolvedStatus = sub.status as SubscriptionStatus;
-      if (resolvedStatus === 'trialing' && sub.trial_ends_at) {
-        const trialEnd = new Date(sub.trial_ends_at);
-        if (trialEnd < new Date()) {
-          // Update DB status to grace_period
-          await supabase
-            .from('subscriptions')
-            .update({ status: 'grace_period', updated_at: new Date().toISOString() })
-            .eq('user_id', userId);
-          resolvedStatus = 'grace_period';
-        }
+  const updateStateFromSub = async (sub: any, userId: string) => {
+    // Check if trial has expired and update status to grace_period if needed
+    let resolvedStatus = sub.status as SubscriptionStatus;
+    if (resolvedStatus === 'trialing' && sub.trial_ends_at) {
+      const trialEnd = new Date(sub.trial_ends_at);
+      if (trialEnd < new Date()) {
+        await supabase
+          .from('subscriptions')
+          .update({ status: 'grace_period', updated_at: new Date().toISOString() })
+          .eq('user_id', userId);
+        resolvedStatus = 'grace_period';
       }
+    }
 
-      const planDef = sub.plan_definitions as any;
-      setPlanId(sub.plan_id as PlanId);
-      setPlanName(planDef?.name ?? sub.plan_id);
-      setStatus(resolvedStatus);
-      setAnimalLimit(planDef?.animal_limit ?? 0);
-      setTrialEndsAt(sub.trial_ends_at);
+    const planDef = sub.plan_definitions as any;
+    setPlanId(sub.plan_id as PlanId);
+    setPlanName(planDef?.name ?? sub.plan_id);
+    setStatus(resolvedStatus);
+    setAnimalLimit(planDef?.animal_limit ?? 0);
+    setTrialEndsAt(sub.trial_ends_at);
 
-      // Fetch active animal count
-      const { count, error: countErr } = await supabase
-        .from('animals')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'Active');
+    // Fetch active animal count
+    const { count, error: countErr } = await supabase
+      .from('animals')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'Active');
 
-      if (!countErr) {
-        setActiveAnimalCount(count ?? 0);
-      }
+    if (!countErr) {
+      setActiveAnimalCount(count ?? 0);
+    }
+  };
     } catch (err) {
       console.error('SubscriptionContext: unexpected error', err);
     } finally {
