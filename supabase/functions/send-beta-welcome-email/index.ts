@@ -4,14 +4,18 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")
 
 serve(async (req) => {
   try {
-    const { record } = await req.json()
-    const email = record.email
+    const payload = await req.json()
+    const { record } = payload
+    const email = record?.email
+
+    console.log(`[BetaWelcome] Received webhook. Payload:`, JSON.stringify(payload))
 
     if (!email) {
+      console.error("[BetaWelcome] No email found in record:", record)
       return new Response(JSON.stringify({ error: "No email provided" }), { status: 400 })
     }
 
-    console.log(`Sending Beta Welcome email to: ${email}`)
+    console.log(`[BetaWelcome] Sending email to: ${email}`)
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
