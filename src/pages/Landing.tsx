@@ -9,7 +9,7 @@ export const Landing = () => {
   const [isSouthAfrica, setIsSouthAfrica] = useState<boolean>(true);
   
   // Beta Mode State
-  const isBetaMode = (import.meta.env.VITE_BETA_MODE ?? '').trim() === 'true';
+  const [isBetaMode] = useState(true); // Forced true for Beta Phase
   const [email, setEmail] = useState('');
   const [focus, setFocus] = useState('');
   const [herdSize, setHerdSize] = useState('');
@@ -64,8 +64,21 @@ export const Landing = () => {
       
       {/* HEADER */}
       <header style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src={logo} alt="HealthyHerd Logo" style={{ height: '70px' }} />
+          <div style={{ 
+            backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+            color: '#3B82F6', 
+            padding: '4px 12px', 
+            borderRadius: '20px', 
+            fontSize: '0.75rem', 
+            fontWeight: 800,
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            Beta Phase
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <a href="#pricing" style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Pricing</a>
@@ -92,13 +105,13 @@ export const Landing = () => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <button 
             className="btn btn-primary fade-in" 
-            onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=basic')}
+            onClick={() => navigate('/signup?plan=basic')}
             style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both' }}
           >
-            {isBetaMode ? 'Join the Beta Phase' : 'Start Your Free Trial'} <ArrowRight size={24} />
+            Start Your Free Beta Account <ArrowRight size={24} />
           </button>
           <span className="fade-in" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', animationDelay: '0.3s', animationFillMode: 'both' }}>
-            {isBetaMode ? 'Priority access for early adopters' : 'No credit card required'}
+            No charge for early adopters during Beta
           </span>
         </div>
       </section>
@@ -169,7 +182,10 @@ export const Landing = () => {
       {/* PRICING SECTION */}
       <section id="pricing" style={{ padding: '80px 40px', backgroundColor: 'var(--bg-main)', borderTop: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 700, marginBottom: '64px', color: 'var(--primary-dark)' }}>Simple, Transparent Pricing</h2>
+          <h2 style={{ textAlign: 'center', fontSize: '2.5rem', fontWeight: 700, marginBottom: '16px', color: 'var(--primary-dark)' }}>Simple, Transparent Pricing</h2>
+          <p style={{ textAlign: 'center', color: 'var(--primary)', fontWeight: 600, marginBottom: '64px' }}>
+            🎉 Beta Special: Use HealthyHerd for free. No payments until official release.
+          </p>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '32px', paddingTop: '16px' }}>
             {/* Basic Plan */}
@@ -179,12 +195,12 @@ export const Landing = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 100 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R75' : '$5'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
               <button 
-                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=basic')} 
+                onClick={() => navigate('/signup?plan=basic')} 
                 style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                {isBetaMode ? 'Join Beta' : 'Start Free Trial'}
+                Start Free Trial
               </button>
             </div>
 
@@ -195,12 +211,12 @@ export const Landing = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 500 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R150' : '$10'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
               <button 
-                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=intermediate')} 
+                onClick={() => navigate('/signup?plan=intermediate')} 
                 style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                {isBetaMode ? 'Join Beta' : 'Get Started'}
+                Get Started
               </button>
             </div>
 
@@ -210,12 +226,12 @@ export const Landing = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 1000 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R300' : '$20'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
               <button 
-                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/signup?plan=large')} 
+                onClick={() => navigate('/signup?plan=large')} 
                 style={{ marginTop: 'auto', backgroundColor: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s', width: '100%' }} 
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                {isBetaMode ? 'Join Beta' : 'Get Started'}
+                Get Started
               </button>
             </div>
 
@@ -225,186 +241,19 @@ export const Landing = () => {
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>More than 1000 animals</p>
               <div style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px', paddingTop: '6px' }}>Contact Us</div>
               <button 
-                onClick={() => isBetaMode ? document.getElementById('beta-signup')?.scrollIntoView({ behavior: 'smooth' }) : navigate('/plans')} 
+                onClick={() => navigate('/plans')} 
                 style={{ marginTop: 'auto', backgroundColor: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)', padding: '12px 24px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} 
                 onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#fff'; }} 
                 onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary)'; }}
               >
-                {isBetaMode ? 'Join Beta' : 'Contact Sales'}
+                Contact Sales
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* BETA SIGNUP SECTION */}
-      {isBetaMode && (
-        <section id="beta-signup" style={{ padding: '100px 20px', backgroundColor: 'var(--bg-main)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center' }}>
-          <div className="fade-in" style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}>
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              backgroundColor: 'rgba(16, 185, 129, 0.1)', 
-              padding: '8px 16px', 
-              borderRadius: '20px', 
-              color: 'var(--primary)', 
-              fontSize: '0.875rem', 
-              fontWeight: 600,
-              marginBottom: '32px',
-              border: '1px solid rgba(16, 185, 129, 0.2)'
-            }}>
-              <Zap size={16} /> Beta Testing registration open
-            </div>
-            
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '24px', color: 'var(--primary-dark)' }}>
-              Join the Beta Today
-            </h2>
-            
-            <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '48px', lineHeight: 1.6 }}>
-              Be among the first to digitise your herd with HealthyHerd. Secure your spot on the priority waitlist for early access.
-            </p>
-
-            {!submitted ? (
-              <div style={{
-                backgroundColor: 'var(--surface)',
-                padding: '40px',
-                borderRadius: '24px',
-                border: '1px solid var(--border)',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
-                margin: '0 auto'
-              }}>
-                <form onSubmit={handleWaitlistSignup} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div style={{ textAlign: 'left' }}>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
-                      Email Address
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Mail style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} size={20} />
-                      <input 
-                        type="email" 
-                        required
-                        placeholder="farmer@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '14px 16px 14px 48px',
-                          backgroundColor: 'var(--bg-main)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '12px',
-                          color: 'var(--text-main)',
-                          fontSize: '1rem',
-                          outline: 'none',
-                          transition: 'border-color 0.2s'
-                        }}
-                        onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                        onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                      />
-                    </div>
-                  </div>
-
-                    <div style={{ textAlign: 'left' }}>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
-                        Approximate Herd Size
-                      </label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
-                        {herdSizeOptions.map((opt) => (
-                          <div 
-                            key={opt.id}
-                            onClick={() => setHerdSize(opt.id)}
-                            style={{
-                              padding: '12px',
-                              borderRadius: '12px',
-                              border: `2px solid ${herdSize === opt.id ? 'var(--primary)' : 'var(--border)'}`,
-                              backgroundColor: herdSize === opt.id ? 'rgba(34, 197, 94, 0.05)' : 'white',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s ease',
-                              textAlign: 'center'
-                            }}
-                          >
-                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>{opt.label}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>{opt.desc}</div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
-                        Primary Focus (Optional)
-                      </label>
-                    </div>
-                    <select 
-                      value={focus}
-                      onChange={(e) => setFocus(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '14px 16px',
-                        backgroundColor: 'var(--bg-main)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '12px',
-                        color: 'var(--text-main)',
-                        fontSize: '1rem',
-                        outline: 'none',
-                        appearance: 'none',
-                        cursor: 'pointer'
-                      }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-                    >
-                      <option value="">Select focus...</option>
-                      <option value="Cattle">Cattle</option>
-                      <option value="Sheep">Sheep</option>
-                      <option value="Mixed">Mixed / Other</option>
-                    </select>
-
-                  {error && (
-                    <div style={{ color: 'var(--danger)', fontSize: '0.875rem', textAlign: 'left' }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="btn btn-primary"
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      fontSize: '1.125rem',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '12px',
-                      marginTop: '8px'
-                    }}
-                  >
-                    {loading ? (
-                      <Loader2 className="animate-spin" size={24} />
-                    ) : (
-                      <>Join Priority Waitlist <ArrowRight size={20} /></>
-                    )}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="fade-in" style={{
-                backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                padding: '60px 40px',
-                borderRadius: '24px',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
-                margin: '0 auto'
-              }}>
-                <CheckCircle size={64} color="var(--primary)" style={{ marginBottom: '24px' }} />
-                <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '16px', color: 'var(--primary-dark)' }}>You're on the list!</h2>
-                <p style={{ color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                  Thank you for your interest in HealthyHerd. We'll notify you {email} as soon as the beta is ready for your farm.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+      {/* BETA SIGNUP SECTION REMOVED */}
       <footer style={{ backgroundColor: 'var(--bg-main)', color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 40px 40px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px', marginBottom: '60px' }}>

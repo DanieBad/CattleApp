@@ -42,6 +42,7 @@ export const Signup = () => {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState(false);
+  const [agreedToBeta, setAgreedToBeta] = useState(false);
 
   if (!plan) return null;
 
@@ -57,6 +58,7 @@ export const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!agreedToBeta) { setError('Please agree to the Beta disclaimer.'); return; }
     if (password !== confirmPw) { setError('Passwords do not match.'); return; }
     if (password.length < 6)    { setError('Password must be at least 6 characters.'); return; }
 
@@ -99,13 +101,22 @@ export const Signup = () => {
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <img src={logo} alt="HealthyHerd" style={{ height: isMobile ? '36px' : '44px' }} />
-        <Link to="/plans" style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          color: 'var(--text-muted)', textDecoration: 'none',
-          fontSize: '0.875rem', fontWeight: 500,
-        }}>
-          <ArrowLeft size={16} />
-          {isMobile ? 'Plans' : 'View all plans'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ 
+              backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+              color: '#3B82F6', 
+              padding: '2px 8px', 
+              borderRadius: '12px', 
+              fontSize: '0.65rem', 
+              fontWeight: 800,
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              textTransform: 'uppercase'
+            }}>
+              Beta
+            </span>
+            <ArrowLeft size={16} />
+            {isMobile ? 'Plans' : 'View all plans'}
+          </div>
         </Link>
       </header>
 
@@ -237,10 +248,18 @@ export const Signup = () => {
             borderLeft: isMobile ? 'none' : '1px solid #F3F4F6',
             flex: 1,
           }}>
-            <h1 style={{ fontSize: isMobile ? '1.3rem' : '1.4rem', fontWeight: 800, marginBottom: '6px' }}>Create your account</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '24px' }}>
-              Start your free trial — no credit card needed.
-            </p>
+            <div style={{ 
+              backgroundColor: 'rgba(59, 130, 246, 0.05)', 
+              border: '1px solid rgba(59, 130, 246, 0.2)', 
+              borderRadius: '8px', 
+              padding: '12px', 
+              marginBottom: '24px', 
+              fontSize: '0.875rem', 
+              color: '#1E40AF',
+              fontWeight: 500
+            }}>
+              🚀 <strong>Beta Phase:</strong> No credit card required. No charges will be applicable until the official release.
+            </div>
 
             {error && (
               <div style={{
@@ -314,17 +333,38 @@ export const Signup = () => {
                 )}
               </div>
 
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                padding: '16px', 
+                backgroundColor: 'rgba(0,0,0,0.02)', 
+                borderRadius: '8px',
+                border: agreedToBeta ? '1px solid var(--primary)' : '1px solid var(--border)',
+                cursor: 'pointer'
+              }} onClick={() => setAgreedToBeta(!agreedToBeta)}>
+                <input 
+                  type="checkbox" 
+                  checked={agreedToBeta} 
+                  onChange={() => {}} 
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }} 
+                />
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+                  I understand that the software is still in <strong>Beta release</strong> and I register entirely at my own risk.
+                </span>
+              </div>
+
               <button
                 type="submit" className="btn btn-primary"
-                disabled={loading}
+                disabled={loading || !agreedToBeta}
                 style={{
                   justifyContent: 'center',
                   padding: isMobile ? '16px' : '14px',
                   fontSize: '1rem', marginTop: '4px',
                   minHeight: '52px', /* prevent text wrapping on small screens */
+                  opacity: !agreedToBeta ? 0.6 : 1,
                 }}
               >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : planId === 'basic' ? `Start Free Trial — Basic` : `Get Started — ${plan.name}`}
+                {loading ? <Loader2 className="animate-spin" size={20} /> : planId === 'basic' ? `Start Beta — Basic` : `Get Started — ${plan.name}`}
               </button>
             </form>
 
