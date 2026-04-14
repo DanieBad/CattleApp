@@ -101,7 +101,11 @@ export const Signup = () => {
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <img src={logo} alt="HealthyHerd" style={{ height: isMobile ? '36px' : '44px' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <Link to="/plans" style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          color: 'var(--text-muted)', textDecoration: 'none',
+          fontSize: '0.875rem', fontWeight: 500,
+        }}>
             <span style={{ 
               backgroundColor: 'rgba(59, 130, 246, 0.1)', 
               color: '#3B82F6', 
@@ -116,7 +120,6 @@ export const Signup = () => {
             </span>
             <ArrowLeft size={16} />
             {isMobile ? 'Plans' : 'View all plans'}
-          </div>
         </Link>
       </header>
 
