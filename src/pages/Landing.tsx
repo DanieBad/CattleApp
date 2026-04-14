@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Scale, ArrowRight, ClipboardList, WifiOff, Mail, CheckCircle, Loader2, Zap, ShieldCheck, Move, Upload } from 'lucide-react';
+import { Scale, ArrowRight, ClipboardList, WifiOff, ShieldCheck, Move, Upload } from 'lucide-react';
 import { supabase } from '../supabase';
 import logo from '../assets/Logo.png';
 
@@ -8,56 +8,9 @@ export const Landing = () => {
   const navigate = useNavigate();
   const [isSouthAfrica, setIsSouthAfrica] = useState<boolean>(true);
   
-  // Beta Mode State
-  const [isBetaMode] = useState(true); // Forced true for Beta Phase
-  const [email, setEmail] = useState('');
-  const [focus, setFocus] = useState('');
-  const [herdSize, setHerdSize] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
-
-  const herdSizeOptions = [
-    { id: 'under-100',    label: 'Under 100',    desc: 'Basic' },
-    { id: '100-500',      label: '100 - 500',    desc: 'Intermediate' },
-    { id: '500-1000',     label: '500 - 1000',   desc: 'Large' },
-    { id: '1000-plus',     label: '1000+',        desc: 'Commercial' }
-  ];
-
   useEffect(() => {
     setIsSouthAfrica(Intl.DateTimeFormat().resolvedOptions().timeZone === 'Africa/Johannesburg');
   }, []);
-
-  const handleWaitlistSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const { error: supabaseError } = await supabase
-        .from('waitlist')
-        .insert([{ 
-          email, 
-          primary_focus: focus || null,
-          herd_size: herdSize || null
-        }]);
-
-      if (supabaseError) {
-        if (supabaseError.code === '23505') {
-          setError('You are already on the waitlist! We will be in touch soon.');
-        } else {
-          throw supabaseError;
-        }
-      } else {
-        setSubmitted(true);
-      }
-    } catch (err: any) {
-      console.error('Waitlist error:', err);
-      setError('Something went wrong. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)', display: 'flex', flexDirection: 'column' }}>
