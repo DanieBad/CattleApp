@@ -1,5 +1,5 @@
 -- Enable the net extension if not already enabled
-CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "net";
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 -- Function to handle the trigger and call the Edge Function
 CREATE OR REPLACE FUNCTION public.handle_new_waitlist_signup()

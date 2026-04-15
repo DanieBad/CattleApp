@@ -266,8 +266,12 @@ export const Support = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!user) {
+        throw new Error('You must be logged in to send a support request.');
+      }
+
       const { error } = await supabase.from('support_requests').insert({
-        user_id: user?.id,
+        user_id: user.id,
         type: formType,
         subject,
         description,
@@ -275,23 +279,11 @@ export const Support = () => {
         priority: formType === 'Bug' ? 'High' : 'Medium'
       });
 
-      if (error) {
-        if (error.code === '42P01' || error.message.includes('not found')) {
-          // Table doesn't exist yet, we'll mock success and show a helpful dev message
-          console.warn("Table 'support_requests' not found. Please create it in Supabase.");
-          setTimeout(() => {
-            setSubmitStatus('success');
-            setSubject('');
-            setDescription('');
-          }, 1000);
-        } else {
-          throw error;
-        }
-      } else {
-        setSubmitStatus('success');
-        setSubject('');
-        setDescription('');
-      }
+      if (error) throw error;
+
+      setSubmitStatus('success');
+      setSubject('');
+      setDescription('');
     } catch (err) {
       console.error('Submission error:', err);
       setSubmitStatus('error');

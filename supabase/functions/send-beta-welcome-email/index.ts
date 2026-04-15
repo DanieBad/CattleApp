@@ -39,6 +39,7 @@ serve(async (req) => {
       body: JSON.stringify({
         from: "The HealthyHerd Team <beta@healthyherd.app>",
         to: email,
+        cc: ["info@healthyherd.app"],
         subject: "Welcome to the HealthyHerd Beta! 🐄",
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
