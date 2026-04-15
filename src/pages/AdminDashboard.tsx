@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import {
   Users, ShieldCheck, TrendingUp, AlertTriangle, CheckCircle2,
   Clock, XCircle, Search, RefreshCw, Edit3, X, Save,
-  Loader2, BarChart3
+  Loader2, BarChart3, Trash2
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -108,25 +108,23 @@ export const AdminDashboard = () => {
     });
   };
 
-  const handleSaveOverride = async () => {
-    if (!editRow) return;
-    setSaving(true);
-    setSaveMsg('');
-    try {
-      const { error } = await supabase.rpc('admin_update_subscription', {
-        p_user_id:       editRow.userId,
-        p_plan_id:       editRow.planId,
-        p_status:        editRow.status,
-        p_trial_ends_at: editRow.trialEndsAt ? new Date(editRow.trialEndsAt).toISOString() : null,
-      });
-      if (error) throw error;
-      setSaveMsg('Saved!');
-      setTimeout(() => setEditRow(null), 1000);
-      await fetchAll();
-    } catch (err: any) {
-      setSaveMsg(err.message ?? 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (u: UserRow) => {
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete ${u.email}? This will remove all their farm data.`)) return;
+    
+    setLoading(true);
+    try {
+      const { error } = await supabase.rpc('admin_delete_user', { p_user_id: u.user_id });
+      if (error) throw error;
+      await fetchAll();
+    } catch (err: any) {
+      alert(err.message ?? 'Delete failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -354,14 +352,27 @@ export const AdminDashboard = () => {
                       <td style={{ ...td, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{fmt(u.trial_ends_at)}</td>
                       <td style={{ ...td, color: 'var(--text-muted)', fontSize: '0.8rem' }}>{fmt(u.joined_at)}</td>
                       <td style={td}>
-                        <button
-                          onClick={() => openEdit(u)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', transition: 'all 0.15s' }}
-                          onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
-                          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-main)'; }}
-                        >
-                          <Edit3 size={13} /> Edit
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => openEdit(u)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--border)', borderRadius: '6px', background: 'white', padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)', transition: 'all 0.15s' }}
+                            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+                          >
+                            <Edit3 size={13} /> Edit
+                          </button>
+                          {u.email !== 'djb.rsa@gmail.com' && (
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #FEE2E2', borderRadius: '6px', background: '#FEF2F2', padding: '5px 8px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, color: '#991B1B', transition: 'all 0.15s' }}
+                              onMouseOver={e => { e.currentTarget.style.backgroundColor = '#FEE2E2'; }}
+                              onMouseOut={e => { e.currentTarget.style.backgroundColor = '#FEF2F2'; }}
+                              title="Delete User"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
