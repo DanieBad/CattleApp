@@ -84,25 +84,28 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
         .eq('user_id', userId)
         .single();
 
-      // 2. If no subscription found, provision a basic one
-      if (subErr || !sub) {
-        console.log('SubscriptionContext: No subscription found, provisioning default...');
-        await supabase.rpc('provision_subscription', {
-          p_user_id: userId,
-          p_plan_id: 'basic',
-        });
-        
-        // Re-fetch now that it exists
-        const { data: newSub } = await supabase
-          .from('subscriptions')
-          .select(`plan_id, status, trial_ends_at, plan_definitions(name, animal_limit)`)
-          .eq('user_id', userId)
-          .single();
-        
-        if (!newSub) return;
-        
-        updateStateFromSub(newSub, userId);
-      } else {
+      // 2. Only provision if the record is truly missing (PGRST116)
+      if (subErr) {
+        if (subErr.code === 'PGRST116') {
+          console.log('SubscriptionContext: No subscription found, provisioning default...');
+          await supabase.rpc('provision_subscription', {
+            p_user_id: userId,
+            p_plan_id: 'basic',
+          });
+          
+          // Re-fetch now that it exists
+          const { data: newSub, error: newSubErr } = await supabase
+            .from('subscriptions')
+            .select(`plan_id, status, trial_ends_at, plan_definitions(name, animal_limit)`)
+            .eq('user_id', userId)
+            .single();
+          
+          if (newSubErr || !newSub) return;
+          updateStateFromSub(newSub, userId);
+        } else {
+          console.error('SubscriptionContext: could not load subscription', subErr.message);
+        }
+      } else if (sub) {
         updateStateFromSub(sub, userId);
       }
     } catch (err) {
