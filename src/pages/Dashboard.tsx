@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BirthWorkflowModal } from '../components/BirthWorkflowModal';
+import { QuickStartGuideModal } from '../components/QuickStartGuide';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b'];
 
@@ -30,10 +31,21 @@ export const Dashboard = () => {
   // Birth workflow modal
   const [isBirthOpen, setIsBirthOpen] = useState(false);
 
+  // Quick Start Guide
+  const [showGuide, setShowGuide] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Check if user should see the Quick Start Guide
+    const hasSeenGuide = localStorage.getItem('has_viewed_quickstart_guide');
+    if (!hasSeenGuide) {
+      // Small delay to let the dashboard render first
+      const timer = setTimeout(() => setShowGuide(true), 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   // Debounced notes search
@@ -453,6 +465,16 @@ export const Dashboard = () => {
 
       {/* ── BIRTH WORKFLOW MODAL ───────────────────────────────────────────── */}
       {isBirthOpen && <BirthWorkflowModal onClose={() => { setIsBirthOpen(false); fetchDashboardData(); }} />}
+
+      {/* ── QUICK START GUIDE MODAL ────────────────────────────────────────── */}
+      {showGuide && (
+        <QuickStartGuideModal 
+          onClose={() => {
+            setShowGuide(false);
+            localStorage.setItem('has_viewed_quickstart_guide', 'true');
+          }} 
+        />
+      )}
     </div>
   );
 };

@@ -16,6 +16,19 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization')
+    const customSecretHeader = req.headers.get('x-support-db-secret')
+    const DB_SECRET = "7f5e8a3d-9b4c-4e8a-9f2d-6b1a2c3d4e5f" // Shared secret with DB trigger
+    
+    // Verify either the service role key OR our shared DB secret
+    // This allows the DB trigger on remote to talk to the function without needing the service role secret in the DB settings
+    if (authHeader !== `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` && customSecretHeader !== DB_SECRET) {
+      console.error("[SupportRequest] Unauthorized call attempt")
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      })
+    }
+
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!)
     const payload = await req.json()
     const { record } = payload
@@ -26,9 +39,15 @@ serve(async (req) => {
 
     // Fetch user email
     const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(record.user_id)
+    if (userError) throw userError;
     const userEmail = user?.email || 'Unknown User'
 
     console.log(`[SupportRequest] Processing ${record.type} from ${userEmail}`)
+
+    if (!RESEND_API_KEY) {
+      console.error("[SupportRequest] RESEND_API_KEY is not set in environment variables")
+      throw new Error("Email service not configured")
+    }
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -38,7 +57,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: "HealthyHerd Support <beta@healthyherd.app>",
-        to: "beta@healthyherd.app",
+        to: "support@healthyherd.app",
+        cc: "djb.rsa@gmail.com",
         reply_to: userEmail,
         subject: `[${record.type}] ${record.subject}`,
         html: `
@@ -64,9 +84,14 @@ serve(async (req) => {
     });
 
     const resData = await res.json();
-    if (!res.ok) throw new Error(`Resend error: ${JSON.stringify(resData)}`)
+    if (!res.ok) {
+      console.error("[SupportRequest] Resend API Error:", resData)
+      throw new Error(`Resend error: ${JSON.stringify(resData)}`)
+    }
 
-    return new Response(JSON.stringify({ success: true }), { 
+    console.log(`[SupportRequest] Email sent successfully for request ${record.id}`)
+
+    return new Response(JSON.stringify({ success: true, message_id: resData.id }), { 
       headers: { ...corsHeaders, "Content-Type": "application/json" } 
     })
 
