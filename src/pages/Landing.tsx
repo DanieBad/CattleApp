@@ -18,19 +18,6 @@ export const Landing = () => {
       <header style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src={logo} alt="HealthyHerd Logo" style={{ height: '70px' }} />
-          <div style={{ 
-            backgroundColor: 'rgba(59, 130, 246, 0.1)', 
-            color: '#3B82F6', 
-            padding: '4px 12px', 
-            borderRadius: '20px', 
-            fontSize: '0.75rem', 
-            fontWeight: 800,
-            border: '1px solid rgba(59, 130, 246, 0.2)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}>
-            Beta Phase
-          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <a href="#pricing" style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s', marginRight: '8px' }} onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'} onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-main)'}>Pricing</a>
@@ -47,6 +34,24 @@ export const Landing = () => {
 
       {/* HERO SECTION */}
       <section style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 20px', textAlign: 'center', background: 'linear-gradient(180deg, var(--surface) 0%, var(--bg-main) 100%)' }}>
+        <div style={{ 
+          backgroundColor: 'rgba(59, 130, 246, 0.1)', 
+          color: '#3B82F6', 
+          padding: '14px 40px', 
+          borderRadius: '30px', 
+          fontSize: '0.9rem', 
+          fontWeight: 800,
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          marginBottom: '32px',
+          width: '100%',
+          maxWidth: '320px',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.08)'
+        }}>
+          Beta Release
+        </div>
         <h1 className="fade-in" style={{ fontSize: 'clamp(2.5rem, 6vw, 4.5rem)', fontWeight: 800, color: 'var(--primary-dark)', maxWidth: '900px', lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.02em' }}>
           Digitise Your Herd. <br/><span style={{ color: 'var(--primary)' }}>Maximise Your Profit.</span>
         </h1>
@@ -58,7 +63,7 @@ export const Landing = () => {
           <button 
             className="btn btn-primary fade-in" 
             onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}
-            style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both' }}
+            style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both', width: '100%', maxWidth: '320px', justifyContent: 'center' }}
           >
             Start Your Free Trial <ArrowRight size={24} />
           </button>
