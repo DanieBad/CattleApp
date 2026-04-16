@@ -37,7 +37,7 @@ serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "The HealthyHerd Team <info@healthyherd.app>",
+        from: "The HealthyHerd Team <beta@healthyherd.app>",
         to: email,
         cc: ["info@healthyherd.app"],
         subject: "Welcome to the HealthyHerd Beta! 🐄",
