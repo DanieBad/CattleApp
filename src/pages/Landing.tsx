@@ -42,13 +42,6 @@ export const Landing = () => {
           >
             Sign In
           </button>
-          <button 
-            onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}
-            className="btn btn-primary"
-            style={{ padding: '10px 24px', borderRadius: '8px', fontWeight: 600 }}
-          >
-            Get Started
-          </button>
         </div>
       </header>
 
