@@ -4,8 +4,7 @@ import { supabase } from '../supabase';
 import { 
   LifeBuoy, MessageSquare, Bug, Lightbulb, Search, 
   ChevronDown, ChevronUp, Send, CheckCircle2, AlertCircle, Mail,
-  Rocket, X, ArrowRight, ArrowLeft, Settings, PlusCircle, MapPin,
-  HeartPulse, BarChart2, CheckSquare
+  Rocket, ArrowRight
 } from 'lucide-react';
 import { QuickStartGuideModal } from '../components/QuickStartGuide';
 
