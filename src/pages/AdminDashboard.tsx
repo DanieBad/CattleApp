@@ -106,8 +106,24 @@ export const AdminDashboard = () => {
       status: u.sub_status === 'no_subscription' ? 'trialing' : u.sub_status,
       trialEndsAt: u.trial_ends_at ? u.trial_ends_at.split('T')[0] : '',
     });
-  };
-
+  const handleSaveOverride = async () => {
+    if (!editRow) return;
+    setSaving(true);
+    setSaveMsg('');
+    try {
+      const { error } = await supabase.rpc('admin_override_subscription', {
+        p_user_id: editRow.userId,
+        p_plan_id: editRow.planId,
+        p_status: editRow.status,
+        p_trial_ends_at: editRow.trialEndsAt || null
+      });
+      if (error) throw error;
+      setSaveMsg('Saved!');
+      await fetchAll();
+      setTimeout(() => setEditRow(null), 1000);
+    } catch (err: any) {
+      console.error('Save error:', err);
+      setSaveMsg(err.message ?? 'Failed to save');
     } finally {
       setSaving(false);
     }
