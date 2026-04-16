@@ -19,6 +19,7 @@ import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
 import { UserManagement } from './pages/UserManagement';
 import { Support } from './pages/Support';
+import { HelpGuide } from './pages/HelpGuide';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { UpdatePassword } from './pages/UpdatePassword';
 import { RecentNotes } from './pages/RecentNotes';
@@ -279,6 +280,7 @@ const App = () => {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/support" element={<Support />} />
+                    <Route path="/help" element={<HelpGuide />} />
                     <Route path="/billing" element={<Billing />} />
                     <Route path="/profile" element={<Profile />} />
                     {session.user.email === 'djb.rsa@gmail.com' && (

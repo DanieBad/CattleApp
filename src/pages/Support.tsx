@@ -30,6 +30,7 @@ const FAQS = [
 ];
 
 export const Support = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'faq' | 'contact'>('contact');
   const [formType, setFormType] = useState<'Bug' | 'Feature' | 'Support'>('Support');
   const [subject, setSubject] = useState('');
@@ -134,7 +135,7 @@ export const Support = () => {
             transition: 'all 0.2s'
           }}
         >
-          Knowledge Base (FAQ)
+          FAQ
         </button>
       </div>
 
@@ -286,6 +287,26 @@ export const Support = () => {
         </div>
       ) : (
         <div className="card" style={{ padding: '32px' }}>
+          
+          <div style={{ marginBottom: '32px', padding: '24px', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text)' }}>
+                <Rocket size={20} color="var(--primary)" />
+                Comprehensive Help Guide
+              </h3>
+              <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.95rem' }}>
+                Looking for detailed instructions on specific app features? Read our full Help Guide.
+              </p>
+            </div>
+            <button 
+              onClick={() => navigate('/help')}
+              className="btn btn-primary"
+              style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}
+            >
+              Open Help Guide <ArrowRight size={18} />
+            </button>
+          </div>
+
           <div style={{ position: 'relative', marginBottom: '32px' }}>
             <Search size={20} color="var(--text-muted)" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
