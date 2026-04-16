@@ -37,64 +37,84 @@ serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "The HealthyHerd Team <beta@healthyherd.app>",
+        from: "The HealthyHerd Team <info@healthyherd.app>",
         to: email,
         cc: ["info@healthyherd.app"],
         subject: "Welcome to the HealthyHerd Beta! 🐄",
         html: `
-          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #10b981; font-size: 28px; margin-bottom: 10px;">Welcome to HealthyHerd!</h1>
-              <p style="color: #6b7280; font-size: 16px;">We're thrilled to have you in our Beta Program.</p>
-            </div>
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 0; padding: 0; background-color: #f4f7f6; }
+                .container { max-width: 600px; margin: 20px auto; padding: 30px; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+                .header { text-align: center; margin-bottom: 30px; }
+                .title { color: #10b981; font-size: 28px; margin-bottom: 10px; }
+                .subtitle { color: #6b7280; font-size: 16px; }
+                .highlight-box { background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 30px; border-radius: 0 8px 8px 0; }
+                .section-title { color: #111827; margin-top: 25px; font-size: 1.2rem; }
+                .list { padding-left: 20px; }
+                .list-item { margin-bottom: 12px; }
+                .pwa-box { background-color: #f8fafc; border: 1px dashed #3b82f6; padding: 20px; border-radius: 10px; margin-top: 30px; }
+                .pwa-title { color: #1e3a8a; font-weight: 700; margin-top: 0; margin-bottom: 10px; }
+                .cta-box { margin-top: 30px; padding: 25px; background-color: #f9fafb; border-radius: 12px; text-align: center; }
+                .btn { background-color: #10b981; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; transition: background-color 0.2s; }
+                .footer { margin-top: 40px; border-top: 1px solid #edf2f7; padding-top: 25px; text-align: center; font-size: 0.85rem; color: #9ca3af; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1 class="title">Welcome to HealthyHerd!</h1>
+                  <p class="subtitle">Smart herd management for the modern farmer.</p>
+                </div>
 
-            <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin-bottom: 30px;">
-              <p style="margin: 0; color: #065f46; font-weight: 600;">
-                Beta Benefit: Your account is completely free until our official commercial release!
-              </p>
-            </div>
+                <div class="highlight-box">
+                  <p style="margin: 0; color: #065f46; font-weight: 600;">
+                    Beta Benefit: Your account is completely free until our official commercial release!
+                  </p>
+                </div>
 
-            <p>Hi there,</p>
-            <p>Thank you for choosing HealthyHerd to digitise your farm operations. You've taken the first step towards smarter, more profitable herd management.</p>
+                <p>Hi there,</p>
+                <p>Thank you for choosing HealthyHerd. You've taken a significant step toward smarter, more profitable, and stress-free herd management.</p>
 
-            <h3 style="color: #111827; margin-top: 25px;">Getting Started with HealthyHerd:</h3>
-            <ul style="padding-left: 20px;">
-              <li style="margin-bottom: 12px;">
-                <strong>Easy Import:</strong> Got existing records? Use our CSV import function to easily move your data into HealthyHerd.
-              </li>
-              <li style="margin-bottom: 12px;">
-                <strong>Traceability & FMD Compliance:</strong> Maintain full visibility of your herd's history and accurate, state-vet compliant ledgers effortlessly.
-              </li>
-              <li style="margin-bottom: 12px;">
-                <strong>Smart Health Tracking:</strong> Automatic dose calculations for vaccinations and medicines based on your animal's weight.
-              </li>
-              <li style="margin-bottom: 12px;">
-                <strong>Field Notes & Offline Ready:</strong> Record observations directly in the app. HealthyHerd works completely offline and syncs your journal and data automatically when you're back in range!
-              </li>
-            </ul>
+                <h3 class="section-title">Getting Started:</h3>
+                <ul class="list">
+                  <li class="list-item"><strong>Easy Import:</strong> Move your existing records in seconds via CSV import.</li>
+                  <li class="list-item"><strong>Traceability:</strong> Automatically maintain state-vet compliant ledgers.</li>
+                  <li class="list-item"><strong>Smart Health:</strong> Auto-calculate medication dosages based on animal weight.</li>
+                  <li class="list-item"><strong>Offline Ready:</strong> Record field notes anywhere; we sync when you're back in range.</li>
+                </ul>
 
-            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin-bottom: 30px; margin-top: 20px;">
-              <p style="margin: 0; color: #1e3a8a; font-size: 0.9rem;">
-                <strong>✨ Sneak Peek:</strong> Our brand new AI Voice Assistant is currently in development! As a Beta tester, you can give it a try and see how easy hands-free recording can be.
-              </p>
-            </div>
+                <div class="pwa-box">
+                  <h3 class="pwa-title">📲 Add HealthyHerd to your Home Screen</h3>
+                  <p style="font-size: 0.95rem; color: #334155; margin-bottom: 10px;">For the best experience in the field, install HealthyHerd on your phone:</p>
+                  <ul style="font-size: 0.9rem; color: #475569; padding-left: 20px;">
+                    <li style="margin-bottom: 8px;"><strong>iPhone (Safari):</strong> Tap the <strong>Share icon</strong> (square with arrow) at the bottom, then scroll down and select <strong>"Add to Home Screen"</strong>.</li>
+                    <li><strong>Android (Chrome):</strong> Tap the <strong>three dots menu</strong> (⋮) in the top right corner, then select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+                  </ul>
+                </div>
 
-            <div style="margin-top: 30px; padding: 20px; background-color: #f9fafb; border-radius: 8px; text-align: center;">
-              <p style="margin-bottom: 20px; font-weight: 500;">Ready to start your first record?</p>
-              <a href="https://app.healthyherd.app/dashboard" style="background-color: #10b981; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 600; display: inline-block;">Go to Dashboard</a>
-            </div>
+                <div class="cta-box">
+                  <p style="margin-bottom: 20px; font-weight: 600; color: #374151;">Ready to record your first animal?</p>
+                  <a href="https://app.healthyherd.app/dashboard" class="btn">Go to Dashboard</a>
+                </div>
 
-            <p style="margin-top: 30px; font-size: 0.9rem; color: #4b5563;">
-              As a Beta tester, your feedback is invaluable to us. If you encounter any bugs or have suggestions for improvements, please reach out to us at <a href="mailto:beta@healthyherd.app" style="color: #10b981;">beta@healthyherd.app</a>.
-            </p>
+                <p style="margin-top: 30px; font-size: 0.9rem; color: #64748b;">
+                  Need help? Reach out any time at <a href="mailto:info@healthyherd.app" style="color: #10b981; text-decoration: none; font-weight: 500;">info@healthyherd.app</a>.
+                </p>
 
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-            <p style="font-size: 0.8rem; color: #9ca3af; text-align: center;">
-              Best regards,<br>
-              <strong>The HealthyHerd Team</strong><br>
-              🇿🇦 Proudly developed in South Africa
-            </p>
-          </div>
+                <div class="footer">
+                  <p>
+                    Best regards,<br>
+                    <strong>The HealthyHerd Team</strong><br>
+                    🇿🇦 Proudly developed in South Africa
+                  </p>
+                </div>
+              </div>
+            </body>
+          </html>
         `,
       }),
     });
