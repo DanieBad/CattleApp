@@ -1,7 +1,20 @@
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+
 export const Terms = () => {
+  const navigate = useNavigate();
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-main)', color: 'var(--text-main)', padding: '60px 20px' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto', backgroundColor: 'var(--surface)', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+        <button 
+          onClick={() => navigate(-1)} 
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '24px', padding: 0, fontWeight: 600 }}
+          onMouseOver={(e) => e.currentTarget.style.color = 'var(--primary)'}
+          onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+        >
+          <ArrowLeft size={18} /> Back
+        </button>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', color: 'var(--primary-dark)' }}>Terms of Service</h1>
         <p style={{ color: 'var(--text-muted)', marginBottom: '32px' }}>Effective Date: April 2026</p>
         
