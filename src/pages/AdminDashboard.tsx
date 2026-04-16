@@ -106,6 +106,8 @@ export const AdminDashboard = () => {
       status: u.sub_status === 'no_subscription' ? 'trialing' : u.sub_status,
       trialEndsAt: u.trial_ends_at ? u.trial_ends_at.split('T')[0] : '',
     });
+  };
+
   const handleSaveOverride = async () => {
     if (!editRow) return;
     setSaving(true);
