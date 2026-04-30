@@ -26,7 +26,7 @@ export const AddAnimal = () => {
     eidNumber: '',
     isQuarantined: true, // Auto quarantine true by default for FMD
     name: '',
-    breed: 'Boran',
+    breed: '',  // Will be set by fetchFarmSettings once loaded
     sex: 'Female',
     dateOfBirth: new Date().toISOString().split('T')[0],
     status: 'Active',
@@ -122,13 +122,7 @@ export const AddAnimal = () => {
     }
     // ────────────────────────────────────────────────────────────────────────
 
-    // Visual Validation for Cloven-hoofed strict fields
-    if (formData.species === 'Cattle' || formData.species === 'Sheep') {
-      if (!formData.permitNumber || !formData.healthDeclarationDate) {
-        alert("FMD Compliance Alert: Red Cross Permit Number and Health Declaration Dates are required for cloven-hoofed species.");
-        return;
-      }
-    }
+    // Note: Permit number and health declaration are optional — not globally required.
 
     setSaving(true);
     
@@ -267,7 +261,7 @@ export const AddAnimal = () => {
         }
       }
       
-      alert(`Successfully saved ${numberOfOffspring > 1 ? numberOfOffspring + ' animals locally and queued for FMD sync.' : formData.tagNumber + ' locally and queued for FMD sync.'}`);
+      alert(`Successfully saved ${numberOfOffspring > 1 ? numberOfOffspring + ' animals locally and queued for Cloud sync.' : formData.tagNumber + ' locally and queued for Cloud sync.'}`);
       navigate('/herd');
     } catch (error: any) {
       console.error('Error saving animal:', error);
@@ -457,13 +451,13 @@ export const AddAnimal = () => {
                   style={{ width: '20px', height: '20px', accentColor: 'var(--danger)' }}
                 />
                 <span style={{ color: 'var(--danger)' }}>
-                   ⚠️ Place this animal under 28-day Quarantine (FMD Requirement)
+                   ⚠️ Place this animal under 28-day Quarantine
                 </span>
               </label>
             </div>
           </div>
 
-          <h3 style={{ marginTop: '32px', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid var(--border)' }}>Traceability & Compliance (FMD)</h3>
+          <h3 style={{ marginTop: '32px', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid var(--border)' }}>Traceability & Compliance</h3>
           
           <div className="responsive-grid-2col">
             <div className="form-group">
@@ -490,7 +484,7 @@ export const AddAnimal = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">FMD Permit Number {(formData.species === 'Cattle' || formData.species === 'Sheep') && '*'}</label>
+              <label className="form-label">Permit Number</label>
               <input 
                 type="text" 
                 className="form-input" 
@@ -535,7 +529,7 @@ export const AddAnimal = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Owner's Health Declaration Date {(formData.species === 'Cattle' || formData.species === 'Sheep') && '*'}</label>
+              <label className="form-label">Owner's Health Declaration Date</label>
               <input 
                 type="datetime-local" 
                 className="form-input" 

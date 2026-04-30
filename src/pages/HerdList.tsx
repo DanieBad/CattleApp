@@ -5,6 +5,7 @@ import {
   MapPin, Calendar, Clock, User, Fingerprint, ShieldAlert
 } from 'lucide-react';
 import { supabase } from '../supabase';
+import { db } from '../database/db';
 import type { Animal, Camp } from '../types';
 import { calculateAge, getAnimalIcon } from '../utils';
 
@@ -36,14 +37,32 @@ export const HerdList = () => {
 
   const fetchHerd = async () => {
     try {
-      const { data, error } = await supabase
-        .from('animals')
-        .select('*');
+      // ── Local-first: render from Dexie cache immediately (no loading pause) ──
+      const localAnimals = await db.animals.toArray();
+      const localCamps = await db.camps.toArray();
 
+      if (localAnimals.length > 0) {
+        // Dexie records are already camelCase — no mapping needed
+        const withLastBirth = [...localAnimals] as any[];
+        withLastBirth.forEach(animal => {
+          if (animal.sex === 'Female') {
+            const offspring = withLastBirth.filter(a => a.damId === animal.id && a.dateOfBirth);
+            if (offspring.length > 0) {
+              const latest = offspring.reduce((a: any, b: any) => new Date(a.dateOfBirth).getTime() > new Date(b.dateOfBirth).getTime() ? a : b);
+              animal.lastBirthDate = latest.dateOfBirth;
+            }
+          }
+        });
+        setHerd(withLastBirth as Animal[]);
+        setCamps(localCamps as Camp[]);
+        setLoading(false); // Show instantly from cache
+      }
+
+      // ── Background: refresh from Supabase and silently update ──
+      const { data, error } = await supabase.from('animals').select('*');
       if (error) throw error;
 
-      // Supabase returns snake_case, map it to our camelCase Animal interface
-      const mappedHerd: Animal[] = data.map(dbAnimal => ({
+      const mappedHerd: Animal[] = (data || []).map((dbAnimal: any) => ({
         id: dbAnimal.id,
         species: dbAnimal.species || 'Cattle',
         tagNumber: dbAnimal.tag_number,
@@ -58,7 +77,6 @@ export const HerdList = () => {
         damId: dbAnimal.dam_id,
         weight: dbAnimal.weight,
         currentCampId: dbAnimal.current_camp_id,
-        // Optional fields from Supabase
         brand: dbAnimal.brand,
         originGln: dbAnimal.origin_gln,
         previousOwnerTag: dbAnimal.previous_owner_tag,
@@ -68,7 +86,7 @@ export const HerdList = () => {
         soldPrice: dbAnimal.sold_price
       }));
 
-      // Calculate lastBirthDate for females
+      // Compute lastBirthDate for females
       mappedHerd.forEach(animal => {
         if (animal.sex === 'Female') {
           const offspring = mappedHerd.filter(a => a.damId === animal.id && a.dateOfBirth);
@@ -81,13 +99,20 @@ export const HerdList = () => {
 
       setHerd(mappedHerd);
 
+      // Refresh camps from Supabase too
       const { data: campsData } = await supabase.from('camps').select('id, name');
-      if (campsData) {
-        setCamps(campsData as Camp[]);
-      }
+      if (campsData) setCamps(campsData as Camp[]);
+
+      // Sync Dexie cache with fresh data
+      await db.animals.bulkPut(mappedHerd);
+      if (campsData) await db.camps.bulkPut(campsData.map((c: any) => ({ id: c.id, name: c.name })) as Camp[]);
+
     } catch (error) {
       console.error('Error fetching herd:', error);
-      alert('Failed to load herd data from cloud.');
+      // Only show error if we have no local data to fall back on
+      if (herd.length === 0) {
+        alert('Failed to load herd data.');
+      }
     } finally {
       setLoading(false);
     }

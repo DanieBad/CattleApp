@@ -964,14 +964,6 @@ export const AnimalDetail = () => {
                   <>
                     <button 
                       className="action-menu-item"
-                      onClick={() => { setShowActionsMenu(false); handleStatusChange('Sold'); }}
-                      disabled={animal.isQuarantined}
-                      style={animal.isQuarantined ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-                    >
-                      🏷️ Mark Sold
-                    </button>
-                    <button 
-                      className="action-menu-item"
                       onClick={() => { setShowActionsMenu(false); handleStatusChange('Deceased'); }}
                     >
                       ✝️ Mark Deceased
@@ -1302,6 +1294,7 @@ export const AnimalDetail = () => {
                     <th>Treatment Type</th>
                     <th>Medication</th>
                     <th>Dosage</th>
+                    <th>Withdrawal</th>
                     <th>Notes</th>
                     <th>Actions</th>
                   </tr>
@@ -1313,6 +1306,23 @@ export const AnimalDetail = () => {
                       <td>{log.treatmentType}</td>
                       <td>{log.medication || '-'}</td>
                       <td>{log.dosage || '-'}</td>
+                      <td>
+                        {log.safeDate ? (
+                          <span style={{
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: new Date(log.safeDate) > new Date() ? '#B45309' : '#059669',
+                            backgroundColor: new Date(log.safeDate) > new Date() ? '#FFFBEB' : '#ECFDF5',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {new Date(log.safeDate) > new Date()
+                              ? `⚠️ Safe ${new Date(log.safeDate).toLocaleDateString()}`
+                              : `✅ ${new Date(log.safeDate).toLocaleDateString()}`}
+                          </span>
+                        ) : '-'}
+                      </td>
                       <td>{log.notes || '-'}</td>
                       <td style={{ display: 'flex', gap: '8px' }}>
                         <button className="btn btn-outline" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleEditHealth(log)}>✏️</button>

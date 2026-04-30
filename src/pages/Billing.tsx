@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { supabase } from '../supabase';
 import { useSubscription } from '../context/SubscriptionContext';
-import { ArrowRight, Mail, AlertTriangle, CheckCircle2, Loader2, TrendingUp, Database, Download, Mic } from 'lucide-react';
+import { ArrowRight, Mail, AlertTriangle, CheckCircle2, Loader2, TrendingUp, Database, Download, Mic, Bell, MessageSquare } from 'lucide-react';
 
 const PLANS = [
   { id: 'basic',        name: 'Basic',        animalLimit: 100,    priceZar: 75,  priceUsd: 5,  isSelfServe: true  },
@@ -174,6 +174,25 @@ export const Billing = () => {
           <span style={{ color: '#991B1B' }}>{switchError}</span>
         </div>
       )}
+
+      {/* System Messages */}
+      <div className="card" style={{ padding: '20px', marginBottom: '28px', border: '1px solid #DBEAFE', backgroundColor: '#F0F9FF' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#1D4ED8' }}>
+          <Bell size={18} />
+          System Messages
+        </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '12px', padding: '12px 16px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #BFDBFE', alignItems: 'flex-start' }}>
+            <MessageSquare size={16} style={{ color: '#2563EB', flexShrink: 0, marginTop: '2px' }} />
+            <div>
+              <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: '2px', fontWeight: 600 }}>HealthyHerd Team · Welcome</div>
+              <p style={{ fontSize: '0.875rem', color: '#1E3A5F', margin: 0 }}>
+                Thank you for joining the HealthyHerd beta! We'd love your feedback — use Help &amp; Support to report any issues or suggest improvements.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Current plan + usage */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '36px' }}>

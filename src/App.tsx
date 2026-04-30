@@ -44,6 +44,22 @@ import { extractIntentFromText } from './services/voiceService';
 import { isMobile } from './utils/deviceUtils';
 import { SyncIndicator } from './components/SyncIndicator';
 
+// Bell notification button — navigates to Billing & Subscription on click
+const BellButton = () => {
+  const navigate = useNavigate();
+  return (
+    <button
+      className="btn btn-outline"
+      style={{ border: 'none', padding: '8px', position: 'relative' }}
+      onClick={() => navigate('/billing')}
+      title="System notifications — go to Billing & Subscription"
+    >
+      <Bell size={20} />
+      <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
+    </button>
+  );
+};
+
 // Sidebar Navigation Item Component
 const NavItem = ({ to, icon: Icon, label, onClick }: { to: string, icon: any, label: string, onClick?: () => void }) => {
   const location = useLocation();
@@ -253,10 +269,7 @@ const App = () => {
                   </button>
                   <div style={{ flex: 1 }}></div>
                   <SyncIndicator />
-                  <button className="btn btn-outline" style={{ border: 'none', padding: '8px', position: 'relative' }}>
-                    <Bell size={20} />
-                    <span style={{ position: 'absolute', top: '8px', right: '10px', width: '8px', height: '8px', backgroundColor: 'var(--danger)', borderRadius: '50%' }}></span>
-                  </button>
+                  <BellButton />
                   <AccountMenu session={session} onSignOut={handleSignOut} />
                 </header>
 

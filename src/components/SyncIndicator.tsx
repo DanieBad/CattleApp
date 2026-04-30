@@ -86,7 +86,7 @@ export const SyncIndicator = () => {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontSize: '0.85rem' }} title="All changes saved to cloud">
       <Cloud size={18} />
-      <span style={{ fontWeight: 500 }}>Synced (FMD)</span>
+      <span style={{ fontWeight: 500 }}>Synced</span>
     </div>
   );
 };

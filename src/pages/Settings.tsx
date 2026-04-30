@@ -93,7 +93,7 @@ export const Settings = () => {
       if (error) throw error;
 
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => { setMessage(null); navigate('/'); }, 1500);
     } catch (error: any) {
       console.error('Error saving settings:', error);
       setMessage({ type: 'error', text: error.message || 'Failed to save settings' });

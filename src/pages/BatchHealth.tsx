@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import type { Animal } from '../types';
-import { Activity, Search, AlertCircle, Save, CheckSquare, Square, ArrowLeft } from 'lucide-react';
+import { db } from '../database/db';
+import { SyncManager } from '../services/syncManager';
+import { v4 as uuidv4 } from 'uuid';
+import type { Animal, VetProduct } from '../types';
+import { Activity, Search, AlertCircle, Save, CheckSquare, Square, ArrowLeft, Info } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface PreSelectedAnimal {
@@ -28,20 +31,80 @@ export const BatchHealth = () => {
     isPreSelected ? new Set(preSelectedIds) : new Set()
   );
 
+  // Products State (same as AnimalDetail)
+  const [products, setProducts] = useState<VetProduct[]>([]);
+
   // Form State
   const [treatmentType, setTreatmentType] = useState('Vaccination');
-  const [medication, setMedication] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [isOtherSelected, setIsOtherSelected] = useState(false);
+  const [customProduct, setCustomProduct] = useState('');
+  const [withdrawalDays, setWithdrawalDays] = useState<string>('');
   const [dosage, setDosage] = useState('');
   const [dateAdministered, setDateAdministered] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Derived: known product definition for the selected product
+  const selectedProductDef = products.find(p => p.productName === selectedProduct);
+  const knownWithdrawalDays = selectedProductDef?.meatWithdrawalDays;
+
+  // Computed safe date label
+  const computedSafeDate = (() => {
+    const days = isOtherSelected
+      ? (withdrawalDays ? parseInt(withdrawalDays) : null)
+      : knownWithdrawalDays ?? null;
+    if (!days || days === 0 || days === 999) return null;
+    const d = new Date(dateAdministered);
+    d.setDate(d.getDate() + days);
+    return d;
+  })();
+
   useEffect(() => {
-    // Only need to fetch the full herd if we're NOT in pre-selected mode
-    if (!isPreSelected) {
-      fetchActiveHerd();
-    }
+    fetchProducts();
+    if (!isPreSelected) fetchActiveHerd();
   }, []);
+
+  // Re-fetch products when treatment type changes
+  useEffect(() => {
+    setSelectedProduct('');
+    setIsOtherSelected(false);
+    setWithdrawalDays('');
+  }, [treatmentType]);
+
+  const fetchProducts = async () => {
+    try {
+      const { data: gvp } = await supabase.from('global_vet_products').select('*');
+      const { data: gsp } = await supabase.from('global_sheep_vet_products').select('*');
+      const userRes = await supabase.auth.getUser();
+      let uvp: any[] = [];
+      let usp: any[] = [];
+      if (userRes.data.user) {
+        const { data: ud } = await supabase.from('user_vet_products').select('*').eq('user_id', userRes.data.user.id);
+        const { data: us } = await supabase.from('user_sheep_vet_products').select('*').eq('user_id', userRes.data.user.id);
+        if (ud) uvp = ud;
+        if (us) usp = us;
+      }
+      const mapProduct = (p: any, isCustom = false): VetProduct => ({
+        id: p.id,
+        category: p.category,
+        productName: p.product_name,
+        dosageMlPerKg: p.dosage_ml_per_kg,
+        meatWithdrawalDays: p.meat_withdrawal_days,
+        milkWithdrawalDays: p.milk_withdrawal_days,
+        isCustom,
+      });
+      const allProducts = [
+        ...(gvp || []).map(p => mapProduct(p)),
+        ...(gsp || []).map(p => mapProduct(p)),
+        ...uvp.map(p => mapProduct(p, true)),
+        ...usp.map(p => mapProduct(p, true)),
+      ];
+      setProducts(allProducts);
+    } catch (err) {
+      console.error('Failed to load vet products:', err);
+    }
+  };
 
   const fetchActiveHerd = async () => {
     const { data, error } = await supabase
@@ -104,30 +167,85 @@ export const BatchHealth = () => {
       return;
     }
 
+    const finalMedication = isOtherSelected ? customProduct : selectedProduct;
+    if (!finalMedication) {
+      alert('Please select or enter a medication / product name.');
+      return;
+    }
+
+    // Compute safe date if withdrawal days are known
+    const resolvedWithdrawalDays = isOtherSelected
+      ? (withdrawalDays ? parseInt(withdrawalDays) : null)
+      : (knownWithdrawalDays ?? null);
+
+    let safeDateStr: string | undefined = undefined;
+    if (resolvedWithdrawalDays && resolvedWithdrawalDays > 0 && resolvedWithdrawalDays !== 999) {
+      const d = new Date(dateAdministered);
+      d.setDate(d.getDate() + resolvedWithdrawalDays);
+      safeDateStr = d.toISOString().split('T')[0];
+    }
+
     setIsSubmitting(true);
 
-    const payloads = Array.from(selectedIds).map(animalId => ({
-      animal_id: animalId,
-      treatment_type: treatmentType,
-      medication: medication || null,
-      dosage: dosage || null,
-      date_administered: dateAdministered,
-      notes: notes || null,
-    }));
+    try {
+      const animalIds = Array.from(selectedIds);
 
-    const { error } = await supabase.from('health_logs').insert(payloads);
-    setIsSubmitting(false);
+      for (const animalId of animalIds) {
+        const logId = uuidv4();
 
-    if (error) {
-      console.error('Error inserting batch logs:', error);
-      alert('Failed to save batch logs.');
-    } else {
-      alert(`Successfully saved ${payloads.length} health logs!`);
+        // Local Dexie save first
+        const localRecord: any = {
+          id: logId,
+          animalId,
+          treatmentType,
+          medication: finalMedication,
+          dosage: dosage || undefined,
+          dateAdministered,
+          notes: notes || undefined,
+          safeDate: safeDateStr,
+          createdAt: new Date().toISOString(),
+        };
+        await db.health_logs.add(localRecord);
+
+        // Queue for cloud sync
+        const supabasePayload: any = {
+          id: logId,
+          animal_id: animalId,
+          treatment_type: treatmentType,
+          medication: finalMedication,
+          dosage: dosage || null,
+          date_administered: dateAdministered,
+          notes: notes || null,
+        };
+        if (safeDateStr) supabasePayload.safe_date = safeDateStr;
+
+        await SyncManager.queueInsert('health_logs', logId, supabasePayload);
+      }
+
+      setIsSubmitting(false);
+      alert(`Successfully queued ${animalIds.length} health log${animalIds.length !== 1 ? 's' : ''} for Cloud sync!`);
       navigate(isPreSelected ? '/health' : '/herd');
+    } catch (err: any) {
+      setIsSubmitting(false);
+      console.error('Error saving batch health logs:', err);
+      alert('Failed to save batch logs: ' + err.message);
     }
   };
 
   const isAllSelected = filteredHerd.length > 0 && filteredHerd.every(a => selectedIds.has(a.id));
+
+  // Withdrawal display helper
+  const withdrawalLabel = (() => {
+    if (isOtherSelected) {
+      return withdrawalDays
+        ? `${withdrawalDays} days (manual entry)`
+        : 'Not specified — enter below';
+    }
+    if (!selectedProduct) return null;
+    if (!knownWithdrawalDays || knownWithdrawalDays === 0) return 'No withdrawal period';
+    if (knownWithdrawalDays === 999) return 'Unknown — refer to product label';
+    return `${knownWithdrawalDays} days (auto-filled)`;
+  })();
 
   return (
     <div className="fade-in">
@@ -181,6 +299,15 @@ export const BatchHealth = () => {
                 </div>
               ))}
             </div>
+
+            {/* Withdrawal notice */}
+            {computedSafeDate && (
+              <div style={{ marginTop: '16px', padding: '10px 14px', backgroundColor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: '8px', fontSize: '0.85rem', color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={14} />
+                Withdrawal: all {selectedIds.size} animals safe from <strong>{computedSafeDate.toLocaleDateString()}</strong>
+              </div>
+            )}
+
             <button
               onClick={() => navigate('/health')}
               style={{
@@ -218,6 +345,14 @@ export const BatchHealth = () => {
               </button>
               <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{selectedIds.size} Selected</span>
             </div>
+
+            {/* Withdrawal summary bar */}
+            {selectedIds.size > 0 && computedSafeDate && (
+              <div style={{ padding: '10px 20px', backgroundColor: '#FFFBEB', borderBottom: '1px solid #FDE68A', fontSize: '0.85rem', color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Info size={14} />
+                Withdrawal logged: safe from <strong>{computedSafeDate.toLocaleDateString()}</strong> for all selected animals
+              </div>
+            )}
 
             <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
               {isLoading ? (
@@ -280,26 +415,108 @@ export const BatchHealth = () => {
                 <option value="Vaccination">Vaccination</option>
                 <option value="Deworming">Deworming</option>
                 <option value="Dip / External">Dip / External Parasite</option>
+                <option value="Illness / Injury">Illness / Injury</option>
                 <option value="Checkup">General Checkup</option>
                 <option value="Other">Other</option>
               </select>
             </div>
 
+            {/* Smart Product Dropdown */}
             <div className="form-group">
-              <label className="form-label" htmlFor="medication">Medication / Vaccine Name *</label>
-              <input
-                id="medication"
+              <label className="form-label" htmlFor="product">Medication / Vaccine *</label>
+              <select
+                id="product"
                 className="form-input"
-                type="text"
                 required
-                placeholder="e.g. Supavax"
-                value={medication}
-                onChange={e => setMedication(e.target.value)}
-              />
+                value={isOtherSelected ? 'Other' : selectedProduct}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'Other') {
+                    setIsOtherSelected(true);
+                    setSelectedProduct('');
+                    setWithdrawalDays('');
+                  } else {
+                    setIsOtherSelected(false);
+                    setSelectedProduct(val);
+                    setWithdrawalDays('');
+                  }
+                }}
+              >
+                <option value="">-- Select Product --</option>
+                {products
+                  .filter(p => p.category === treatmentType)
+                  .map(p => (
+                    <option key={p.id} value={p.productName}>
+                      {p.productName}{p.isCustom ? ' (Custom)' : ''}
+                    </option>
+                  ))}
+                <option value="Other">Other (Manual Entry)</option>
+              </select>
             </div>
 
+            {/* Custom product name when Other selected */}
+            {isOtherSelected && (
+              <div className="form-group">
+                <label className="form-label" htmlFor="customProduct">Custom Product Name *</label>
+                <input
+                  id="customProduct"
+                  className="form-input"
+                  type="text"
+                  required
+                  placeholder="e.g. Dectomax Pour-On"
+                  value={customProduct}
+                  onChange={e => setCustomProduct(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Withdrawal Period */}
             <div className="form-group">
-              <label className="form-label" htmlFor="dosage">Dosage</label>
+              <label className="form-label" htmlFor="withdrawal">
+                Withdrawal Period
+                {isOtherSelected && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> (days)</span>}
+              </label>
+              {isOtherSelected ? (
+                <input
+                  id="withdrawal"
+                  className="form-input"
+                  type="number"
+                  min="0"
+                  placeholder="Enter days (0 = none)"
+                  value={withdrawalDays}
+                  onChange={e => setWithdrawalDays(e.target.value)}
+                />
+              ) : (
+                <div style={{
+                  padding: '10px 14px',
+                  backgroundColor: selectedProductDef ? (knownWithdrawalDays ? '#FFFBEB' : '#F0FDF4') : 'var(--bg-off)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.875rem',
+                  color: selectedProductDef ? (knownWithdrawalDays ? '#92400E' : '#065F46') : 'var(--text-muted)',
+                  fontWeight: selectedProductDef ? 600 : 400,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}>
+                  {withdrawalLabel || 'Select a product above'}
+                </div>
+              )}
+
+              {/* Computed safe date preview */}
+              {computedSafeDate && (
+                <p style={{ fontSize: '0.78rem', color: '#92400E', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ⚠️ Meat safe from: <strong>{computedSafeDate.toLocaleDateString()}</strong>
+                </p>
+              )}
+            </div>
+
+            {/* Dosage — plain optional text, no smart calculation for batch */}
+            <div className="form-group">
+              <label className="form-label" htmlFor="dosage">
+                Dosage
+                <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '6px' }}>(optional — not auto-calculated for batch)</span>
+              </label>
               <input
                 id="dosage"
                 className="form-input"
