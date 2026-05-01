@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
-import { Home, List, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, BarChart2, Users, LifeBuoy, Tag } from 'lucide-react';
+import { Home, List, Settings as SettingsIcon, Menu, Bell, Activity, LogOut, Tent, BarChart2, LifeBuoy, Tag } from 'lucide-react';
 import './index.css';
 import { HerdList } from './pages/HerdList';
 import { BatchMovement } from './pages/BatchMovement';
@@ -17,7 +17,7 @@ import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
 import { Settings } from './pages/Settings';
 import { Reports } from './pages/Reports';
-import { UserManagement } from './pages/UserManagement';
+
 import { Support } from './pages/Support';
 import { HelpGuide } from './pages/HelpGuide';
 import { ForgotPassword } from './pages/ForgotPassword';
@@ -27,7 +27,7 @@ import { Plans } from './pages/Plans';
 import { Signup } from './pages/Signup';
 import { Billing } from './pages/Billing';
 import { Profile } from './pages/Profile';
-import { AdminDashboard } from './pages/AdminDashboard';
+
 import { HealthWorkflow } from './pages/HealthWorkflow';
 import { BuySell } from './pages/BuySell';
 import { BuyingWizard } from './pages/BuyingWizard';
@@ -234,14 +234,7 @@ const App = () => {
                   {/* Spacer pushes bottom items down */}
                   <div style={{ flex: 1 }}></div>
 
-                  {/* Admin Section */}
-                  {session.user.email === 'djb.rsa@gmail.com' && (
-                    <div style={{ paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', marginBottom: '4px' }}>
-                      <div style={{ padding: '0 16px 8px', fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</div>
-                      <NavItem to="/admin" icon={Users} label="Admin Console" onClick={() => setIsSidebarOpen(false)} />
-                      <NavItem to="/admin/users" icon={Users} label="User Management" onClick={() => setIsSidebarOpen(false)} />
-                    </div>
-                  )}
+
 
                   <NavItem to="/support" icon={LifeBuoy} label="Help & Support" onClick={() => setIsSidebarOpen(false)} />
                   <NavItem to="/settings" icon={SettingsIcon} label="Settings" onClick={() => setIsSidebarOpen(false)} />
@@ -296,12 +289,7 @@ const App = () => {
                     <Route path="/help" element={<HelpGuide />} />
                     <Route path="/billing" element={<Billing />} />
                     <Route path="/profile" element={<Profile />} />
-                    {session.user.email === 'djb.rsa@gmail.com' && (
-                      <>
-                        <Route path="/admin" element={<AdminDashboard />} />
-                        <Route path="/admin/users" element={<UserManagement />} />
-                      </>
-                    )}
+
                     {/* Catch-all for authenticated users: back to dashboard */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
