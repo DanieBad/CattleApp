@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 import { supabase } from '../supabase';
 import { useSubscription } from '../context/SubscriptionContext';
-import { ArrowRight, Mail, AlertTriangle, CheckCircle2, Loader2, TrendingUp, Database, Download, Mic, Bell, MessageSquare } from 'lucide-react';
+import { ArrowRight, Mail, AlertTriangle, CheckCircle2, Loader2, TrendingUp, Database, Download, Mic, Bell, MessageSquare, Trash2, RefreshCw, XCircle, AlertOctagon } from 'lucide-react';
 
 const PLANS = [
   { id: 'basic',        name: 'Basic',        animalLimit: 100,    priceZar: 75,  priceUsd: 5,  isSelfServe: true  },
@@ -14,7 +14,8 @@ const PLANS = [
 export const Billing = () => {
   const {
     planId, planName, status, animalLimit, activeAnimalCount,
-    trialEndsAt, trialDaysRemaining, refreshSubscription
+    trialEndsAt, trialDaysRemaining, cancellationEndsAt, isPendingCancellation,
+    refreshSubscription
   } = useSubscription();
 
   const [switching, setSwitching] = useState<string | null>(null);
@@ -23,6 +24,10 @@ export const Billing = () => {
   const [switchError, setSwitchError] = useState('');
   const [audioBytes, setAudioBytes] = useState<number | null>(null);
   const [exportingData, setExportingData] = useState(false);
+  const [cancelStep, setCancelStep] = useState<0 | 1 | 2>(0); // 0=hidden,1=warning,2=confirm
+  const [cancelling, setCancelling] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   // Load audio storage usage from farm_settings
   useEffect(() => {
@@ -123,7 +128,75 @@ export const Billing = () => {
     return new Date(trialEndsAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
+  const formatCancellationEnd = (iso?: string | null) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('en-ZA', {
+      day: 'numeric', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  // Estimated end date shown in the step-2 modal before RPC is called
+  const estimatedEndDate = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + 30); // TESTING_MODE: change to d.setDate(d.getDate() + 30)
+    return formatCancellationEnd(d.toISOString());
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelling(true);
+    setCancelError('');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase.rpc('cancel_subscription', { p_user_id: user.id });
+      if (error) throw error;
+
+      // Send cancellation email (notification to info@ + confirmation to user)
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('cancellation_ends_at')
+        .eq('user_id', user.id)
+        .single();
+
+      await supabase.functions.invoke('send-cancellation-email', {
+        body: {
+          type: 'cancellation_initiated',
+          userId: user.id,
+          userEmail: user.email,
+          cancellationEndsAt: sub?.cancellation_ends_at ?? new Date().toISOString(),
+        },
+      });
+
+      await refreshSubscription();
+      setCancelStep(0);
+    } catch (err: any) {
+      setCancelError(err.message || 'Failed to cancel. Please try again.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleResumeSubscription = async () => {
+    setResuming(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.rpc('resume_subscription', { p_user_id: user.id });
+      if (error) throw error;
+      await refreshSubscription();
+    } catch (err: any) {
+      console.error('Resume failed:', err);
+    } finally {
+      setResuming(false);
+    }
+  };
+
   const statusBadge = () => {
+    if (isPendingCancellation) {
+      return <span style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>Cancelling</span>;
+    }
     const map: Record<string, { label: string; bg: string; color: string }> = {
       trialing:     { label: 'Free Trial', bg: '#DBEAFE', color: '#1D4ED8' },
       active:       { label: 'Active',     bg: '#D1FAE5', color: '#065F46' },
@@ -176,12 +249,42 @@ export const Billing = () => {
       )}
 
       {/* System Messages */}
-      <div className="card" style={{ padding: '20px', marginBottom: '28px', border: '1px solid #DBEAFE', backgroundColor: '#F0F9FF' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#1D4ED8' }}>
+      <div className="card" style={{ padding: '20px', marginBottom: '28px', border: isPendingCancellation ? '1px solid #FECACA' : '1px solid #DBEAFE', backgroundColor: isPendingCancellation ? '#FFF5F5' : '#F0F9FF' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: isPendingCancellation ? '#DC2626' : '#1D4ED8' }}>
           <Bell size={18} />
           System Messages
         </h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* High-priority cancellation notice */}
+          {isPendingCancellation && cancellationEndsAt && (
+            <div style={{ display: 'flex', gap: '12px', padding: '14px 16px', backgroundColor: 'white', borderRadius: '8px', border: '2px solid #FCA5A5', alignItems: 'flex-start' }}>
+              <AlertOctagon size={18} style={{ color: '#DC2626', flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', backgroundColor: '#FEE2E2', color: '#991B1B', padding: '2px 8px', borderRadius: '8px' }}>High Priority</span>
+                  <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 600 }}>Subscription Cancellation</span>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: '#7F1D1D', margin: '0 0 8px 0', fontWeight: 600 }}>
+                  ⚠️ Your subscription has been cancelled. Access ends on <strong>{formatCancellationEnd(cancellationEndsAt)}</strong>.
+                </p>
+                <p style={{ fontSize: '0.85rem', color: '#991B1B', margin: '0 0 10px 0' }}>
+                  Please export all your data before this date. All data will be permanently destroyed after 30 days.
+                  You can resume your subscription at any time during this period.
+                </p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button onClick={handleExportCSV} disabled={exportingData}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '7px', border: '1px solid #FCA5A5', background: 'white', color: '#DC2626', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
+                    {exportingData ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} Export Data
+                  </button>
+                  <button onClick={handleResumeSubscription} disabled={resuming}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '7px', border: 'none', background: '#10B981', color: 'white', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
+                    {resuming ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Resume Subscription
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Welcome message */}
           <div style={{ display: 'flex', gap: '12px', padding: '12px 16px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #BFDBFE', alignItems: 'flex-start' }}>
             <MessageSquare size={16} style={{ color: '#2563EB', flexShrink: 0, marginTop: '2px' }} />
             <div>
@@ -196,19 +299,41 @@ export const Billing = () => {
 
       {/* Current plan + usage */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '36px' }}>
-        <div className="card" style={{ padding: '24px' }}>
+        <div className="card" style={{ padding: '24px', border: isPendingCancellation ? '2px solid #F87171' : undefined }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '12px' }}>Current Plan</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
             <span style={{ fontSize: '1.75rem', fontWeight: 900 }}>{planName}</span>
             {statusBadge()}
           </div>
-          {status === 'trialing' && trialEndsAt && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-              Trial ends on <strong>{formatTrialEnd()}</strong>
-              {trialDaysRemaining !== null && ` (${trialDaysRemaining} days left)`}
-            </p>
+          {isPendingCancellation && cancellationEndsAt ? (
+            <>
+              <p style={{ color: '#DC2626', fontSize: '0.875rem', fontWeight: 600, marginBottom: '12px' }}>
+                Access ends: <strong>{formatCancellationEnd(cancellationEndsAt)}</strong>
+              </p>
+              <button onClick={handleResumeSubscription} disabled={resuming}
+                style={{ width: '100%', padding: '10px', backgroundColor: '#10B981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: resuming ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.875rem', marginBottom: '8px' }}>
+                {resuming ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Resume Subscription
+              </button>
+            </>
+          ) : status === 'cancelled' ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Your subscription has ended. Contact us to reactivate.</p>
+          ) : (
+            <>
+              {status === 'trialing' && trialEndsAt && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                  Trial ends on <strong>{formatTrialEnd()}</strong>
+                  {trialDaysRemaining !== null && ` (${trialDaysRemaining} days left)`}
+                </p>
+              )}
+              {status === 'active' && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Plan active — payment integration coming soon.</p>}
+              {(status === 'active' || status === 'trialing') && (
+                <button onClick={() => setCancelStep(1)}
+                  style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', border: '1px solid #FCA5A5', background: 'white', color: '#DC2626', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer' }}>
+                  <Trash2 size={14} /> Cancel Subscription
+                </button>
+              )}
+            </>
           )}
-          {status === 'active' && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Plan active — payment integration coming soon.</p>}
         </div>
 
         <div className="card" style={{ padding: '24px' }}>
@@ -404,6 +529,69 @@ export const Billing = () => {
             <button onClick={() => setShowContactModal(false)} style={{ width: '100%', padding: '11px', background: 'none', border: '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-muted)' }}>
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancellation Modal Step 1 — Warning ─────────────────────────────── */}
+      {cancelStep === 1 && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}
+          onClick={() => setCancelStep(0)}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '36px', maxWidth: '460px', width: '100%' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <AlertTriangle size={26} color="#EF4444" />
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '12px', color: '#111827' }}>Cancel Your Subscription?</h2>
+            <p style={{ color: '#4B5563', marginBottom: '14px', lineHeight: 1.6 }}>If you cancel:</p>
+            <ul style={{ color: '#4B5563', paddingLeft: '20px', marginBottom: '24px', lineHeight: 2 }}>
+              <li>All your data will be <strong>permanently deleted</strong> 30 days after cancellation</li>
+              <li>You can <strong>resume at any time</strong> during the 30-day period to avoid any data loss</li>
+            </ul>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setCancelStep(0)}
+                style={{ flex: 1, padding: '11px', background: 'none', border: '1px solid var(--border)', borderRadius: '10px', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: 600 }}>
+                ← Go Back
+              </button>
+              <button onClick={() => setCancelStep(2)}
+                style={{ flex: 1, padding: '11px', backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', cursor: 'pointer', color: '#DC2626', fontWeight: 700 }}>
+                I Understand →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancellation Modal Step 2 — Final Confirmation ───────────────────── */}
+      {cancelStep === 2 && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '20px' }}
+          onClick={() => !cancelling && setCancelStep(0)}>
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: 'white', borderRadius: '16px', padding: '36px', maxWidth: '460px', width: '100%' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <XCircle size={26} color="#EF4444" />
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '12px', color: '#111827' }}>Are You Sure?</h2>
+            <p style={{ color: '#4B5563', lineHeight: 1.6, marginBottom: '12px' }}>
+              This will begin your 30-day cancellation period. After 30 days, your account will be deactivated and <strong>all data will be permanently deleted</strong>.
+            </p>
+            <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px' }}>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#991B1B', fontWeight: 600 }}>
+                📅 Your access will end on: <strong>{estimatedEndDate()}</strong>
+              </p>
+            </div>
+            {cancelError && (
+              <p style={{ color: '#DC2626', fontSize: '0.85rem', marginBottom: '12px' }}>{cancelError}</p>
+            )}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setCancelStep(1)} disabled={cancelling}
+                style={{ flex: 1, padding: '11px', background: 'none', border: '1px solid var(--border)', borderRadius: '10px', cursor: cancelling ? 'not-allowed' : 'pointer', color: 'var(--text-muted)', fontWeight: 600, opacity: cancelling ? 0.6 : 1 }}>
+                ← Go Back
+              </button>
+              <button onClick={handleCancelSubscription} disabled={cancelling}
+                style={{ flex: 1, padding: '11px', backgroundColor: '#EF4444', border: 'none', borderRadius: '10px', cursor: cancelling ? 'not-allowed' : 'pointer', color: 'white', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: cancelling ? 0.7 : 1 }}>
+                {cancelling ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                Yes, Cancel My Subscription
+              </button>
+            </div>
           </div>
         </div>
       )}

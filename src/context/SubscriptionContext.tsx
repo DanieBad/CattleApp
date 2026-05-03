@@ -22,6 +22,10 @@ export interface SubscriptionContextValue {
   trialEndsAt: string | null;
   /** Days remaining in trial (null if not trialing) */
   trialDaysRemaining: number | null;
+  /** ISO string for when cancelled access ends (null if not in cancellation window) */
+  cancellationEndsAt: string | null;
+  /** true when cancellation_ends_at is set and still in the future */
+  isPendingCancellation: boolean;
   /** true when activeAnimalCount >= animalLimit */
   isAtLimit: boolean;
   /** true when status is grace_period or cancelled */
@@ -44,6 +48,8 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
   activeAnimalCount: 0,
   trialEndsAt: null,
   trialDaysRemaining: null,
+  cancellationEndsAt: null,
+  isPendingCancellation: false,
   isAtLimit: false,
   isBlocked: false,
   canAddAnimals: false,
@@ -56,13 +62,14 @@ export const useSubscription = () => useContext(SubscriptionContext);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const SubscriptionProvider = ({ session, children }: { session: Session; children: React.ReactNode }) => {
-  const [planId, setPlanId]                     = useState<PlanId | null>(null);
-  const [planName, setPlanName]                 = useState('');
-  const [status, setStatus]                     = useState<SubscriptionStatus | null>(null);
-  const [animalLimit, setAnimalLimit]           = useState(0);
+  const [planId, setPlanId]                       = useState<PlanId | null>(null);
+  const [planName, setPlanName]                   = useState('');
+  const [status, setStatus]                       = useState<SubscriptionStatus | null>(null);
+  const [animalLimit, setAnimalLimit]             = useState(0);
   const [activeAnimalCount, setActiveAnimalCount] = useState(0);
-  const [trialEndsAt, setTrialEndsAt]           = useState<string | null>(null);
-  const [isLoading, setIsLoading]               = useState(true);
+  const [trialEndsAt, setTrialEndsAt]             = useState<string | null>(null);
+  const [cancellationEndsAt, setCancellationEndsAt] = useState<string | null>(null);
+  const [isLoading, setIsLoading]                 = useState(true);
 
   const fetchSubscription = useCallback(async () => {
     setIsLoading(true);
@@ -76,6 +83,8 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
           plan_id,
           status,
           trial_ends_at,
+          cancellation_ends_at,
+          cancelled_at,
           plan_definitions (
             name,
             animal_limit
@@ -92,21 +101,24 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
             p_user_id: userId,
             p_plan_id: 'basic',
           });
-          
+
           // Re-fetch now that it exists
           const { data: newSub, error: newSubErr } = await supabase
             .from('subscriptions')
-            .select(`plan_id, status, trial_ends_at, plan_definitions(name, animal_limit)`)
+            .select(`
+              plan_id, status, trial_ends_at, cancellation_ends_at, cancelled_at,
+              plan_definitions(name, animal_limit)
+            `)
             .eq('user_id', userId)
             .single();
-          
+
           if (newSubErr || !newSub) return;
-          updateStateFromSub(newSub, userId);
+          await updateStateFromSub(newSub, userId);
         } else {
           console.error('SubscriptionContext: could not load subscription', subErr.message);
         }
       } else if (sub) {
-        updateStateFromSub(sub, userId);
+        await updateStateFromSub(sub, userId);
       }
     } catch (err) {
       console.error('SubscriptionContext: unexpected error', err);
@@ -116,8 +128,9 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
   }, [session.user.id]);
 
   const updateStateFromSub = async (sub: any, userId: string) => {
-    // Check if trial has expired and update status to grace_period if needed
     let resolvedStatus = sub.status as SubscriptionStatus;
+
+    // ── Check 1: Trial expiry ─────────────────────────────────────────────────
     if (resolvedStatus === 'trialing' && sub.trial_ends_at) {
       const trialEnd = new Date(sub.trial_ends_at);
       if (trialEnd < new Date()) {
@@ -129,12 +142,29 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
       }
     }
 
+    // ── Check 2: Cancellation window expiry (client-side deactivation) ────────
+    // If cancellation_ends_at has passed and status hasn't been flipped yet,
+    // call the RPC to deactivate. This runs on every app load — no pg_cron needed.
+    if (
+      sub.cancellation_ends_at &&
+      new Date(sub.cancellation_ends_at) <= new Date() &&
+      resolvedStatus !== 'cancelled' &&
+      resolvedStatus !== 'grace_period'
+    ) {
+      console.log('SubscriptionContext: Cancellation window expired — deactivating user');
+      await supabase.rpc('process_expired_cancellations');
+      resolvedStatus = 'cancelled';
+    }
+
     const planDef = sub.plan_definitions as any;
     setPlanId(sub.plan_id as PlanId);
     setPlanName(planDef?.name ?? sub.plan_id);
     setStatus(resolvedStatus);
     setAnimalLimit(planDef?.animal_limit ?? 0);
     setTrialEndsAt(sub.trial_ends_at);
+    // If status is now cancelled, clear the cancellationEndsAt so the pending-cancel
+    // UI doesn't show alongside the fully-cancelled state.
+    setCancellationEndsAt(resolvedStatus === 'cancelled' ? null : (sub.cancellation_ends_at ?? null));
 
     // Fetch active animal count
     const { count, error: countErr } = await supabase
@@ -152,14 +182,21 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
     fetchSubscription();
   }, [fetchSubscription]);
 
-  // Derived values
+  // ─── Derived values ─────────────────────────────────────────────────────────
+
   const trialDaysRemaining = (() => {
     if (status !== 'trialing' || !trialEndsAt) return null;
     const diff = new Date(trialEndsAt).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   })();
 
+  // isPendingCancellation: window is set and still in the future
+  const isPendingCancellation =
+    !!cancellationEndsAt && new Date(cancellationEndsAt) > new Date();
+
   const isAtLimit  = activeAnimalCount >= animalLimit;
+  // isBlocked only when fully cancelled/grace_period — NOT during pending cancellation
+  // (user retains full access during the grace window)
   const isBlocked  = status === 'grace_period' || status === 'cancelled';
   const canAddAnimals = !isBlocked && !isAtLimit;
 
@@ -172,6 +209,8 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
       activeAnimalCount,
       trialEndsAt,
       trialDaysRemaining,
+      cancellationEndsAt,
+      isPendingCancellation,
       isAtLimit,
       isBlocked,
       canAddAnimals,

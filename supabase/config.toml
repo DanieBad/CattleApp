@@ -407,3 +407,13 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-beta-welcome-email/index.ts"
 
+[functions.send-cancellation-email]
+enabled = true
+verify_jwt = false   # Auth handled internally — accepts both JWT and service_role
+entrypoint = "./functions/send-cancellation-email/index.ts"
+
+[functions.process-cancellation-jobs]
+enabled = true
+verify_jwt = false   # Auth checked manually — requires service_role key in Authorization header
+entrypoint = "./functions/process-cancellation-jobs/index.ts"
+
