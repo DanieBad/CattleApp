@@ -16,15 +16,11 @@ const HELP_CATEGORIES = [
     articles: [
       {
         title: 'Setting Up Your Farm Profile',
-        content: 'Navigate to Settings to update your farm name, location, and preferred currency. These details appear on your printed reports.'
-      },
-      {
-        title: 'Configuring Units (kg vs lbs)',
-        content: 'In Settings > Preferences, you can toggle between Metric (kg) and Imperial (lbs). This will update all animal weights and reports instantly.'
+        content: 'Navigate to Settings to update your farm name, location, and your default species. These details appear on your generated reports. The Settings page is also where you upload your GLN certificates and GS1 compliance numbers, configure default breeds, and select your preferred language for the voice assistant.'
       },
       {
         title: 'Offline Mode & Syncing',
-        content: 'HealthyHerd works best with an internet connection to sync data. If you lose connection, wait until you are back online before making bulk changes or attempting imports.'
+        content: 'HealthyHerd is designed to work offline in the field — you can continue logging treatments, movements, and health records without an internet connection. All changes are stored locally on your device and will automatically sync to the cloud once your device reconnects to the internet. For bulk operations such as data imports, we recommend using the desktop version of the app for the best experience.'
       }
     ]
   },
@@ -41,11 +37,11 @@ const HELP_CATEGORIES = [
       },
       {
         title: 'Bulk Data Imports (CSV)',
-        content: 'To migrate from another system, go to the Import/Export page. Download our CSV template, fill in your data, and drop it back in. Avoid changing the column headers.'
+        content: 'To migrate from another system, use the import tool found under Settings. Upload your CSV file directly from there. All CSV data imports and export functions are managed through the Settings page. For ease of use, we recommend performing bulk imports on the desktop version of the app.'
       },
       {
-        title: 'Traceability Forms',
-        content: 'When moving or selling animals, use the Traceability module (available on the animal detail page) to log the transfer of ownership securely.'
+        title: 'Navigating the My Herd Screen',
+        content: 'The My Herd screen displays your complete livestock inventory in an interactive data table. You can filter the list by species, or narrow your view to active, sold, or deceased animals. Use the search bar to find a specific animal by tag number, and click any column header (such as Date of Birth) to sort the list. Opening an individual animal profile reveals full details including clickable lineage links — click directly on a listed parent or calf to jump to their profile.'
       }
     ]
   },
@@ -58,11 +54,11 @@ const HELP_CATEGORIES = [
     articles: [
       {
         title: 'Creating and Managing Camps',
-        content: 'Navigate to Camps. Click "Create Camp", give it a name, and set a maximum capacity. The system will warn you if you assign too many animals.'
+        content: 'Navigate to Camps. Click "Create Camp", give it a name, and set a maximum capacity. You can assign animals to a camp from their individual animal profile or via the Pasture Movement screen.'
       },
       {
-        title: 'Batch Movement',
-        content: 'Need to move a whole herd? Use the Batch Movement tool to select multiple animals and reassign them to a new camp in one click.'
+        title: 'Animal Movement',
+        content: 'Need to move animals between grazing areas? Go to the Pasture Movement screen, select the animals you want to move, and assign them to a new camp. You can move individual animals or a large group in a single operation.'
       }
     ]
   },
@@ -74,6 +70,10 @@ const HELP_CATEGORIES = [
     bgColor: '#FEF2F2',
     articles: [
       {
+        title: 'Smart Dosage & Withdrawal Calculation',
+        content: 'HealthyHerd intelligently automates two critical compliance steps. First, when you select an illness and medication from the built-in database, the app automatically calculates the required dosage based on the animal\'s breed, age, or most recent weight — removing the risk of under- or overdosing. Second, the app automatically calculates and tracks the required withdrawal period for each treatment, and will alert you when the meat or milk from that animal is safe for consumption or sale. This protects both your herd\'s health and your business\'s regulatory compliance.'
+      },
+      {
         title: 'Logging Individual Treatments',
         content: 'Open an animal\'s profile and go to the Health tab. Log diagnoses, medication types, and dosage amounts here.'
       },
@@ -83,7 +83,7 @@ const HELP_CATEGORIES = [
       },
       {
         title: 'Quarantine & Withdrawal Periods',
-        content: 'When logging a treatment with a withdrawal period, the system will flag the animal to prevent accidental sales before the meat/milk is safe.'
+        content: 'When logging a treatment with a withdrawal period, the app automatically calculates the withdrawal end date and flags the animal to prevent accidental sales or slaughter before the meat or milk is certified safe.'
       }
     ]
   },
@@ -96,11 +96,11 @@ const HELP_CATEGORIES = [
     articles: [
       {
         title: 'Buying Wizard',
-        content: 'Navigate to Buy/Sell > Buying Wizard. This guided flow lets you log the purchase invoice, supplier details, and simultaneously add the newly purchased animals to your herd.'
+        content: 'Navigate to Buy/Sell > Buying Wizard. This guided traceability flow lets you log the full purchase details: supplier information, origin GPS coordinates, GLN certificates, and permit numbers. Newly purchased animals are added directly to your herd, and you can automatically flag them for a quarantine period on arrival. All purchase records are stored for full supply-chain traceability.'
       },
       {
         title: 'Selling Wizard',
-        content: 'The Selling Wizard lets you select animals from your inventory, mark them as Sold, and log the revenue. This automatically updates your Active Herd count.'
+        content: 'The Selling Wizard lets you select animals from your inventory and log the complete sale: buyer information, destination GPS coordinates, GLN certificates, and permit numbers for full traceability. Confirming a sale permanently marks the selected animals as removed from your active herd. They remain visible in the My Herd screen under the "Sold" filter for historical reporting.'
       }
     ]
   },
@@ -113,11 +113,11 @@ const HELP_CATEGORIES = [
     articles: [
       {
         title: 'Generating Reports',
-        content: 'Go to Reports. Select a report type (e.g., Mortality, Weight Gain, Treatments), set your date range, and view the visual charts.'
+        content: 'Go to Reports. HealthyHerd generates five key reports: Weight Performance, Pasture Utilisation, Reproductive Efficiency, Health & Withdrawal Compliance, and Sales & Financials. Select the report you need, set your date range, and view the visual charts.'
       },
       {
         title: 'Exporting Data',
-        content: 'On the Reports page, after generating a report, click the "Export CSV" button to download raw data for your accountant or veterinary consultant.'
+        content: 'On the Reports page, after generating a report, click the "Export PDF" button to download a formatted report for your accountant or veterinary consultant. For raw data exports, use the Export function found in Settings.'
       }
     ]
   }

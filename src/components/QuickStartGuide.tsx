@@ -12,9 +12,9 @@ export const GUIDE_STEPS = [
     bgColor: '#F5F3FF',
     title: 'Set Up Your Farm Profile',
     description:
-      'Start by configuring your farm details — name, location, and default currency. This information appears throughout the app and on reports.',
+      'Start by configuring your farm details — name, location, and your default species. This information appears throughout the app and on your generated reports.',
     action: { label: 'Go to Farm Settings', path: '/settings' },
-    tip: 'You can also set your preferred weight unit (kg or lbs) here.',
+    tip: 'Take a moment to review all settings before adding your first animal, so your reports are accurate from the start.',
   },
   {
     icon: PlusCircle,
@@ -22,9 +22,9 @@ export const GUIDE_STEPS = [
     bgColor: '#F0FDF4',
     title: 'Add Your First Animal',
     description:
-      'Register livestock individually by filling in the tag number, species, breed, date of birth, and current weight. Have a large herd? Use the CSV import to bulk-upload records.',
+      'Register livestock individually by filling in the tag number, species, breed, date of birth, and current weight. Have a large herd? Use our import tool under Settings to upload your CSV file.',
     action: { label: 'Add an Animal', path: '/herd/add' },
-    tip: 'Importing from another system? Download the template CSV from the Import page.',
+    tip: 'For ease of use, we recommend performing bulk data imports on the desktop version of the app.',
   },
   {
     icon: MapPin,
@@ -32,7 +32,7 @@ export const GUIDE_STEPS = [
     bgColor: '#FFFBEB',
     title: 'Create Pastures & Camps',
     description:
-      'Define the grazing areas on your farm. You can set a capacity for each camp, and the app will warn you when a camp is over-stocked.',
+      'Define the grazing areas on your farm. You can set a maximum capacity for each camp and assign animals to them. Move animals between camps using the Pasture Movement screen.',
     action: { label: 'Manage Camps', path: '/camps' },
     tip: 'Assign animals to camps directly from their animal profile page.',
   },
@@ -52,9 +52,9 @@ export const GUIDE_STEPS = [
     bgColor: '#F0F9FF',
     title: 'Explore Your Reports',
     description:
-      "HealthyHerd auto-generates mortality, weight gain, treatment cost, and financial reports. Filter by date range or species, then export as CSV for your vet or accountant.",
+      "HealthyHerd generates five key reports: Weight Performance, Pasture Utilisation, Reproductive Efficiency, Health & Withdrawal Compliance, and Sales & Financials. Filter by date range or species, then export as a PDF for your vet or accountant.",
     action: { label: 'View Reports', path: '/reports' },
-    tip: 'Pin your most-used report filters by bookmarking the filtered URL.',
+    tip: 'The Health & Withdrawal Compliance report is especially useful for verifying that no animals under a withdrawal period are accidentally cleared for sale.',
   },
   {
     icon: CheckSquare,
