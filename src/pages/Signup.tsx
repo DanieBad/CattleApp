@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { Check, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import logo from '../assets/Logo.png';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { validatePassword, getPasswordStrength } from '../utils/passwordStrength';
 
 interface PlanMeta {
   id: string;
@@ -47,21 +48,15 @@ export const Signup = () => {
 
   if (!plan) return null;
 
-  const passwordStrength = () => {
-    if (password.length === 0) return null;
-    if (password.length < 6)  return { label: 'Too short', color: '#EF4444', width: '25%' };
-    if (password.length < 8)  return { label: 'Weak',      color: '#F59E0B', width: '50%' };
-    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) return { label: 'Fair', color: '#3B82F6', width: '75%' };
-    return { label: 'Strong', color: '#10B981', width: '100%' };
-  };
-  const strength = passwordStrength();
+  const strength = getPasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!agreedToBeta) { setError('Please agree to the Beta disclaimer.'); return; }
     if (password !== confirmPw) { setError('Passwords do not match.'); return; }
-    if (password.length < 6)    { setError('Password must be at least 6 characters.'); return; }
+    const { valid, error: pwError } = validatePassword(password);
+    if (!valid) { setError(pwError!); return; }
 
     setLoading(true);
     try {
@@ -289,7 +284,7 @@ export const Signup = () => {
                     id="password"
                     type={showPw ? 'text' : 'password'}
                     required className="form-input"
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 8 characters, upper & lowercase, 1 digit"
                     style={{ paddingRight: '44px', fontSize: isMobile ? '1rem' : undefined }}
                     value={password} onChange={e => setPassword(e.target.value)}
                   />

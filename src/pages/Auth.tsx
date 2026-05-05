@@ -4,7 +4,6 @@ import logo from '../assets/Logo.png';
 import { Link } from 'react-router-dom';
 
 export const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,17 +15,10 @@ export const Auth = () => {
     setErrorMsg('');
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        alert("Success! Now please sign in with your new credentials.");
-        setIsLogin(true); // Switch back to login form implicitly
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
     } catch (err: any) {
-      setErrorMsg(err.message || 'An error occurred during authentication.');
+      setErrorMsg(err.message || 'An error occurred during sign in.');
     } finally {
       setLoading(false);
     }
@@ -39,7 +31,7 @@ export const Auth = () => {
           <img src={logo} alt="HealthyHerd Logo" style={{ height: '84px' }} />
         </div>
         <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: '32px' }}>
-          {isLogin ? 'Sign in to access your herd.' : 'Create your free account today.'}
+          Sign in to access your herd.
         </p>
 
         {errorMsg && (
@@ -51,11 +43,11 @@ export const Auth = () => {
         <form onSubmit={handleAuth}>
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email Address</label>
-            <input 
+            <input
               id="email"
-              type="email" 
-              required 
-              className="form-input" 
+              type="email"
+              required
+              className="form-input"
               placeholder="farmer@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -65,40 +57,38 @@ export const Auth = () => {
           <div className="form-group" style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <label className="form-label" htmlFor="password" style={{ marginBottom: 0 }}>Password</label>
-              {isLogin && (
-                <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 500, textDecoration: 'none' }}>
-                  Forgot Password?
-                </Link>
-              )}
+              <Link to="/forgot-password" style={{ color: 'var(--primary)', fontSize: '0.875rem', fontWeight: 500, textDecoration: 'none' }}>
+                Forgot Password?
+              </Link>
             </div>
-            <input 
+            <input
               id="password"
-              type="password" 
-              required 
-              className="form-input" 
+              type="password"
+              required
+              className="form-input"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
+          <button
+            type="submit"
+            className="btn btn-primary"
             style={{ width: '100%', justifyContent: 'center' }}
             disabled={loading}
           >
-            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <button 
-            onClick={() => { setIsLogin(!isLogin); setErrorMsg(''); setEmail(''); setPassword(''); }}
-            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+          <Link
+            to="/plans"
+            style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem' }}
           >
-            {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
-          </button>
+            Don't have an account? Sign Up →
+          </Link>
         </div>
       </div>
     </div>

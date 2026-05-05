@@ -43,6 +43,8 @@ import { VoiceConfirmationModal } from './components/VoiceAssistant/VoiceConfirm
 import { extractIntentFromText } from './services/voiceService';
 import { isMobile } from './utils/deviceUtils';
 import { SyncIndicator } from './components/SyncIndicator';
+import { BiometricPrompt } from './components/BiometricPrompt';
+import { SyncManager } from './services/syncManager';
 
 // Bell notification button — navigates to Billing & Subscription on click
 const BellButton = () => {
@@ -132,6 +134,7 @@ const App = () => {
   const [voiceActionType, setVoiceActionType] = useState<string>('');
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [showBiometricPrompt, setShowBiometricPrompt] = useState(false);
 
   const handleVoiceTranscript = async (text: string) => {
     setIsProcessingVoice(true);
@@ -150,6 +153,9 @@ const App = () => {
   };
 
   useEffect(() => {
+    // Reset any records stuck in 'syncing' from a previous crashed session
+    SyncManager.resetStuckSyncingRecords();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsAuthLoading(false);
@@ -161,6 +167,10 @@ const App = () => {
       setSession(session);
       if (event === 'PASSWORD_RECOVERY') {
         window.location.href = '/update-password';
+      }
+      // Show biometric prompt on first sign-in on a mobile device
+      if (event === 'SIGNED_IN' && isMobile() && !localStorage.getItem('biometric_prompted')) {
+        setShowBiometricPrompt(true);
       }
     });
 
@@ -314,6 +324,11 @@ const App = () => {
                   }}
                   onCancel={() => setIsVoiceModalOpen(false)}
                 />
+
+                {/* Biometric sign-in prompt — mobile only, shown once after first login */}
+                {showBiometricPrompt && (
+                  <BiometricPrompt onDismiss={() => setShowBiometricPrompt(false)} />
+                )}
               </div>
             </div>
             </SubscriptionProvider>

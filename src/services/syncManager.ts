@@ -3,6 +3,59 @@ import { supabase } from '../supabase';
 
 export class SyncManager {
   private static syncing = false;
+  private static pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Schedules a debounced push. Calling this multiple times in quick succession
+   * (e.g. when AddAnimal queues 3 outbox records back-to-back) will coalesce
+   * into a single pushPendingChanges() call 300 ms after the last queue operation.
+   * This prevents the mutex race condition that caused the "stuck pending" bug.
+   */
+  private static schedulePush() {
+    if (!navigator.onLine) return;
+    if (this.pushTimer) clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(() => {
+      this.pushTimer = null;
+      this.pushPendingChanges();
+    }, 300);
+  }
+
+  /**
+   * On app startup, reset any records stuck in 'syncing' status back to 'pending'
+   * so they will be retried. This handles the edge case where the app was closed
+   * while a sync was in progress, leaving orphaned 'syncing' records.
+   */
+  static async resetStuckSyncingRecords() {
+    try {
+      const stuckRecords = await db.sync_outbox
+        .where('status')
+        .equals('syncing')
+        .toArray();
+
+      for (const record of stuckRecords) {
+        if (record.id !== undefined) {
+          await db.sync_outbox.update(record.id, { status: 'pending' });
+        }
+      }
+
+      const stuckAudio = await db.offline_audio_queue
+        .where('status')
+        .equals('syncing')
+        .toArray();
+
+      for (const audio of stuckAudio) {
+        if (audio.id) {
+          await db.offline_audio_queue.update(audio.id, { status: 'pending' });
+        }
+      }
+
+      if (stuckRecords.length + stuckAudio.length > 0) {
+        console.log(`[SyncManager] Reset ${stuckRecords.length} data and ${stuckAudio.length} audio records from 'syncing' to 'pending'.`);
+      }
+    } catch (err) {
+      console.error('[SyncManager] Error resetting stuck syncing records:', err);
+    }
+  }
 
   /**
    * Pushes all pending operations from local Dexie outbox to Supabase.
@@ -92,10 +145,8 @@ export class SyncManager {
       status: 'pending',
       createdAt: new Date().toISOString()
     });
-    // Attempt sync immediately if online
-    if (navigator.onLine) {
-      this.pushPendingChanges();
-    }
+    // Debounced — safe to call many times in quick succession
+    this.schedulePush();
   }
 
   /**
@@ -110,9 +161,7 @@ export class SyncManager {
       status: 'pending',
       createdAt: new Date().toISOString()
     });
-    if (navigator.onLine) {
-      this.pushPendingChanges();
-    }
+    this.schedulePush();
   }
 
   /**
@@ -127,9 +176,7 @@ export class SyncManager {
       status: 'pending',
       createdAt: new Date().toISOString()
     });
-    if (navigator.onLine) {
-      this.pushPendingChanges();
-    }
+    this.schedulePush();
   }
 
   /**
