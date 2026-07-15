@@ -91,23 +91,46 @@ export const Billing = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fetch animals with self-joined sire/dam tag numbers
       const { data: animals } = await supabase
         .from('animals')
-        .select('*')
+        .select(`
+          *,
+          sire:animals!sire_id(tag_number),
+          dam:animals!dam_id(tag_number)
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (!animals || animals.length === 0) { alert('No animal data to export.'); return; }
 
-      // Build CSV
-      const headers = Object.keys(animals[0]).join(',');
-      const rows = animals.map(a =>
-        Object.values(a).map(v => {
-          const s = String(v ?? '');
+      // Columns to exclude from the export (internal database IDs)
+      const excludeColumns = ['id', 'sire_id', 'dam_id', 'sire', 'dam'];
+
+      // Build the header row: keep all original columns except excluded ones,
+      // then append the human-readable sire/dam tag number columns
+      const originalKeys = Object.keys(animals[0]).filter(k => !excludeColumns.includes(k));
+      const headers = [...originalKeys, 'sire_tag_number', 'dam_tag_number'];
+
+      const rows = animals.map(a => {
+        const sireTag = (a as any).sire?.tag_number ?? '';
+        const damTag = (a as any).dam?.tag_number ?? '';
+
+        const values = originalKeys.map(k => {
+          const s = String((a as any)[k] ?? '');
           return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-        }).join(',')
-      );
-      const csv = [headers, ...rows].join('\n');
+        });
+
+        // Append resolved sire/dam tag numbers
+        values.push(
+          sireTag.includes(',') || sireTag.includes('"') ? `"${sireTag.replace(/"/g, '""')}"` : sireTag,
+          damTag.includes(',') || damTag.includes('"') ? `"${damTag.replace(/"/g, '""')}"` : damTag
+        );
+
+        return values.join(',');
+      });
+
+      const csv = [headers.join(','), ...rows].join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -198,7 +221,7 @@ export const Billing = () => {
       return <span style={{ backgroundColor: '#FEF3C7', color: '#92400E', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>Cancelling</span>;
     }
     const map: Record<string, { label: string; bg: string; color: string }> = {
-      trialing:     { label: 'Free Trial', bg: '#DBEAFE', color: '#1D4ED8' },
+      trialing:     { label: 'Beta Program', bg: '#DBEAFE', color: '#1D4ED8' },
       active:       { label: 'Active',     bg: '#D1FAE5', color: '#065F46' },
       grace_period: { label: 'Expired',    bg: '#FEE2E2', color: '#991B1B' },
       cancelled:    { label: 'Cancelled',  bg: '#F3F4F6', color: '#374151' },

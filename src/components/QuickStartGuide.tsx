@@ -68,15 +68,20 @@ export const GUIDE_STEPS = [
   },
 ];
 
-export const QuickStartGuideModal = ({ onClose }: { onClose: () => void }) => {
+export const QuickStartGuideModal = ({ onClose }: { onClose: (permanentlyDismiss?: boolean) => void }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const current = GUIDE_STEPS[step];
   const Icon = current.icon;
   const isLast = step === GUIDE_STEPS.length - 1;
 
+  const handleClose = () => {
+    onClose(dontShowAgain);
+  };
+
   const handleNavigate = (path: string) => {
-    onClose();
+    handleClose();
     navigate(path);
   };
 
@@ -89,7 +94,7 @@ export const QuickStartGuideModal = ({ onClose }: { onClose: () => void }) => {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <div
         className="card fade-in"
@@ -107,7 +112,7 @@ export const QuickStartGuideModal = ({ onClose }: { onClose: () => void }) => {
             <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>Quick Start Guide</span>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => handleClose()}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px', borderRadius: '6px', display: 'flex' }}
           >
             <X size={20} />
@@ -181,13 +186,31 @@ export const QuickStartGuideModal = ({ onClose }: { onClose: () => void }) => {
           )}
           {isLast && (
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="btn btn-primary"
               style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}
             >
               <CheckSquare size={16} /> Close Guide
             </button>
           )}
+        </div>
+
+        {/* Don't show again checkbox */}
+        <div
+          style={{
+            padding: '12px 28px',
+            display: 'flex', alignItems: 'center', gap: '10px',
+            cursor: 'pointer',
+          }}
+          onClick={() => setDontShowAgain(!dontShowAgain)}
+        >
+          <input
+            type="checkbox"
+            checked={dontShowAgain}
+            onChange={() => {}}
+            style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+          />
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Don't show this guide again</span>
         </div>
 
         {/* Navigation footer */}
@@ -209,18 +232,33 @@ export const QuickStartGuideModal = ({ onClose }: { onClose: () => void }) => {
             <ArrowLeft size={16} /> Previous
           </button>
 
-          {!isLast && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Skip button — always visible */}
             <button
-              onClick={() => setStep(s => Math.min(GUIDE_STEPS.length - 1, s + 1))}
+              onClick={handleClose}
               style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
+                display: 'flex', alignItems: 'center', gap: '4px',
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem',
+                color: 'var(--text-muted)', fontWeight: 500, fontSize: '0.85rem',
+                textDecoration: 'underline', textUnderlineOffset: '2px',
               }}
             >
-              Next <ArrowRight size={16} />
+              Skip
             </button>
-          )}
+
+            {!isLast && (
+              <button
+                onClick={() => setStep(s => Math.min(GUIDE_STEPS.length - 1, s + 1))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--primary)', fontWeight: 600, fontSize: '0.9rem',
+                }}
+              >
+                Next <ArrowRight size={16} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

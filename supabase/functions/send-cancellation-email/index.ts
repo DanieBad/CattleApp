@@ -70,7 +70,7 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
               <li>↩️ You can <strong>resume your subscription</strong> at any time before the access-end date</li>
             </ul>
             <div style="text-align:center;margin-top:28px;">
-              <a href="https://app.healthyherd.app/billing" class="btn btn-primary">Go to Billing Page</a>
+              <a href="https://healthyherd.app/billing" class="btn btn-primary">Go to Billing Page</a>
             </div>
             <p style="margin-top:24px;font-size:0.85rem;color:#6B7280;">
               User ID (for reference): <code>${payload.userId}</code>
@@ -100,8 +100,8 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
             <p>After this date, all your data will be permanently destroyed and cannot be recovered.</p>
             <h3 style="color:#111827;">Act now — export your data or resume your subscription:</h3>
             <div style="text-align:center;margin-top:20px;display:flex;flex-direction:column;gap:10px;">
-              <a href="https://app.healthyherd.app/billing" class="btn btn-primary" style="margin-bottom:10px;">Export My Data</a>
-              <a href="https://app.healthyherd.app/billing" class="btn" style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;">Resume My Subscription</a>
+              <a href="https://healthyherd.app/billing" class="btn btn-primary" style="margin-bottom:10px;">Export My Data</a>
+              <a href="https://healthyherd.app/billing" class="btn" style="background:#F3F4F6;color:#374151;border:1px solid #D1D5DB;">Resume My Subscription</a>
             </div>
             <div class="footer">
               <p>The HealthyHerd Team · <a href="mailto:info@healthyherd.app" style="color:#10b981;">info@healthyherd.app</a></p>
@@ -126,7 +126,7 @@ function buildEmail(payload: EmailPayload): { subject: string; html: string } {
             </div>
             <p>This is your <strong>last chance</strong> to export your data or resume your subscription. After this date, all data will be permanently destroyed and cannot be recovered.</p>
             <div style="text-align:center;margin-top:20px;">
-              <a href="https://app.healthyherd.app/billing" class="btn btn-danger" style="margin-bottom:10px;display:block;">⚡ Take Action Now</a>
+              <a href="https://healthyherd.app/billing" class="btn btn-danger" style="margin-bottom:10px;display:block;">⚡ Take Action Now</a>
             </div>
             <div class="footer">
               <p>The HealthyHerd Team · <a href="mailto:info@healthyherd.app" style="color:#10b981;">info@healthyherd.app</a></p>

@@ -88,17 +88,19 @@ serve(async (req) => {
                 </ul>
 
                 <div class="pwa-box">
-                  <h3 class="pwa-title">📲 Add HealthyHerd to your Home Screen</h3>
-                  <p style="font-size: 0.95rem; color: #334155; margin-bottom: 10px;">For the best experience in the field, install HealthyHerd on your phone:</p>
+                  <h3 class="pwa-title">📲 Add HealthyHerd to your Device</h3>
+                  <p style="font-size: 0.95rem; color: #334155; margin-bottom: 10px;">For the best experience, install HealthyHerd as an app on your phone or desktop:</p>
                   <ul style="font-size: 0.9rem; color: #475569; padding-left: 20px;">
                     <li style="margin-bottom: 8px;"><strong>iPhone (Safari):</strong> Tap the <strong>Share icon</strong> (square with arrow) at the bottom, then scroll down and select <strong>"Add to Home Screen"</strong>.</li>
-                    <li><strong>Android (Chrome):</strong> Tap the <strong>three dots menu</strong> (⋮) in the top right corner, then select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+                    <li style="margin-bottom: 8px;"><strong>Android (Chrome):</strong> Tap the <strong>three dots menu</strong> (⋮) in the top right corner, then select <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+                    <li style="margin-bottom: 8px;"><strong>Mac (Safari/Chrome):</strong> In Safari, click <strong>File → Add to Dock</strong>. In Chrome, click the <strong>Install icon</strong> (⊕) in the address bar, then select <strong>"Install"</strong>.</li>
+                    <li><strong>PC (Chrome/Edge):</strong> Click the <strong>Install icon</strong> (⊕) in the address bar, or go to <strong>Menu (⋮) → Install HealthyHerd</strong>.</li>
                   </ul>
                 </div>
 
                 <div class="cta-box">
                   <p style="margin-bottom: 20px; font-weight: 600; color: #374151;">Ready to record your first animal?</p>
-                  <a href="https://app.healthyherd.app/dashboard" class="btn">Go to Dashboard</a>
+                  <a href="https://healthyherd.app/" class="btn">Go to Dashboard</a>
                 </div>
 
                 <p style="margin-top: 30px; font-size: 0.9rem; color: #64748b;">
