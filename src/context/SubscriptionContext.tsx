@@ -131,7 +131,11 @@ export const SubscriptionProvider = ({ session, children }: { session: Session; 
     let resolvedStatus = sub.status as SubscriptionStatus;
 
     // ── Check 1: Trial expiry ─────────────────────────────────────────────────
-    if (resolvedStatus === 'trialing' && sub.trial_ends_at) {
+    // During Beta mode, trial expiry is disabled so beta users have indefinite
+    // access. The original trial logic is preserved for the production launch —
+    // simply remove VITE_BETA_MODE or set it to 'false' to re-enable.
+    const isBetaMode = (import.meta.env.VITE_BETA_MODE ?? '').trim() === 'true';
+    if (!isBetaMode && resolvedStatus === 'trialing' && sub.trial_ends_at) {
       const trialEnd = new Date(sub.trial_ends_at);
       if (trialEnd < new Date()) {
         await supabase

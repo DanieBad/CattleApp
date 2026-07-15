@@ -65,7 +65,7 @@ export const Landing = () => {
             onClick={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }); }}
             style={{ fontSize: '1.2rem', padding: '16px 40px', borderRadius: '30px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)', animationDelay: '0.2s', animationFillMode: 'both', width: '100%', maxWidth: '320px', justifyContent: 'center' }}
           >
-            Start Your Free Trial <ArrowRight size={24} />
+            Join Beta Program <ArrowRight size={24} />
           </button>
           <span className="fade-in" style={{ fontSize: '0.875rem', color: 'var(--text-muted)', animationDelay: '0.3s', animationFillMode: 'both' }}>
             No charge for early adopters during Beta
@@ -147,7 +147,6 @@ export const Landing = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '32px', paddingTop: '16px' }}>
             {/* Basic Plan */}
             <div className="card fade-in" style={{ overflow: 'visible', padding: '40px 32px', textAlign: 'center', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '16px', right: '16px', padding: '4px 12px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--primary)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>30-day free trial</div>
               <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-main)', marginTop: '24px' }}>Basic</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>Up to 100 animals</p>
               <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '32px' }}>{isSouthAfrica ? 'R75' : '$5'}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}> / pm</span></div>
@@ -157,7 +156,7 @@ export const Landing = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                Start Free Trial
+                Join Beta Program
               </button>
             </div>
 
@@ -173,7 +172,7 @@ export const Landing = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                Start Free Trial
+                Join Beta Program
               </button>
             </div>
 
@@ -188,7 +187,7 @@ export const Landing = () => {
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'} 
                 onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--primary)'}
               >
-                Start Free Trial
+                Join Beta Program
               </button>
             </div>
 

@@ -41,7 +41,8 @@ export const Dashboard = () => {
     
     // Check if user should see the Quick Start Guide
     const hasSeenGuide = localStorage.getItem('has_viewed_quickstart_guide');
-    if (!hasSeenGuide) {
+    const permanentlyDismissed = localStorage.getItem('quickstart_permanently_dismissed');
+    if (!hasSeenGuide && !permanentlyDismissed) {
       // Small delay to let the dashboard render first
       const timer = setTimeout(() => setShowGuide(true), 1500);
       return () => clearTimeout(timer);
@@ -367,7 +368,7 @@ export const Dashboard = () => {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            {[['1', 'Last 24 Hours'], ['7', 'Last 7 Days'], ['30', 'Last 30 Days']].map(([days, label]) => (
+            {[['1', 'Last 24 Hours'], ['7', 'Last 7 Days'], ['30', 'Last 30 Days'], ['all', 'All']].map(([days, label]) => (
               <button key={days} className="btn"
                 style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.875rem' }}
                 onClick={() => navigate(`/recent-notes?days=${days}`)}
@@ -469,9 +470,12 @@ export const Dashboard = () => {
       {/* ── QUICK START GUIDE MODAL ────────────────────────────────────────── */}
       {showGuide && (
         <QuickStartGuideModal 
-          onClose={() => {
+          onClose={(permanentlyDismiss) => {
             setShowGuide(false);
             localStorage.setItem('has_viewed_quickstart_guide', 'true');
+            if (permanentlyDismiss) {
+              localStorage.setItem('quickstart_permanently_dismissed', 'true');
+            }
           }} 
         />
       )}
