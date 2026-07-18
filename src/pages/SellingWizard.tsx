@@ -9,6 +9,9 @@ import {
   FileText, MapPin, Calendar, Tag,
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { SignaturePad } from '../components/SignaturePad';
+import { generateDeclarationPdf } from '../utils/documentGenerator';
+import type { FarmSettings } from '../types';
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -26,7 +29,7 @@ const emptyBuyerInfo = (): TraceabilityData => ({
 });
 
 // ── 4-step progress bar ────────────────────────────────────
-const STEPS = ['Buyer Info', 'Select Animals', 'Confirm', 'Done'];
+const STEPS = ['Buyer Info', 'Select Animals', 'Confirm Sale', 'Transport Docs', 'Declaration', 'Done'];
 const StepBar = ({ step }: { step: number }) => (
   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
     {STEPS.map((label, i) => {
@@ -65,7 +68,10 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode; label: string;
 export const SellingWizard = () => {
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [farmSettings, setFarmSettings] = useState<FarmSettings | null>(null);
+  const [signatureUrl, setSignatureUrl] = useState<string>('');
+  useEffect(() => { supabase.auth.getUser().then(({data}) => { if (data.user) { supabase.from('farm_settings').select('*').eq('user_id', data.user.id).single().then(({data: fs}) => { if (fs) { setFarmSettings({ userId: fs.user_id, farmName: fs.farm_name, district: fs.district, defaultCattleBreed: fs.default_cattle_breed, defaultSheepBreed: fs.default_sheep_breed, gs1CompanyPrefix: fs.gs1_company_prefix, legalEntityGln: fs.legal_entity_gln, ownerFullName: fs.owner_full_name, ownerIdNumber: fs.owner_id_number, ownerAddress: fs.owner_address, ownerContactNumber: fs.owner_contact_number }); setBuyerInfo(prev => ({...prev, movementFrom: fs.owner_address || fs.district || ''})); } }); } }); }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating]   = useState(false);
   const [saleRecordId, setSaleRecordId] = useState<string | null>(null);
@@ -140,6 +146,20 @@ export const SellingWizard = () => {
         permit_number: buyerInfo.permitNumber || null,
         permit_url: permitUrl,
         transaction_date: buyerInfo.transactionDate || null,
+        
+        buyer_full_name: buyerInfo.partyName || null,
+        buyer_id_number: buyerInfo.partyIdNumber || null,
+        buyer_address: buyerInfo.partyAddress || null,
+        buyer_contact_number: buyerInfo.partyContact || null,
+        driver_full_name: buyerInfo.driverFullName || null,
+        driver_id_number: buyerInfo.driverIdNumber || null,
+        driver_address: buyerInfo.driverAddress || null,
+        driver_contact_number: buyerInfo.driverContact || null,
+        vehicle_registration: buyerInfo.vehicleRegistration || null,
+        vehicle_model: buyerInfo.vehicleModel || null,
+        vehicle_make: buyerInfo.vehicleMake || null,
+        destination_address: buyerInfo.gpsCoordinates || null,
+        movement_from: buyerInfo.movementFrom || null,
       }).select('id').single();
 
       if (error) throw error;
@@ -549,7 +569,124 @@ export const SellingWizard = () => {
       )}
 
       {/* ── STEP 4: Done ── */}
-      {step === 4 && (
+      
+        {step === 4 && (
+          <div className="fade-in card" style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+              <div style={{ width: '64px', height: '64px', background: '#DBEAFE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <FileText size={32} color="#2563EB" />
+              </div>
+              <h2 style={{ fontSize: '1.8rem', color: 'var(--primary-dark)', marginBottom: '8px' }}>Transport Documents</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Review the transport information before signing the declaration.</p>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '1rem', color: 'var(--text-main)' }}>Seller</h4>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  <p><strong>Name:</strong> {farmSettings?.ownerFullName || farmSettings?.farmName}</p>
+                  <p><strong>Address:</strong> {farmSettings?.ownerAddress || farmSettings?.district}</p>
+                  <p><strong>GLN:</strong> {farmSettings?.legalEntityGln || '-'}</p>
+                </div>
+              </div>
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '1rem', color: 'var(--text-main)' }}>Buyer</h4>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  <p><strong>Name:</strong> {buyerInfo.partyName}</p>
+                  <p><strong>Address:</strong> {buyerInfo.partyAddress}</p>
+                  <p><strong>GLN:</strong> {buyerInfo.partyGln || '-'}</p>
+                </div>
+              </div>
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '1rem', color: 'var(--text-main)' }}>Transport</h4>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  <p><strong>Driver:</strong> {buyerInfo.driverFullName}</p>
+                  <p><strong>Vehicle:</strong> {buyerInfo.vehicleMake} {buyerInfo.vehicleRegistration}</p>
+                  <p><strong>Date:</strong> {buyerInfo.transactionDate}</p>
+                </div>
+              </div>
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <h4 style={{ margin: '0 0 12px', fontSize: '1rem', color: 'var(--text-main)' }}>Animals ({soldAnimals.length})</h4>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', maxHeight: '80px', overflowY: 'auto' }}>
+                  {soldAnimals.slice(0, 3).map(a => <div key={a.id}>{a.species} {a.tagNumber}</div>)}
+                  {soldAnimals.length > 3 && <div>+ {soldAnimals.length - 3} more</div>}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+              <button className="btn btn-primary" onClick={() => setStep(5)} style={{ padding: '12px 24px', fontSize: '1rem' }}>
+                Continue to Declaration →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="fade-in card" style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '24px' }}>Owner Declaration</h2>
+            <div style={{ background: '#F8FAFC', padding: '24px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '24px' }}>
+              <p style={{ marginBottom: '12px' }}>I, <strong>{farmSettings?.ownerFullName || farmSettings?.farmName}</strong>, hereby declare that the {soldAnimals.length} animal(s) being moved:</p>
+              <ul style={{ paddingLeft: '24px', marginBottom: '24px', color: 'var(--text-muted)' }}>
+                <li>Are owned by me</li>
+                <li>Are, to the best of my knowledge, healthy and without clinical signs of disease</li>
+                <li>Originate from a premises that is not under veterinary quarantine</li>
+                <li>Comply with withdrawal periods of any medication used</li>
+                <li>Are not under treatment for any disease</li>
+              </ul>
+              <h4 style={{ marginBottom: '12px' }}>Signature</h4>
+              <SignaturePad onSign={setSignatureUrl} />
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+              <button className="btn btn-outline" onClick={() => setStep(4)}>Back</button>
+              <button className="btn btn-primary" disabled={isSubmitting || !signatureUrl} onClick={async () => {
+                setIsSubmitting(true);
+                try {
+                  // Upload signature
+                  const sigBlob = await (await fetch(signatureUrl)).blob();
+                  const sigFile = new File([sigBlob], 'signature.png', { type: 'image/png' });
+                  const sigPath = `${saleRecordId}/signature.png`;
+                  await supabase.storage.from('trade-documents').upload(sigPath, sigFile, { upsert: true });
+                  const sigPublicUrl = supabase.storage.from('trade-documents').getPublicUrl(sigPath).data.publicUrl;
+                  
+                  // Generate PDF
+                  const docData = {
+                    seller: farmSettings || {} as any,
+                    buyer: { fullName: buyerInfo.partyName, idNumber: buyerInfo.partyIdNumber || '', address: buyerInfo.partyAddress || '', contact: buyerInfo.partyContact || '', gln: buyerInfo.partyGln || '' },
+                    driver: { fullName: buyerInfo.driverFullName || '', idNumber: buyerInfo.driverIdNumber || '', address: buyerInfo.driverAddress || '', contact: buyerInfo.driverContact || '' },
+                    vehicle: { registration: buyerInfo.vehicleRegistration || '', make: buyerInfo.vehicleMake || '', model: buyerInfo.vehicleModel || '' },
+                    movement: { fromAddress: buyerInfo.movementFrom || '', toAddress: buyerInfo.gpsCoordinates || '', date: buyerInfo.transactionDate || '' },
+                    animals: soldAnimals as any,
+                    signatureDataUrl: signatureUrl
+                  };
+                  
+                  const pdfBlob = generateDeclarationPdf(docData);
+                  const pdfFile = new File([pdfBlob], 'declaration.pdf', { type: 'application/pdf' });
+                  const pdfPath = `${saleRecordId}/declaration.pdf`;
+                  await supabase.storage.from('trade-documents').upload(pdfPath, pdfFile, { upsert: true });
+                  const pdfPublicUrl = supabase.storage.from('trade-documents').getPublicUrl(pdfPath).data.publicUrl;
+                  
+                  await supabase.from('sale_records').update({
+                    declaration_signature_url: sigPublicUrl,
+                    declaration_pdf_url: pdfPublicUrl
+                  }).eq('id', saleRecordId);
+                  
+                  setStep(6);
+                } catch (err) {
+                  alert('Error saving documents: ' + err);
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }} style={{ padding: '12px 24px' }}>
+                {isSubmitting ? 'Saving...' : 'Sign & Complete Sale'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 6 && (
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div className="card" style={{ padding: '28px', backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>

@@ -83,12 +83,12 @@ export const Auth = () => {
         </form>
 
         <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <Link
-            to="/plans"
+          <a
+            href="/#pricing"
             style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none', fontSize: '0.9rem' }}
           >
             Don't have an account? Sign Up →
-          </Link>
+          </a>
         </div>
       </div>
     </div>

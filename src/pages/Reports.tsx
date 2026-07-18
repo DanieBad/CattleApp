@@ -542,7 +542,7 @@ const HealthComplianceReport = ({ animals, healthLogs }: { animals: Animal[]; he
 
 
 // ──────────────── SALES & FINANCIAL REPORT ────────────────
-const FinancialReport = ({ animals }: { animals: Animal[] }) => {
+const FinancialReport = ({ animals, saleRecords, animalSaleLinks }: { animals: Animal[], saleRecords: any[], animalSaleLinks: any[] }) => {
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 1);
@@ -550,13 +550,22 @@ const FinancialReport = ({ animals }: { animals: Animal[] }) => {
   });
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
-  const salesData = animals.filter(a => a.status === 'Sold').map(a => {
-    const sd = (a as any).updatedAt ? new Date((a as any).updatedAt) : new Date();
-    return { ...a, soldDate: sd };
+  const salesData = animalSaleLinks.map(link => {
+    const animal = animals.find(a => a.id === link.animal_id);
+    const saleRecord = saleRecords.find(sr => sr.id === link.sale_record_id);
+    if (!animal || !saleRecord) return null;
+
+    const soldDate = new Date(saleRecord.transaction_date || saleRecord.created_at);
+    return { 
+      ...animal, 
+      soldDate, 
+      soldPrice: link.sale_price || 0 
+    };
   }).filter(a => {
+    if (!a) return false;
     const sdTime = a.soldDate.getTime();
     return sdTime >= new Date(startDate).getTime() && sdTime <= new Date(endDate + 'T23:59:59').getTime();
-  }).sort((a, b) => b.soldDate.getTime() - a.soldDate.getTime());
+  }).sort((a, b) => b!.soldDate.getTime() - a!.soldDate.getTime()) as (Animal & { soldDate: Date, soldPrice: number })[];
 
   const totalSales = salesData.reduce((sum, a) => sum + (a.soldPrice || 0), 0);
   const totalPurchase = salesData.reduce((sum, a) => sum + (a.purchasePrice || 0), 0);
@@ -649,17 +658,21 @@ export const Reports = () => {
   const [healthLogs, setHealthLogs] = useState<HealthLog[]>([]);
   const [movementLogs, setMovementLogs] = useState<MovementLog[]>([]);
   const [camps, setCamps] = useState<Camp[]>([]);
+  const [saleRecords, setSaleRecords] = useState<any[]>([]);
+  const [animalSaleLinks, setAnimalSaleLinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [aRes, wRes, hRes, mRes, cRes] = await Promise.all([
+        const [aRes, wRes, hRes, mRes, cRes, srRes, aslRes] = await Promise.all([
           supabase.from('animals').select('*'),
           supabase.from('weight_logs').select('*'),
           supabase.from('health_logs').select('*'),
           supabase.from('movement_log').select('*'),
           supabase.from('camps').select('*'),
+          supabase.from('sale_records').select('*'),
+          supabase.from('animal_sale_links').select('*'),
         ]);
 
         setAnimals((aRes.data || []).map((a: any) => ({
@@ -689,6 +702,9 @@ export const Reports = () => {
           id: c.id, userId: c.user_id, name: c.name,
           sizeHectares: c.size_hectares, notes: c.notes, createdAt: c.created_at,
         })));
+        
+        setSaleRecords(srRes.data || []);
+        setAnimalSaleLinks(aslRes.data || []);
       } catch (err) {
         console.error('Error loading report data:', err);
       } finally {
@@ -762,7 +778,7 @@ export const Reports = () => {
           {activeReport === 'pasture' && <PastureReport movementLogs={movementLogs} camps={camps} />}
           {activeReport === 'reproductive' && <ReproductiveReport animals={animals} />}
           {activeReport === 'health' && <HealthComplianceReport animals={animals} healthLogs={healthLogs} />}
-          {activeReport === 'financial' && <FinancialReport animals={animals} />}
+          {activeReport === 'financial' && <FinancialReport animals={animals} saleRecords={saleRecords} animalSaleLinks={animalSaleLinks} />}
         </div>
       )}
     </div>

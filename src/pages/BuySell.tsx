@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
+import { FileText, Download } from 'lucide-react';
+import { generateDeclarationPdf, generateRemovalCertificatePdf } from '../utils/documentGenerator';
+import type { FarmSettings, Animal } from '../types';
 import { PackagePlus, PackageMinus, ChevronRight, ChevronDown, ChevronUp, Edit2, Loader2, Save, X, ExternalLink } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────
@@ -18,6 +21,22 @@ interface SaleRecord {
   created_at: string;
   animal_count: number;
   total_value: number;
+  buyer_full_name?: string;
+  buyer_id_number?: string;
+  buyer_address?: string;
+  buyer_contact_number?: string;
+  driver_full_name?: string;
+  driver_id_number?: string;
+  driver_address?: string;
+  driver_contact_number?: string;
+  vehicle_registration?: string;
+  vehicle_model?: string;
+  vehicle_make?: string;
+  destination_address?: string;
+  movement_from?: string;
+  declaration_signature_url?: string;
+  declaration_pdf_url?: string;
+  animal_sale_links?: any[];
 }
 
 interface EditForm {
@@ -44,6 +63,10 @@ export const BuySell = () => {
   const [editingRecord, setEditingRecord] = useState<SaleRecord | null>(null);
   const [editForm, setEditForm]   = useState<EditForm | null>(null);
   const [isSaving, setIsSaving]   = useState(false);
+  const [viewDocsRecord, setViewDocsRecord] = useState<SaleRecord | null>(null);
+  const [farmSettings, setFarmSettings] = useState<FarmSettings | null>(null);
+  const [docTab, setDocTab] = useState<'declaration' | 'removal'>('declaration');
+  const [fullAnimals, setFullAnimals] = useState<Animal[]>([]);
 
   // ── Fetch transactions ────────────────────────────────────
   const fetchRecords = async () => {
@@ -72,6 +95,22 @@ export const BuySell = () => {
         animal_count: r.animal_sale_links?.length ?? 0,
         // Sum sale_price for Sell records; for Buy records prices come from the animal record
         total_value: (r.animal_sale_links || []).reduce((s: number, l: any) => s + (l.sale_price || 0), 0),
+        buyer_full_name: r.buyer_full_name,
+        buyer_id_number: r.buyer_id_number,
+        buyer_address: r.buyer_address,
+        buyer_contact_number: r.buyer_contact_number,
+        driver_full_name: r.driver_full_name,
+        driver_id_number: r.driver_id_number,
+        driver_address: r.driver_address,
+        driver_contact_number: r.driver_contact_number,
+        vehicle_registration: r.vehicle_registration,
+        vehicle_model: r.vehicle_model,
+        vehicle_make: r.vehicle_make,
+        destination_address: r.destination_address,
+        movement_from: r.movement_from,
+        declaration_signature_url: r.declaration_signature_url,
+        declaration_pdf_url: r.declaration_pdf_url,
+        animal_sale_links: r.animal_sale_links,
       }));
 
       setRecords(mapped);
@@ -82,7 +121,20 @@ export const BuySell = () => {
     }
   };
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { 
+    fetchRecords();
+    supabase.auth.getUser().then(({data}) => {
+      if (data.user) {
+        supabase.from('farm_settings').select('*').eq('user_id', data.user.id).single().then(({data: fs}) => {
+          if (fs) {
+            setFarmSettings({
+              userId: fs.user_id, farmName: fs.farm_name, district: fs.district, defaultCattleBreed: fs.default_cattle_breed, defaultSheepBreed: fs.default_sheep_breed, gs1CompanyPrefix: fs.gs1_company_prefix, legalEntityGln: fs.legal_entity_gln, ownerFullName: fs.owner_full_name, ownerIdNumber: fs.owner_id_number, ownerAddress: fs.owner_address, ownerContactNumber: fs.owner_contact_number
+            });
+          }
+        });
+      }
+    });
+  }, []);
 
   // ── Edit helpers ──────────────────────────────────────────
   const openEdit = (rec: SaleRecord) => {
@@ -97,6 +149,23 @@ export const BuySell = () => {
     });
   };
 
+  const openDocs = async (rec: SaleRecord) => {
+    setViewDocsRecord(rec);
+    setDocTab('declaration');
+    // Fetch full animals for this record
+    const animalIds = (rec.animal_sale_links || []).map((l: any) => l.animal_id).filter(Boolean);
+    if (animalIds.length > 0) {
+      const { data } = await supabase.from('animals').select('*').in('id', animalIds);
+      if (data) {
+        setFullAnimals(data.map((a: any) => ({
+          id: a.id, species: a.species || 'Cattle', tagNumber: a.tag_number, name: a.name, breed: a.breed, sex: a.sex, dateOfBirth: a.date_of_birth, status: a.status
+        })) as Animal[]);
+      }
+    } else {
+      setFullAnimals([]);
+    }
+  };
+  
   const handleSaveEdit = async () => {
     if (!editingRecord || !editForm) return;
     setIsSaving(true);
@@ -206,7 +275,7 @@ export const BuySell = () => {
                 </thead>
                 <tbody>
                   {records.map(rec => (
-                    <>
+                    <Fragment key={rec.id}>
                       {/* Main row */}
                       <tr key={rec.id} className="table-row-hover" style={{ cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === rec.id ? null : rec.id)}>
                         <td style={{ color: 'var(--text-muted)', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>{fmtDate(rec.transaction_date || rec.created_at)}</td>
@@ -229,6 +298,15 @@ export const BuySell = () => {
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                            {!isBuy(rec) && (
+                              <button
+                                title="Transport Documents"
+                                onClick={() => openDocs(rec)}
+                                style={{ background: 'var(--bg-off)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: 600, color: '#2563eb', transition: 'all 0.15s' }}
+                              >
+                                <FileText size={13} /> Docs
+                              </button>
+                            )}
                             <button
                               title="Edit party info"
                               onClick={() => openEdit(rec)}
@@ -286,7 +364,7 @@ export const BuySell = () => {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -342,6 +420,112 @@ export const BuySell = () => {
                 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {isSaving ? <><Loader2 size={15} className="animate-spin" /> Saving…</> : <><Save size={15} /> Save Changes</>}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Document Modal ── */}
+      {viewDocsRecord && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '600px', backgroundColor: 'white', padding: '0', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Transport Documents</h2>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{viewDocsRecord.party_name} · {fmtDate(viewDocsRecord.transaction_date)}</p>
+              </div>
+              <button onClick={() => setViewDocsRecord(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={22} /></button>
+            </div>
+            
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
+              <button 
+                onClick={() => setDocTab('declaration')}
+                style={{ flex: 1, padding: '12px', border: 'none', background: docTab === 'declaration' ? '#F8FAFC' : 'white', fontWeight: 600, borderBottom: docTab === 'declaration' ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer' }}
+              >
+                Owner Declaration
+              </button>
+              <button 
+                onClick={() => setDocTab('removal')}
+                style={{ flex: 1, padding: '12px', border: 'none', background: docTab === 'removal' ? '#F8FAFC' : 'white', fontWeight: 600, borderBottom: docTab === 'removal' ? '2px solid var(--primary)' : '2px solid transparent', cursor: 'pointer' }}
+              >
+                Removal Certificate
+              </button>
+            </div>
+            
+            <div style={{ padding: '28px', minHeight: '200px' }}>
+              {docTab === 'declaration' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div style={{ background: '#F8FAFC', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Farmer / Owner Declaration</h4>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>This document declares ownership and health status of the animals being moved.</p>
+                  </div>
+                  
+                  {viewDocsRecord.declaration_pdf_url ? (
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <a href={viewDocsRecord.declaration_pdf_url} target="_blank" rel="noreferrer" className="btn btn-outline" style={{ flex: 1, textAlign: 'center' }}>
+                        View Saved PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={() => {
+                        const docData = {
+                          seller: farmSettings || {} as any,
+                          buyer: { fullName: viewDocsRecord.buyer_full_name || '', idNumber: viewDocsRecord.buyer_id_number || '', address: viewDocsRecord.buyer_address || '', contact: viewDocsRecord.buyer_contact_number || '', gln: viewDocsRecord.party_gln || '' },
+                          driver: { fullName: viewDocsRecord.driver_full_name || '', idNumber: viewDocsRecord.driver_id_number || '', address: viewDocsRecord.driver_address || '', contact: viewDocsRecord.driver_contact_number || '' },
+                          vehicle: { registration: viewDocsRecord.vehicle_registration || '', make: viewDocsRecord.vehicle_make || '', model: viewDocsRecord.vehicle_model || '' },
+                          movement: { fromAddress: viewDocsRecord.movement_from || '', toAddress: viewDocsRecord.destination_address || '', date: viewDocsRecord.transaction_date || '' },
+                          animals: fullAnimals,
+                          signatureDataUrl: viewDocsRecord.declaration_signature_url
+                        };
+                        const blob = generateDeclarationPdf(docData);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Declaration_${viewDocsRecord.party_name}.pdf`;
+                        a.click();
+                      }}
+                    >
+                      <Download size={18} /> Generate & Download PDF
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {docTab === 'removal' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div style={{ background: '#F8FAFC', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '1rem' }}>Removal Certificate (Sec 8)</h4>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Official document required by the Stock Theft Act for transporting animals.</p>
+                  </div>
+                  
+                  <button 
+                    className="btn btn-primary" 
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onClick={() => {
+                      const docData = {
+                        seller: farmSettings || {} as any,
+                        buyer: { fullName: viewDocsRecord.buyer_full_name || '', idNumber: viewDocsRecord.buyer_id_number || '', address: viewDocsRecord.buyer_address || '', contact: viewDocsRecord.buyer_contact_number || '', gln: viewDocsRecord.party_gln || '' },
+                        driver: { fullName: viewDocsRecord.driver_full_name || '', idNumber: viewDocsRecord.driver_id_number || '', address: viewDocsRecord.driver_address || '', contact: viewDocsRecord.driver_contact_number || '' },
+                        vehicle: { registration: viewDocsRecord.vehicle_registration || '', make: viewDocsRecord.vehicle_make || '', model: viewDocsRecord.vehicle_model || '' },
+                        movement: { fromAddress: viewDocsRecord.movement_from || '', toAddress: viewDocsRecord.destination_address || '', date: viewDocsRecord.transaction_date || '' },
+                        animals: fullAnimals,
+                        signatureDataUrl: viewDocsRecord.declaration_signature_url
+                      };
+                      const blob = generateRemovalCertificatePdf(docData);
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `Removal_Cert_${viewDocsRecord.party_name}.pdf`;
+                      a.click();
+                    }}
+                  >
+                    <Download size={18} /> Generate & Download PDF
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -19,7 +19,11 @@ export const Settings = () => {
     legalEntityGln: '',
     glnCertificateUrl: '',
     brandCertificateUrl: '',
-    voiceLanguage: 'en-ZA'
+    voiceLanguage: 'en-ZA',
+    ownerFullName: '',
+    ownerIdNumber: '',
+    ownerAddress: '',
+    ownerContactNumber: ''
   });
 
   useEffect(() => {
@@ -49,7 +53,11 @@ export const Settings = () => {
           legalEntityGln: data.legal_entity_gln || '',
           glnCertificateUrl: data.gln_certificate_url || '',
           brandCertificateUrl: data.brand_certificate_url || '',
-          voiceLanguage: (localStorage.getItem('voice_language') as any) || 'en-ZA'
+          voiceLanguage: (localStorage.getItem('voice_language') as any) || 'en-ZA',
+          ownerFullName: data.owner_full_name || '',
+          ownerIdNumber: data.owner_id_number || '',
+          ownerAddress: data.owner_address || '',
+          ownerContactNumber: data.owner_contact_number || ''
         });
       }
     } catch (error) {
@@ -78,6 +86,10 @@ export const Settings = () => {
         legal_entity_gln: settings.legalEntityGln,
         gln_certificate_url: settings.glnCertificateUrl,
         brand_certificate_url: settings.brandCertificateUrl,
+        owner_full_name: settings.ownerFullName,
+        owner_id_number: settings.ownerIdNumber,
+        owner_address: settings.ownerAddress,
+        owner_contact_number: settings.ownerContactNumber,
         updated_at: new Date().toISOString()
       };
 
@@ -191,6 +203,67 @@ export const Settings = () => {
 
       <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
         
+        {/* Owner Information */}
+        <div className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={20} color="var(--primary)" />
+            Owner Information
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: 'auto' }}>(Required for transport docs)</span>
+          </h2>
+          
+          <div className="form-group">
+            <label className="form-label" htmlFor="ownerFullName">Full Name & Surname</label>
+            <input 
+              id="ownerFullName"
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. John Doe"
+              value={settings.ownerFullName || ''}
+              onChange={e => setSettings({...settings, ownerFullName: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ownerIdNumber">ID Number / Passport</label>
+            <input 
+              id="ownerIdNumber"
+              className="form-input" 
+              type="text" 
+              placeholder="e.g. 8001015009087"
+              value={settings.ownerIdNumber || ''}
+              onChange={e => setSettings({...settings, ownerIdNumber: e.target.value})}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ownerAddress">Physical Address</label>
+            <div style={{ position: 'relative' }}>
+              <MapPin size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                id="ownerAddress"
+                className="form-input" 
+                style={{ paddingLeft: '40px' }}
+                type="text" 
+                placeholder="e.g. 123 Farm Road, District"
+                value={settings.ownerAddress || ''}
+                onChange={e => setSettings({...settings, ownerAddress: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="ownerContactNumber">Contact Number</label>
+            <input 
+              id="ownerContactNumber"
+              className="form-input" 
+              type="tel" 
+              placeholder="e.g. 082 123 4567"
+              value={settings.ownerContactNumber || ''}
+              onChange={e => setSettings({...settings, ownerContactNumber: e.target.value})}
+            />
+          </div>
+        </div>
+
         {/* Farm Information */}
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '1.2rem', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>

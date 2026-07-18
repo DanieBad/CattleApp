@@ -17,16 +17,19 @@ values (
 ) on conflict(id) do update set public = false;
 
 -- 4. Storage Policies for audio_notes (Authenticated users only)
+DROP POLICY IF EXISTS "Authenticated users can upload audio notes" ON storage.objects;
 create policy "Authenticated users can upload audio notes"
   on storage.objects for insert
   to authenticated
   with check ( bucket_id = 'audio_notes' );
 
+DROP POLICY IF EXISTS "Authenticated users can view their audio notes" ON storage.objects;
 create policy "Authenticated users can view their audio notes"
   on storage.objects for select
   to authenticated
   using ( bucket_id = 'audio_notes' );
 
+DROP POLICY IF EXISTS "Authenticated users can delete their audio notes" ON storage.objects;
 create policy "Authenticated users can delete their audio notes"
   on storage.objects for delete
   to authenticated
