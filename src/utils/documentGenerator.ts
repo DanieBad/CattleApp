@@ -205,9 +205,9 @@ export const generateRemovalCertificatePdf = (data: DocumentData): Blob => {
       doc.addPage();
       y = 20;
     }
-    doc.text(a.species, col1, y);
-    doc.text(a.breed, col2, y);
-    doc.text(a.tagNumber, col3, y);
+    doc.text(a.species || '', col1, y);
+    doc.text(a.breed || '', col2, y);
+    doc.text(a.tagNumber || '', col3, y);
     y += 6;
   });
   

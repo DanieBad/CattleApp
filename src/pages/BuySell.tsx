@@ -74,7 +74,7 @@ export const BuySell = () => {
     try {
       const { data, error } = await supabase
         .from('sale_records')
-        .select('*, animal_sale_links(sale_price)')
+        .select('*, animal_sale_links(sale_price, animal_id)')
         .order('created_at', { ascending: false })
         .limit(30);
 
