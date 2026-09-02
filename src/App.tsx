@@ -165,10 +165,16 @@ const App = () => {
     // Reset any records stuck in 'syncing' from a previous crashed session
     SyncManager.resetStuckSyncingRecords();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch((err) => {
+        console.error('[App] Failed to retrieve auth session:', err);
+      })
+      .finally(() => {
+        setIsAuthLoading(false);
+      });
 
     const {
       data: { subscription },
