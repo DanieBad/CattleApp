@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Papa from 'papaparse';
+import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../supabase';
 import { Upload, ChevronRight, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 import type { Animal, Breed, Status } from '../types';
@@ -284,6 +285,25 @@ export const ImportData = () => {
           if (Object.keys(updates).length > 0) {
             await supabase.from('animals').update(updates).eq('tag_number', animal.tagNumber);
           }
+        }
+      }
+
+      // ── Create initial weight logs for animals imported with weight ─
+      const animalsWithWeight = allRows.filter(a => a.weight && !isNaN(Number(a.weight)));
+      if (animalsWithWeight.length > 0) {
+        const { data: dbAnimals } = await supabase.from('animals').select('id, tag_number');
+        const tagToId = new Map((dbAnimals || []).map((a: any) => [String(a.tag_number), a.id]));
+        const weightPayloads = animalsWithWeight
+          .filter(a => tagToId.has(String(a.tagNumber)))
+          .map(a => ({
+            id: uuidv4(),
+            animal_id: tagToId.get(String(a.tagNumber))!,
+            weight_kg: Number(a.weight),
+            date_recorded: new Date().toISOString().split('T')[0],
+            notes: 'Initial weight recorded via CSV import'
+          }));
+        if (weightPayloads.length > 0) {
+          await supabase.from('weight_logs').insert(weightPayloads);
         }
       }
       // ────────────────────────────────────────────────────────────────

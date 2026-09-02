@@ -20,7 +20,7 @@ export const BatchHealth = () => {
   // ── Pre-selection from Health Workflow ───────────────────────────────────
   const preSelectedIds: string[] | undefined = (location.state as any)?.preSelectedIds;
   const preSelectedAnimals: PreSelectedAnimal[] | undefined = (location.state as any)?.preSelectedAnimals;
-  const isPreSelected = Array.isArray(preSelectedIds) && preSelectedIds.length > 1;
+  const isPreSelected = Array.isArray(preSelectedIds) && preSelectedIds.length > 0;
 
   const [herd, setHerd] = useState<Animal[]>([]);
   const [isLoading, setIsLoading] = useState(!isPreSelected);
@@ -511,17 +511,41 @@ export const BatchHealth = () => {
               )}
             </div>
 
-            {/* Dosage — plain optional text, no smart calculation for batch */}
+            {/* Dosage — with quick-apply for vaccines */}
             <div className="form-group">
-              <label className="form-label" htmlFor="dosage">
-                Dosage
-                <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '6px' }}>(optional — not auto-calculated for batch)</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" htmlFor="dosage" style={{ marginBottom: 0 }}>
+                  Dosage
+                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: '6px' }}>
+                    {treatmentType === 'Vaccination' || selectedProductDef?.category === 'Vaccination'
+                      ? '(fixed standard dose per animal)'
+                      : '(optional per animal or batch guideline)'}
+                  </span>
+                </label>
+                {selectedProductDef && (
+                  (treatmentType === 'Vaccination' || selectedProductDef.category === 'Vaccination') ? (
+                    <button
+                      type="button"
+                      onClick={() => setDosage(`${selectedProductDef.dosageMlPerKg}ml`)}
+                      style={{
+                        background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46',
+                        fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '6px', cursor: 'pointer'
+                      }}
+                    >
+                      Use standard: {selectedProductDef.dosageMlPerKg}ml
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Guide: {selectedProductDef.dosageMlPerKg} ml/kg
+                    </span>
+                  )
+                )}
+              </div>
               <input
                 id="dosage"
                 className="form-input"
                 type="text"
-                placeholder="e.g. 5ml"
+                placeholder="e.g. 2ml"
                 value={dosage}
                 onChange={e => setDosage(e.target.value)}
               />

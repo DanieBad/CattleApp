@@ -6,6 +6,7 @@ import { SyncManager } from '../services/syncManager';
 import { v4 as uuidv4 } from 'uuid';
 import type { Animal, HealthLog, WeightLog, MovementLog, Camp, JournalLog, VetProduct, BreedStandard } from '../types';
 import { calculateAge, getAnimalIcon } from '../utils';
+import { calculateRecommendedDosage, formatWeightDateStamp } from '../utils/healthUtils';
 import { BirthWorkflowModal } from '../components/BirthWorkflowModal';
 
 type Tab = 'overview' | 'health' | 'weight' | 'movement' | 'journal';
@@ -144,7 +145,7 @@ export const AnimalDetail = () => {
         .eq('animal_id', id)
         .order('date_recorded', { ascending: false });
         
-      if (wData) {
+      if (wData && wData.length > 0) {
         setWeightLogs(wData.map(w => ({
           id: w.id,
           animalId: w.animal_id,
@@ -153,6 +154,33 @@ export const AnimalDetail = () => {
           notes: w.notes,
           createdAt: w.created_at
         })));
+      } else if (mainAnimal.weight) {
+        // Auto-backfill initial weight log so animal has date-stamped weight history
+        const initialLogId = uuidv4();
+        const initialLogDate = mainAnimal.arrivalDate || mainAnimal.dateOfBirth || new Date().toISOString().split('T')[0];
+        const initialLogPayload = {
+          id: initialLogId,
+          animal_id: mainAnimal.id,
+          weight_kg: mainAnimal.weight,
+          date_recorded: initialLogDate,
+          notes: 'Initial registration weight'
+        };
+        const initialLog: WeightLog = {
+          id: initialLogId,
+          animalId: mainAnimal.id,
+          weightKg: mainAnimal.weight,
+          dateRecorded: initialLogDate,
+          notes: 'Initial registration weight'
+        };
+        setWeightLogs([initialLog]);
+        try {
+          await db.weight_logs.put(initialLog);
+          await SyncManager.queueInsert('weight_logs', initialLogId, initialLogPayload);
+        } catch (syncErr) {
+          console.error('Error saving initial backfill weight log:', syncErr);
+        }
+      } else {
+        setWeightLogs([]);
       }
 
       // 6. Fetch Health Logs
@@ -408,7 +436,8 @@ export const AnimalDetail = () => {
             setWeightLogs([newLog, ...weightLogs]);
         }
         
-        if (!animal?.weight || new Date(newWeightDate) >= new Date()) {
+        const isLatest = !weightLogs.length || new Date(newWeightDate).getTime() >= new Date(weightLogs[0].dateRecorded).getTime();
+        if (!animal?.weight || isLatest) {
           const { error: updateErr } = await supabase.from('animals').update({ weight: parseFloat(newWeight) }).eq('id', id);
           if (!updateErr) {
             setAnimal(prev => prev ? { ...prev, weight: parseFloat(newWeight) } : null);
@@ -479,14 +508,20 @@ export const AnimalDetail = () => {
     
     const productDef = products.find(p => p.productName === selectedProduct);
     const weightToUse = calculateEstimatedWeight();
-    const requiredDose = productDef ? weightToUse * productDef.dosageMlPerKg : null;
+    const isVaccine = (productDef?.category === 'Vaccination') || (newTreatmentType === 'Vaccination');
+    const requiredDose = productDef 
+      ? calculateRecommendedDosage(productDef.category || newTreatmentType, productDef.dosageMlPerKg, weightToUse) 
+      : null;
 
     if (requiredDose && !isOtherSelected && newDosage) {
        const enteredDosage = parseFloat(newDosage);
        if (!isNaN(enteredDosage)) {
          const variance = Math.abs((enteredDosage - requiredDose) / requiredDose);
          if (variance > 0.15) {
-             if(!window.confirm(`ℹ️ Estimated weight used: ${weightToUse.toFixed(1)}kg. Standard dose is approx. ${requiredDose.toFixed(1)}ml. Please confirm your entry.`)) {
+             const doseMsg = isVaccine
+               ? `Standard vaccine dose for ${productDef?.productName} is ${requiredDose.toFixed(1)}ml per animal. Please confirm your entry.`
+               : `Estimated weight used: ${weightToUse.toFixed(1)}kg. Standard dose is approx. ${requiredDose.toFixed(1)}ml. Please confirm your entry.`;
+             if(!window.confirm(`ℹ️ ${doseMsg}`)) {
                  return; // Halt Save
              }
          }
@@ -1086,7 +1121,27 @@ export const AnimalDetail = () => {
               </div>
               <div className="info-row">
                 <span className="info-label">Current Weight</span>
-                <span className="info-value">{animal.weight ? `${animal.weight} kg` : 'Not recorded'}</span>
+                <span className="info-value">
+                  {(() => {
+                    const latestLog = weightLogs.length > 0 ? weightLogs[0] : null;
+                    const weightVal = latestLog ? latestLog.weightKg : animal.weight;
+                    if (!weightVal) return 'Not recorded';
+
+                    const rawDate = latestLog ? latestLog.dateRecorded : (animal.arrivalDate || animal.dateOfBirth);
+                    if (!rawDate) return `${weightVal} kg`;
+
+                    const { formattedDate, ageLabel } = formatWeightDateStamp(rawDate);
+
+                    return (
+                      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                        <span style={{ fontWeight: 600 }}>{weightVal} kg</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                          Weighed {formattedDate} ({ageLabel})
+                        </span>
+                      </span>
+                    );
+                  })()}
+                </span>
               </div>
               {animal.currentCampId && movementLogs.length > 0 && (
                 <div className="info-row">
@@ -1226,7 +1281,7 @@ export const AnimalDetail = () => {
                             const pDef = products.find(p => p.productName === val);
                             if (pDef) {
                                 const weightToUse = calculateEstimatedWeight();
-                                const estimatedDose = weightToUse * pDef.dosageMlPerKg;
+                                const estimatedDose = calculateRecommendedDosage(pDef.category || newTreatmentType, pDef.dosageMlPerKg, weightToUse);
                                 setNewDosage(estimatedDose.toFixed(1));
                             }
                         }
@@ -1264,7 +1319,7 @@ export const AnimalDetail = () => {
                     <label className="form-label" style={{ marginBottom: 0 }}>Dosage (ml)</label>
                     <span 
                       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'var(--text-muted)', color: 'white', fontSize: '11px', fontWeight: 'bold' }} 
-                      onClick={() => alert("Dosage is automatically calculated based on the selected medicine's dosage guidelines and the animal's estimated weight, which is derived from either a recent recorded weight (last 30 days) or an algorithmic projection based on age and breed standards.")}
+                      onClick={() => alert("Vaccines use a standard fixed dose per animal (e.g. 2 ml for RB51 / S19). Treatments and dewormers calculate dose based on estimated weight (recent weight or age/breed projection).")}
                       title="How is this calculated?"
                     >
                       i

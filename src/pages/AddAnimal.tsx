@@ -194,6 +194,27 @@ export const AddAnimal = () => {
         };
         await SyncManager.queueInsert('animals', newAnimal.id, supabaseAnimal);
 
+        // Initial Weight Log
+        if (newAnimal.weight) {
+          const weightLogId = uuidv4();
+          const weightLogDate = newAnimal.arrivalDate || new Date().toISOString().split('T')[0];
+          const newWeightLog = {
+            id: weightLogId,
+            animalId: newAnimal.id,
+            weightKg: newAnimal.weight,
+            dateRecorded: weightLogDate,
+            notes: 'Initial registration weight'
+          };
+          await db.weight_logs.add(newWeightLog);
+          await SyncManager.queueInsert('weight_logs', weightLogId, {
+            id: weightLogId,
+            animal_id: newAnimal.id,
+            weight_kg: newAnimal.weight,
+            date_recorded: weightLogDate,
+            notes: 'Initial registration weight'
+          });
+        }
+
         // Permit File Upload (Background Queue wrapper attempt)
         let permitPdfUrl = null;
         if (permitFile && navigator.onLine) {

@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowUpDown, ChevronUp, ChevronDown, Plus, Search, 
-  MapPin, Calendar, Clock, User, Fingerprint, ShieldAlert
+  MapPin, Calendar, Clock, User, Fingerprint, ShieldAlert,
+  Scale, Activity, Sparkles, Truck
 } from 'lucide-react';
 import { supabase } from '../supabase';
 import { db } from '../database/db';
 import type { Animal, Camp } from '../types';
 import { calculateAge, getAnimalIcon } from '../utils';
+import { BulkWeighModal } from '../components/BulkWeighModal';
+import { BulkPregnancyModal } from '../components/BulkPregnancyModal';
 
 type SortField = 'tagNumber' | 'dateOfBirth' | 'age' | 'sex' | 'breed' | 'camp' | 'eidNumber' | 'lastBirthDate';
 
@@ -26,6 +30,8 @@ export const HerdList = () => {
   const [campFilter, setCampFilter] = useState<string | null>(campIdParam);
   const [quarantineFilter, setQuarantineFilter] = useState<boolean>(quarantinedParam);
   const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
+  const [isWeighModalOpen, setIsWeighModalOpen] = useState(false);
+  const [isPregnancyModalOpen, setIsPregnancyModalOpen] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ field: SortField, direction: 'asc' | 'desc' } | null>({
     field: 'dateOfBirth',
     direction: 'desc'
@@ -142,7 +148,7 @@ export const HerdList = () => {
         animal.breed.toLowerCase().includes(searchTerm.toLowerCase());
         
       const matchesSpecies = speciesFilter === 'All' ? true : animal.species === speciesFilter;
-      const matchesCamp = !campFilter ? true : animal.currentCampId === campFilter;
+      const matchesCamp = !campFilter ? true : (campFilter === 'unassigned' ? !animal.currentCampId : animal.currentCampId === campFilter);
       const matchesQuarantine = !quarantineFilter ? true : animal.isQuarantined === true;
       const matchesStatus = statusFilter === 'All' ? true : animal.status === 'Active';
 
@@ -188,6 +194,8 @@ export const HerdList = () => {
       setSelectedAnimals(sortedAndFilteredHerd.map(a => a.id));
     }
   };
+
+  const selectedAnimalObjects = herd.filter(a => selectedAnimals.includes(a.id));
 
   const SortableHeader = ({ field, label, icon: Icon }: { field: SortField, label: string, icon?: any }) => (
     <th 
@@ -263,6 +271,50 @@ export const HerdList = () => {
           >
             All
           </button>
+        </div>
+
+        {/* Pasture / Camp Dropdown Filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <MapPin size={16} color="var(--primary)" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }} />
+            <select
+              className="form-input"
+              value={campFilter || ''}
+              onChange={(e) => {
+                const val = e.target.value || null;
+                setCampFilter(val);
+                if (val) {
+                  setSearchParams(prev => ({ ...Object.fromEntries(prev.entries()), campId: val }));
+                } else {
+                  setSearchParams(prev => {
+                    const next = Object.fromEntries(prev.entries());
+                    delete next.campId;
+                    return next;
+                  });
+                }
+              }}
+              style={{
+                paddingLeft: '36px',
+                paddingRight: '32px',
+                height: '42px',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: campFilter ? '#ECFDF5' : '#F1F5F9',
+                borderColor: campFilter ? 'var(--primary)' : 'transparent',
+                color: campFilter ? 'var(--primary-dark)' : 'var(--text-main)'
+              }}
+            >
+              <option value="">All Pastures</option>
+              {camps.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+              <option value="unassigned">Unassigned Pasture</option>
+            </select>
+          </div>
         </div>
 
         {campFilter && (
@@ -416,43 +468,179 @@ export const HerdList = () => {
           </table>
         </div>
       </div>
-      {selectedAnimals.length > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: '#1E293B',
-          color: 'white',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          zIndex: 100
-        }} className="fade-in">
-          <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
-            {selectedAnimals.length} Animal{selectedAnimals.length !== 1 ? 's' : ''} Selected
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
+      {/* Fixed Viewport Floating Action Bar via Portal */}
+      {selectedAnimals.length > 0 && typeof document !== 'undefined' && createPortal(
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            color: 'white',
+            padding: '12px 20px',
+            borderRadius: '16px',
+            boxShadow: '0 20px 40px -8px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            zIndex: 9990,
+            maxWidth: '95vw',
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ 
+              backgroundColor: '#334155', 
+              color: '#38BDF8', 
+              fontWeight: 700, 
+              fontSize: '0.85rem',
+              padding: '4px 10px', 
+              borderRadius: '20px' 
+            }}>
+              {selectedAnimals.length} Selected
+            </span>
             <button 
+              type="button"
               className="btn"
-              style={{ padding: '8px 16px', backgroundColor: '#334155', color: 'white', border: '1px solid #475569' }}
+              style={{ 
+                padding: '6px 12px', 
+                backgroundColor: 'transparent', 
+                color: '#94A3B8', 
+                border: 'none',
+                fontSize: '0.825rem',
+                cursor: 'pointer' 
+              }}
               onClick={() => setSelectedAnimals([])}
             >
               Clear
             </button>
+          </div>
+
+          <div style={{ height: '24px', width: '1px', backgroundColor: 'rgba(255,255,255,0.15)' }}></div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Weigh In */}
             <button 
-              className="btn btn-primary"
-              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#059669' }}
+              type="button"
+              className="btn"
+              style={{ 
+                padding: '8px 14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                backgroundColor: '#059669', 
+                color: 'white', 
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => setIsWeighModalOpen(true)}
+            >
+              <Scale size={16} />
+              Weigh In
+            </button>
+
+            {/* Log Health Treatment */}
+            <button 
+              type="button"
+              className="btn"
+              style={{ 
+                padding: '8px 14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                backgroundColor: '#2563EB', 
+                color: 'white', 
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => navigate('/batch-health', { state: { preSelectedIds: selectedAnimals } })}
+            >
+              <Activity size={16} />
+              Log Treatment
+            </button>
+
+            {/* Pregnancy Results */}
+            <button 
+              type="button"
+              className="btn"
+              style={{ 
+                padding: '8px 14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                backgroundColor: '#DB2777', 
+                color: 'white', 
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+              onClick={() => setIsPregnancyModalOpen(true)}
+            >
+              <Sparkles size={16} />
+              Pregnancy Results
+            </button>
+
+            {/* Batch Move / Sell */}
+            <button 
+              type="button"
+              className="btn"
+              style={{ 
+                padding: '8px 14px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                backgroundColor: '#334155', 
+                color: 'white', 
+                border: '1px solid #475569',
+                borderRadius: '8px',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
               onClick={() => navigate('/herd/batch-move', { state: { selectedIds: selectedAnimals } })}
             >
-              Batch Move / Sell &rarr;
+              <Truck size={16} />
+              Batch Move &rarr;
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
+
+      {/* Bulk Weigh-In Modal */}
+      <BulkWeighModal
+        isOpen={isWeighModalOpen}
+        onClose={() => setIsWeighModalOpen(false)}
+        selectedAnimals={selectedAnimalObjects}
+        camps={camps}
+        onSuccess={() => {
+          fetchHerd();
+          setSelectedAnimals([]);
+        }}
+      />
+
+      {/* Bulk Pregnancy Check Modal */}
+      <BulkPregnancyModal
+        isOpen={isPregnancyModalOpen}
+        onClose={() => setIsPregnancyModalOpen(false)}
+        selectedAnimals={selectedAnimalObjects}
+        onSuccess={() => {
+          fetchHerd();
+          setSelectedAnimals([]);
+        }}
+      />
     </div>
   );
 };

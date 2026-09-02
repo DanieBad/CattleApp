@@ -180,6 +180,17 @@ export const BuyingWizard = () => {
         notes: `Purchased from ${sellerInfo.partyName || 'unknown seller'} — auto log`,
       });
 
+      // Initial weight log
+      if (animalForm.weight && !isNaN(parseFloat(animalForm.weight))) {
+        await supabase.from('weight_logs').insert({
+          id: uuidv4(),
+          animal_id: animalId,
+          weight_kg: parseFloat(animalForm.weight),
+          date_recorded: sellerInfo.transactionDate || today,
+          notes: `Purchase intake weight from ${sellerInfo.partyName || 'seller'}`
+        });
+      }
+
       // Link to sale record
       await supabase.from('animal_sale_links').insert({ sale_record_id: saleRecordId, animal_id: animalId, sale_price: null });
 
