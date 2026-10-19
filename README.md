@@ -1,6 +1,11 @@
-# React + TypeScript + Vite
+# HealthyHerd
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+For the complete development, staging, testing, and deployment workflow, please see:
+👉 **[Deployment & Staging Workflow](docs/DEPLOYMENT_AND_STAGING_WORKFLOW.md)**
+
+---
+
+## Technical Overview
 
 Currently, two official plugins are available:
 
